@@ -1,0 +1,244 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, serverTimestamp, setDoc, doc } from 'firebase/firestore';
+
+function loadEnv() {
+  const envPath = resolve(process.cwd(), '.env');
+  const raw = readFileSync(envPath, 'utf8');
+  const env = {};
+
+  raw.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const index = trimmed.indexOf('=');
+    if (index === -1) return;
+    env[trimmed.slice(0, index)] = trimmed.slice(index + 1);
+  });
+
+  return env;
+}
+
+const env = loadEnv();
+
+const firebaseConfig = {
+  apiKey: env.VITE_FIREBASE_API_KEY,
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: env.VITE_FIREBASE_APP_ID,
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
+};
+
+const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+const missing = requiredKeys.filter((key) => !firebaseConfig[key]);
+
+if (missing.length) {
+  throw new Error(`Missing Firebase config values: ${missing.join(', ')}`);
+}
+
+const collections = {
+  colleges: {
+    purpose: 'College master records available to Super Admin users',
+    fields: ['id', 'name', 'code', 'location', 'logoUrl', 'logoFileName', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  students: {
+    purpose: 'Main student profile records',
+    fields: [
+      'admissionNo',
+      'studentId',
+      'name',
+      'profilePhotoUrl',
+      'profilePhotoName',
+      'className',
+      'semesterNumber',
+      'semesterNumbers',
+      'semesterLabels',
+      'semesterDisplay',
+      'section',
+      'program',
+      'guardianName',
+      'idHolder',
+      'academicYear',
+      'phone',
+      'email',
+      'status',
+      'createdAtText',
+      'updatedAtText',
+      'archivedAtText',
+      'restoredAtText',
+    ],
+  },
+  admissionBatches: {
+    purpose: 'Course-wise RGUHS admission statement metadata',
+    fields: ['academicYear', 'collegeName', 'collegeCode', 'courseName', 'courseCode', 'courseYear', 'semesterNumbers', 'semesterLabels', 'semesterDisplay', 'admissionType', 'sourcePdf', 'studentCount', 'status'],
+  },
+  studentAdmissions: {
+    purpose: 'Admission form, admission workflow, and status history',
+    fields: ['studentId', 'admissionNo', 'academicYear', 'idHolder', 'status', 'submittedAt', 'approvedAt'],
+  },
+  studentDocuments: {
+    purpose: 'Student document repository',
+    fields: [
+      'studentRecordId',
+      'studentId',
+      'documentType',
+      'academicYear',
+      'uploadedBy',
+      'fileName',
+      'fileSize',
+      'fileType',
+      'fileUrl',
+      'storagePath',
+      'verificationStatus',
+      'uploadedAtText',
+      'verifiedAtText',
+    ],
+  },
+  studentPromotions: {
+    purpose: 'Student promotion records',
+    fields: ['studentRecordId', 'studentId', 'fromClass', 'toClass', 'academicYear', 'status', 'approvedBy', 'approvedAtText'],
+  },
+  studentTransfers: {
+    purpose: 'Student transfer requests and certificate tracking',
+    fields: ['studentRecordId', 'studentId', 'transferType', 'reason', 'academicYear', 'status', 'requestedAtText', 'certificateUrl'],
+  },
+  users: {
+    purpose: 'ERP user profiles linked to Firebase Auth users',
+    fields: ['uid', 'name', 'email', 'roleId', 'displayId', 'collegeIds', 'status', 'linkedStudentRecordIds', 'linkedStudentIds', 'createdBy', 'createdAtText', 'updatedAtText'],
+  },
+  roles: {
+    purpose: 'ERP role definitions and permission maps',
+    fields: ['id', 'name', 'description', 'locked', 'permissions'],
+  },
+  staffMembers: {
+    purpose: 'Faculty and staff master records',
+    fields: ['employeeId', 'name', 'photoUrl', 'photoName', 'staffType', 'department', 'designation', 'phone', 'email', 'qualification', 'institution', 'city', 'dateOfBirth', 'specialization', 'joiningDate', 'appointmentType', 'address', 'previousExperience', 'publications', 'researchProjects', 'qualificationDetails', 'documentFileName', 'documentStatus', 'status', 'createdAtText', 'updatedAtText', 'archivedAtText', 'restoredAtText'],
+  },
+  departments: {
+    purpose: 'Department master data and allocation support',
+    fields: ['name', 'headName', 'status'],
+  },
+  staffLeaveRecords: {
+    purpose: 'Faculty and staff leave requests and approvals',
+    fields: ['staffRecordId', 'employeeId', 'leaveType', 'fromDate', 'toDate', 'reason', 'status', 'requestedAtText', 'decidedAtText'],
+  },
+  staffAttendanceRecords: {
+    purpose: 'Faculty and staff daily attendance tracking',
+    fields: ['staffRecordId', 'employeeId', 'academicYear', 'dateText', 'status', 'markedAtText', 'markedAtIso', 'editedAtText', 'editedAtIso'],
+  },
+  studentAttendanceRecords: {
+    purpose: 'Student daily attendance tracking',
+    fields: ['entityType', 'entityRecordId', 'entityId', 'studentRecordId', 'studentId', 'entityName', 'className', 'section', 'semester', 'semesterNumber', 'semesterNumbers', 'semesterLabels', 'department', 'courseCode', 'courseName', 'attendanceScope', 'subjectCode', 'subjectName', 'facultyRecordId', 'facultyId', 'facultyName', 'topic', 'syllabusTopic', 'syllabusTopicMatched', 'academicYear', 'dateText', 'status', 'sessionId', 'markedAtText', 'markedAtIso', 'editedAtText', 'editedAtIso', 'parentNotified'],
+  },
+  attendanceNotifications: {
+    purpose: 'Parent notification queue metadata for attendance events',
+    fields: ['studentRecordId', 'studentId', 'studentName', 'channel', 'academicYear', 'reason', 'status', 'attendanceRecordId', 'createdAtText'],
+  },
+  classrooms: {
+    purpose: 'Classroom master data for timetable allocation',
+    fields: ['roomNo', 'building', 'capacity', 'status'],
+  },
+  timetableEntries: {
+    purpose: 'Class and faculty timetable entries',
+    fields: ['classKey', 'subject', 'academicYear', 'facultyId', 'facultyName', 'classroomId', 'classroomName', 'day', 'timeSlot', 'status', 'createdAtText', 'updatedAtText', 'archivedAtText'],
+  },
+  timetablePublications: {
+    purpose: 'Timetable publishing metadata',
+    fields: ['classKey', 'academicYear', 'status', 'publishedAtText', 'entryCount'],
+  },
+  subjectNotes: {
+    purpose: 'Faculty-uploaded PDF notes mapped to academic subjects',
+    fields: ['title', 'description', 'subjectRecordId', 'subjectCode', 'subjectName', 'programName', 'courseCode', 'courseName', 'classKey', 'displayPeriod', 'semesterNumber', 'semesterNumbers', 'semesterLabels', 'academicYear', 'facultyRecordId', 'facultyId', 'facultyName', 'uploadedByUid', 'uploadedByEmail', 'uploadedById', 'uploadedByName', 'fileName', 'fileSize', 'fileType', 'fileUrl', 'storagePath', 'status', 'uploadedAtText', 'updatedAtText', 'archivedAtText'],
+  },
+  examSchedules: {
+    purpose: 'Exam schedule records',
+    fields: ['examName', 'classKey', 'subject', 'examType', 'academicYear', 'examDate', 'startTime', 'durationMinutes', 'roomNo', 'maxMarks', 'facultyId', 'facultyName', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  internalAssessments: {
+    purpose: 'Internal assessment setup records',
+    fields: ['title', 'classKey', 'subject', 'academicYear', 'maxMarks', 'status', 'createdAtText'],
+  },
+  marksEntries: {
+    purpose: 'Student marks entry records',
+    fields: ['examScheduleId', 'studentRecordId', 'studentId', 'studentName', 'classKey', 'subject', 'academicYear', 'marksObtained', 'maxMarks', 'percentage', 'grade', 'status', 'enteredAtText'],
+  },
+  studentResults: {
+    purpose: 'Generated student result summaries',
+    fields: ['studentRecordId', 'studentId', 'studentName', 'classKey', 'examName', 'academicYear', 'totalObtained', 'totalMax', 'percentage', 'grade', 'status', 'generatedAtText'],
+  },
+  reportCards: {
+    purpose: 'Report card generation metadata',
+    fields: ['studentRecordId', 'studentId', 'examName', 'academicYear', 'status', 'generatedAtText'],
+  },
+  feeStructures: {
+    purpose: 'Class-wise fee structure setup',
+    fields: ['name', 'classKey', 'academicYear', 'admissionFee', 'applicationFee', 'pocketArticleFee', 'tuitionFee', 'libraryFee', 'labFee', 'transportFee', 'totalAmount', 'dueDate', 'status', 'courseCode', 'courseName', 'feeYearLabel', 'courseTotalAmount', 'extraChargesNote', 'seedSource', 'createdAtText', 'updatedAtText'],
+  },
+  feeAssignments: {
+    purpose: 'Student fee assignment and due tracking',
+    fields: ['feeStructureId', 'studentRecordId', 'studentId', 'studentName', 'classKey', 'academicYear', 'courseCode', 'courseName', 'admissionFee', 'applicationFee', 'pocketArticleFee', 'tuitionFee', 'libraryFee', 'labFee', 'transportFee', 'agentFee', 'admissionThroughAgent', 'agentFeePaid', 'pendingAgentFeeBalance', 'totalAmount', 'paidAmount', 'adjustmentAmount', 'dueAmount', 'dueDate', 'manualDueItems', 'status', 'feeYearLabel', 'seedSource', 'assignedAtText', 'updatedAtText'],
+  },
+  feeCollections: {
+    purpose: 'Manual/offline fee collection records',
+    fields: ['assignmentId', 'feeStructureId', 'feeStructureName', 'studentRecordId', 'studentId', 'studentName', 'classKey', 'batchPaymentId', 'installmentNo', 'installmentCount', 'amount', 'academicYear', 'paymentMode', 'creditedToAccount', 'referenceNo', 'paymentDate', 'paymentTime', 'paidAt', 'collectedBy', 'entryMode', 'manualDueItems', 'dueBeforePayment', 'totalPaidAfterPayment', 'dueAfterPayment', 'admissionThroughAgent', 'agentFee', 'agentFeePaidAmount', 'pendingAgentFeeBalance', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  feeAdjustments: {
+    purpose: 'Fee concessions, waivers, and approved adjustments',
+    fields: ['assignmentId', 'studentRecordId', 'studentId', 'studentName', 'amount', 'academicYear', 'reason', 'status', 'createdAtText'],
+  },
+  financialReportSnapshots: {
+    purpose: 'Saved financial report summary snapshots',
+    fields: ['reportName', 'filters', 'totalAssigned', 'lifetimeCollected', 'filteredCollected', 'totalAdjusted', 'totalOutstanding', 'overdueAmount', 'dueSoonAmount', 'collectionRate', 'classCount', 'dueStudentCount', 'status', 'createdAtText'],
+  },
+  noticeItems: {
+    purpose: 'Digital notices, circulars, and event announcements',
+    fields: ['type', 'title', 'referenceNo', 'audience', 'academicYear', 'priority', 'body', 'publishDate', 'expiryDate', 'status', 'createdByName', 'createdAtText', 'updatedAtText', 'archivedAtText'],
+  },
+  managedDocuments: {
+    purpose: 'Student, staff, and other document metadata',
+    fields: ['ownerType', 'ownerRecordId', 'ownerId', 'ownerName', 'archiveTitle', 'documentType', 'note', 'category', 'fileName', 'fileSize', 'fileType', 'fileUrl', 'storagePath', 'verificationStatus', 'uploadedAtText', 'verifiedAtText', 'archivedAtText', 'notes', 'tags'],
+  },
+  parentPortalLinks: {
+    purpose: 'Optional parent-to-student relationship map for portal filtering',
+    fields: ['parentUserId', 'parentEmail', 'studentRecordId', 'studentId', 'relationship', 'status'],
+  },
+  academicPrograms: {
+    purpose: 'Academic program and curriculum master records',
+    fields: ['name', 'code', 'academicYear', 'academicStructure', 'teachingSemesterCount', 'totalSemesterCount', 'internshipSemesterCount', 'semesterNumbers', 'semesterLabels', 'admissionStartSemester', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  academicSubjects: {
+    purpose: 'Subject master records mapped to programs',
+    fields: ['subjectName', 'subjectCode', 'programName', 'creditHours', 'academicYear', 'courseCode', 'courseName', 'classKey', 'curriculumPeriod', 'displayPeriod', 'periodType', 'sourcePeriodLabel', 'yearNumber', 'semesterNumber', 'semesterNumbers', 'semesterLabels', 'syllabusCourseCode', 'syllabusCourseTitle', 'category', 'theoryHours', 'practicalHours', 'clinicalHours', 'totalHours', 'examMaxMarks', 'internalMarks', 'topics', 'topicCount', 'topicSource', 'sourceFile', 'sourcePage', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  academicBatches: {
+    purpose: 'Class, section, capacity, and class teacher setup',
+    fields: ['className', 'section', 'programName', 'classTeacher', 'capacity', 'academicYear', 'courseCode', 'courseName', 'classKey', 'curriculumPeriod', 'displayPeriod', 'periodType', 'sourcePeriodLabel', 'yearNumber', 'semesterNumber', 'semesterNumbers', 'semesterLabels', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  academicCalendarEvents: {
+    purpose: 'Academic calendar event records',
+    fields: ['title', 'eventType', 'eventDate', 'audience', 'academicYear', 'status', 'createdAtText', 'updatedAtText'],
+  },
+  systemSettings: {
+    purpose: 'Institute profile, academic year, ID formats, and module defaults',
+    fields: ['id', 'name', 'instituteId', 'code', 'logoUrl', 'logoFileName', 'email', 'phone', 'address', 'city', 'startsOn', 'endsOn', 'student', 'admission', 'employee', 'receipt', 'studentAdmissions', 'staffLeave', 'timetablePublishing', 'parentPortal', 'onlinePayments', 'receiptGeneration', 'communicationModule', 'updatedAtText'],
+  },
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+for (const [collectionName, schema] of Object.entries(collections)) {
+  await setDoc(doc(db, collectionName, '__schema'), {
+    ...schema,
+    createdBy: 'CollegeERP bootstrap',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  console.log(`Created/updated ${collectionName}/__schema`);
+}
+
+console.log('Student Information Management collections are ready.');
+

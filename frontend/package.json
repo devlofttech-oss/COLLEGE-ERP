@@ -1,0 +1,44 @@
+{
+  "name": "college-erp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "node scripts/testAuthRoles.js && node scripts/testStudentUtils.js && node scripts/testCourseFilters.js && node scripts/testUserRoles.js && node scripts/testFacultyStaff.js && node scripts/testAttendance.js && node scripts/testTimetable.js && node scripts/testSubjectNotes.js && node scripts/testExams.js && node scripts/testFees.js && node scripts/testHostel.js && node scripts/testFinancialReports.js && node scripts/testNotices.js && node scripts/testDocuments.js && node scripts/testParentPortal.js && node scripts/testDashboard.js && node scripts/testThemeSwitchContrast.js && node scripts/testModuleRegistry.js && node scripts/testAcademicsSettings.js",
+    "firebase:seed": "node scripts/resetAndSeedFirebase.js",
+    "firebase:seed-syllabus": "node scripts/seedSyllabusCourseData.js",
+    "firebase:seed-fees": "node scripts/seedOfficialFeeStructureData.js",
+    "firebase:seed-users": "node scripts/seedRoleAuthUsers.js",
+    "firebase:maurya-credentials": "node scripts/createMauryaLoginCredentials.js",
+    "firebase:login-aliases": "node scripts/generateLoginAliases.js",
+    "firebase:backfill-student-semesters": "node scripts/backfillStudentSemesters.js",
+    "firebase:reset-seed": "node -e \"throw new Error('Firestore reset is locked. Use firebase:seed for merge-only seeding.')\"",
+    "firebase:backfill-academic-year": "node scripts/backfillAcademicYear.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "firebase": "^12.12.1",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.14.2",
+    "tailwindcss": "^4.2.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "firebase-admin": "^14.0.0",
+    "globals": "^17.5.0",
+    "vite": "^8.0.9"
+  }
+}
