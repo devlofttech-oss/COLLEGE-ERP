@@ -4,12 +4,8 @@ import { Building2, GraduationCap } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
 import LegalPage from './pages/LegalPage';
 import StudentInformationManagement from './modules/students/StudentInformationManagement';
-import { logoutUser, subscribeToAuthState } from './firebase/auth';
-import { getInstituteShellData, getUserProfile } from './firebase/db';
-import {
-  clearStoredSuperAdminAccessMode,
-  getStoredSuperAdminAccessMode,
-} from './firebase/accessMode';
+import { getCurrentSession, logoutSession } from './api/auth';
+import { getInstituteShellData } from './firebase/db';
 import ParticleBackground from './components/ParticleBackground';
 import { normalizeInstituteSettings } from './modules/settings/settingsModel';
 import { getCanonicalModulePath } from './modules/moduleRegistry';
@@ -121,23 +117,24 @@ function ModuleWorkspaceRoute(props) {
   return <WorkspaceGate {...props} />;
 }
 
-function buildEffectiveUser(nextUser, profile = {}) {
-  const actualRoleId = profile?.roleId || 'pending';
-  const accessMode = actualRoleId === 'super-admin'
-    ? getStoredSuperAdminAccessMode()
-    : actualRoleId;
+function normalizeProfileStatus(status = '') {
+  const value = String(status || '').trim();
+  if (!value) return 'Pending Approval';
+  if (value.toLowerCase() === 'active') return 'Active';
+  return value;
+}
 
-  if (actualRoleId !== 'super-admin') {
-    clearStoredSuperAdminAccessMode();
-  }
-
+function buildEffectiveUser(apiUser = {}) {
+  const profile = apiUser.profile || {};
+  const actualRoleId = apiUser.role || profile.role || apiUser.roleId || profile.roleId || 'pending';
   return {
-    ...nextUser,
-    roleId: actualRoleId === 'super-admin' ? accessMode : actualRoleId,
+    ...apiUser,
+    name: apiUser.name || profile.name || profile.displayName || '',
+    email: apiUser.email || profile.email || '',
+    roleId: actualRoleId,
     actualRoleId,
-    superAdminAccessMode: actualRoleId === 'super-admin' ? accessMode : '',
-    status: profile?.status || 'Pending Approval',
-    permissions: profile?.permissions || [],
+    status: normalizeProfileStatus(apiUser.status || profile.status),
+    permissions: apiUser.permissions || profile.permissions || [],
     displayId: profile?.displayId || profile?.adminId || profile?.employeeId || '',
     collegeIds: profile?.collegeIds || ['main-campus'],
     linkedStudentIds: profile?.linkedStudentIds || [],
@@ -156,36 +153,24 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState(async (nextUser) => {
-      if (!nextUser) {
-        setUser(null);
-        setSelectedCollege(null);
-        sessionStorage.removeItem('selectedCollege');
-        setAuthLoading(false);
-        return;
+    let active = true;
+    const loadSession = async () => {
+      try {
+        const sessionUser = await getCurrentSession();
+        if (active) setUser(buildEffectiveUser(sessionUser));
+      } catch {
+        if (active) {
+          setUser(null);
+          setSelectedCollege(null);
+          sessionStorage.removeItem('selectedCollege');
+        }
+      } finally {
+        if (active) setAuthLoading(false);
       }
-
-      const profile = await getUserProfile(nextUser.uid).catch(() => null);
-      setUser(buildEffectiveUser(nextUser, profile || {}));
-      setAuthLoading(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const syncSuperAdminAccessMode = () => {
-      setUser((currentUser) => {
-        if (currentUser?.actualRoleId !== 'super-admin') return currentUser;
-        const accessMode = getStoredSuperAdminAccessMode();
-        if (currentUser.roleId === accessMode && currentUser.superAdminAccessMode === accessMode) return currentUser;
-        return { ...currentUser, roleId: accessMode, superAdminAccessMode: accessMode };
-      });
     };
-    window.addEventListener('storage', syncSuperAdminAccessMode);
-    window.addEventListener('super-admin-access-mode-updated', syncSuperAdminAccessMode);
+    loadSession();
     return () => {
-      window.removeEventListener('storage', syncSuperAdminAccessMode);
-      window.removeEventListener('super-admin-access-mode-updated', syncSuperAdminAccessMode);
+      active = false;
     };
   }, []);
 
@@ -204,8 +189,12 @@ export default function App() {
   const logout = async () => {
     setSelectedCollege(null);
     sessionStorage.removeItem('selectedCollege');
-    clearStoredSuperAdminAccessMode();
-    await logoutUser();
+    await logoutSession().catch(() => {});
+    setUser(null);
+  };
+
+  const handleAuthenticated = (apiUser) => {
+    setUser(buildEffectiveUser(apiUser));
   };
 
   const selectCollege = (college) => {
@@ -238,7 +227,7 @@ export default function App() {
   }
 
   const hasActiveProfile = user?.status === 'Active' && user?.roleId && user.roleId !== 'pending';
-  const needsCollegeSelection = hasActiveProfile && user?.actualRoleId === 'super-admin' && user?.roleId === 'super-admin' && !selectedCollege;
+  const needsCollegeSelection = false;
   const colleges = [buildCollegeFromInstitute(institute)];
   const workspaceProps = {
     colleges,
@@ -255,7 +244,7 @@ export default function App() {
       <ParticleBackground />
       <Routes>
         <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage onAuthenticated={handleAuthenticated} />} />
         <Route path="/register" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         <Route path="/dashboard" element={<WorkspaceGate {...workspaceProps} />} />
         <Route path="/students" element={<WorkspaceGate {...workspaceProps} />} />

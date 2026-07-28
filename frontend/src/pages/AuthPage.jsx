@@ -1,75 +1,42 @@
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, ShieldCheck, Users } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Eye, EyeOff, GraduationCap, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { loginWithEmail, logoutUser, sendResetPasswordEmail } from '../firebase/auth';
-import { isFirebaseConfigured } from '../firebase/config';
-import { getUserProfile } from '../firebase/db';
-import { canResolveLoginIdentifier, resolveLoginEmail } from '../firebase/loginAliases';
-import { clearStoredSuperAdminAccessMode, setStoredSuperAdminAccessMode } from '../firebase/accessMode';
-import devloftLogo from '../../assets/logo.png';
-
-const roleOptions = [
-  { id: 'parent', label: 'Parent', aliases: ['parent'] },
-  { id: 'faculty', label: 'Staff', aliases: ['faculty'] },
-  { id: 'admin', label: 'Admin', aliases: ['admin'] },
-  { id: 'super-admin', label: 'Super Admin', aliases: ['super-admin'] },
-];
+import { loginSession, requestPasswordReset } from '../api/auth';
+import collegesoftLogo from '../../assets/collegesoft.png';
 
 function getAuthErrorMessage(error) {
-  const code = error?.code || '';
-  if (code.includes('invalid-credential')) return 'Invalid email/phone or password.';
-  if (code.includes('email-already-in-use')) return 'This email is already registered.';
-  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
-  if (code.includes('network-request-failed')) return 'Network error while contacting Firebase.';
-  if (code.includes('missing-email')) return 'Enter your email or phone first.';
-  if (code.includes('user-not-found')) return 'No account exists for that email or phone.';
+  if (error?.status === 401) return 'Incorrect email or password.';
+  if (error?.status === 403) return error.message || 'This account is not active.';
+  if (error?.status === 503) return error.message || 'Authentication service is not configured.';
   return error?.message || 'Authentication failed. Please try again.';
 }
 
-export default function AuthPage() {
+export default function AuthPage({ onAuthenticated }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    roleId: 'parent',
-    email: '',
-    password: '',
-  });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const selectedRole = roleOptions.find((role) => role.id === form.roleId) || roleOptions[0];
+  const updateField = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
 
   const submit = async (event) => {
     event.preventDefault();
+    const email = form.email.trim();
+    if (!email || !form.password) {
+      toast.error('Email and password are required.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const identifier = form.email.trim();
-      if (!canResolveLoginIdentifier(identifier)) {
-        toast.error('No account exists for that email or phone.');
-        return;
-      }
-
-      const signedInUser = await loginWithEmail(resolveLoginEmail(identifier), form.password);
-      const profile = await getUserProfile(signedInUser.uid).catch(() => null);
-      const profileRoleId = profile?.roleId || signedInUser.roleId;
-      const isSuperAdminCredential = profileRoleId === 'super-admin';
-
-      if (isSuperAdminCredential) {
-        setStoredSuperAdminAccessMode(selectedRole.id);
-        window.dispatchEvent(new Event('super-admin-access-mode-updated'));
-      } else {
-        clearStoredSuperAdminAccessMode();
-      }
-
-      if (profileRoleId && profileRoleId !== 'pending' && !isSuperAdminCredential && !selectedRole.aliases.includes(profileRoleId)) {
-        await logoutUser().catch(() => {});
-        toast.error(`This login is not assigned to ${selectedRole.label}.`);
-        return;
-      }
-
+      const user = await loginSession({ email, password: form.password });
+      onAuthenticated?.(user);
       toast.success('Signed in');
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       toast.error(getAuthErrorMessage(error));
     } finally {
@@ -78,21 +45,16 @@ export default function AuthPage() {
   };
 
   const resetPassword = async () => {
-    const identifier = form.email.trim();
-    if (!identifier) {
-      toast.error('Enter your email or phone first.');
-      return;
-    }
-
-    if (!canResolveLoginIdentifier(identifier)) {
-      toast.error('No account exists for that email or phone.');
+    const email = form.email.trim();
+    if (!email) {
+      toast.error('Enter your email first.');
       return;
     }
 
     setResetting(true);
     try {
-      await sendResetPasswordEmail(resolveLoginEmail(identifier));
-      toast.success('Password reset email sent.');
+      await requestPasswordReset(email);
+      toast.success('If that email exists, a reset link has been sent.');
     } catch (error) {
       toast.error(getAuthErrorMessage(error));
     } finally {
@@ -101,115 +63,88 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="auth-shell min-h-screen bg-[#f1f2f4] flex items-center justify-center p-6">
-      <section className="auth-panel w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-[0_18px_60px_rgba(15,23,42,0.12)] overflow-hidden">
-        <div className="bg-[#1b1f21] text-white p-7">
-          <div className="h-16 w-16 rounded-xl bg-white flex items-center justify-center mb-5 overflow-hidden">
-            <img src={devloftLogo} alt="Devloft" className="h-full w-full object-contain p-2" />
+    <main className="backend-auth-shell min-h-screen flex items-center justify-center px-5 py-8 text-[#071e27]">
+      <section className="backend-auth-card relative w-full max-w-[440px] rounded-[32px] border border-white/30 bg-white/30 p-7 sm:p-10 shadow-[0_30px_90px_rgba(7,30,39,0.16)] backdrop-blur-2xl">
+        <div className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-[#81f3e5]/30 blur-2xl" />
+        <div className="absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-[#94d1d1]/30 blur-2xl" />
+
+        <div className="relative text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 rotate-3 items-center justify-center rounded-2xl bg-[#004d4d] text-[#84f5e8] shadow-[0_18px_36px_rgba(0,77,77,0.24)] transition-transform duration-300 hover:rotate-0">
+            <GraduationCap size={34} strokeWidth={1.8} />
           </div>
-          <h1 className="text-3xl font-bold">Devloft College Management</h1>
-          <p className="text-sm text-slate-300 mt-1">College Management Suite</p>
+          <img src={collegesoftLogo} alt="Collegesoft" className="mx-auto mb-3 max-h-10 w-auto object-contain" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#006a62]">Admin ERP</p>
         </div>
 
-        <form onSubmit={submit} className="p-7 space-y-5">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Login</h2>
-            {!isFirebaseConfigured && (
-              <p className="text-sm text-slate-500 mt-1">Add Firebase values to .env before signing in.</p>
-            )}
-          </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-xs font-semibold text-slate-500">I am a</legend>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {roleOptions.map((role) => {
-                const selected = form.roleId === role.id;
-                return (
-                  <label
-                    key={role.id}
-                    className={`auth-role-option h-11 rounded-lg border px-3 flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer transition-colors ${
-                      selected
-                        ? 'is-selected border-[#00ff88] bg-[#00ff88] text-[#02100d]'
-                        : 'border-slate-200 bg-[#f5f5f6] text-slate-600 hover:border-[#00ff88]'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="roleId"
-                      value={role.id}
-                      checked={selected}
-                      onChange={(event) => setForm((prev) => ({ ...prev, roleId: event.target.value }))}
-                      className="sr-only"
-                    />
-                    {['admin', 'super-admin'].includes(role.id) ? <ShieldCheck size={16} /> : <Users size={16} />}
-                    {role.label}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <label className="block">
-            <span className="text-xs font-semibold text-slate-500 mb-1.5 block">Email or Phone</span>
-            <div className="relative">
-              <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <form onSubmit={submit} className="relative mt-10 space-y-6">
+          <label className="block space-y-2">
+            <span className="ml-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-[#3f4848]">Email</span>
+            <span className="group relative block">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6f7978] group-focus-within:text-[#006a62]" size={18} />
               <input
-                type="text"
+                type="email"
                 inputMode="email"
+                autoComplete="email"
                 required
                 value={form.email}
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                className="w-full h-11 rounded-lg bg-[#f5f5f6] border border-slate-200 pl-10 pr-3 outline-none focus:ring-2 focus:ring-orange-100"
-                placeholder="Email or Phone"
+                onChange={(event) => updateField('email', event.target.value)}
+                className="h-12 w-full rounded-xl border border-white/30 bg-white/45 pl-11 pr-4 text-sm text-[#071e27] outline-none transition focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/25"
+                placeholder="admin@collegesoft.edu"
               />
-            </div>
+            </span>
           </label>
 
-          <label className="block">
-            <span className="text-xs font-semibold text-slate-500 mb-1.5 block">Password</span>
-            <div className="relative">
-              <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <label className="block space-y-2">
+            <span className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#3f4848]">Password</span>
+              <button
+                type="button"
+                onClick={resetPassword}
+                disabled={submitting || resetting}
+                className="text-xs font-semibold text-[#006a62] transition hover:text-[#003434] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {resetting ? 'Sending...' : 'Forgot password?'}
+              </button>
+            </span>
+            <span className="group relative block">
+              <Lock className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#6f7978] group-focus-within:text-[#006a62]" size={18} />
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 required
                 minLength={6}
                 value={form.password}
-                onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-                className="w-full h-11 rounded-lg bg-[#f5f5f6] border border-slate-200 pl-10 pr-11 outline-none focus:ring-2 focus:ring-orange-100"
-                placeholder="minimum 6 characters"
+                onChange={(event) => updateField('password', event.target.value)}
+                className="h-12 w-full rounded-xl border border-white/30 bg-white/45 pl-11 pr-12 text-sm text-[#071e27] outline-none transition focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/25"
+                placeholder="Enter password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((visible) => !visible)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md text-slate-500 hover:bg-white flex items-center justify-center"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6f7978] transition hover:bg-white/45 hover:text-[#006a62]"
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
+            </span>
           </label>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <button
-              disabled={!isFirebaseConfigured || submitting || resetting}
-              className="auth-primary-button flex-1 h-11 rounded-full bg-[#00ff88] text-[#02100d] font-bold disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {submitting ? 'Please wait...' : 'Login'}
-            </button>
-            <button
-              type="button"
-              onClick={resetPassword}
-              disabled={!isFirebaseConfigured || submitting || resetting}
-              className="auth-reset-button h-11 px-4 rounded-full bg-transparent border border-slate-200 text-[#fb8d49] font-semibold disabled:cursor-not-allowed disabled:text-slate-400 disabled:bg-slate-100"
-            >
-              {resetting ? 'Sending...' : 'Forgot password?'}
-            </button>
-          </div>
-
-          <p className="text-sm text-center text-slate-500">
-            Need an account? Ask an administrator to create one for you.
-          </p>
+          <button
+            type="submit"
+            disabled={submitting || resetting}
+            className="backend-auth-submit flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#004d4d] text-sm font-bold text-white shadow-[0_18px_34px_rgba(0,77,77,0.22)] transition hover:bg-[#003434] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#8ba3a3] disabled:shadow-none"
+          >
+            {submitting ? <Loader2 className="animate-spin" size={18} /> : <span>Sign In</span>}
+            {!submitting && <ArrowRight size={18} />}
+          </button>
         </form>
+
+        <div className="relative mt-8 flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#81f3e5]/40 bg-[#81f3e5]/25 px-4 py-2 text-xs font-semibold text-[#006f66]">
+            <ShieldCheck size={15} />
+            <span>Secure role-based session</span>
+          </div>
+        </div>
       </section>
     </main>
   );

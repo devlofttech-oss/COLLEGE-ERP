@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@600;700&display=swap');
 *{box-sizing:border-box}html,body,#root{min-height:100%}body{margin:0;font-family:'Poppins',system-ui,sans-serif;background:#000000;color:#f4f7f8;letter-spacing:0}button,input,select,textarea{font:inherit}
 input[type="number"]{-moz-appearance:textfield;appearance:textfield}
 input[type="number"]::-webkit-inner-spin-button,
@@ -60,6 +61,69 @@ html{color-scheme:dark}::selection{background:rgba(0,255,136,.18);color:#eafff5}
 .erp-sticky-inspector::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px}
 @media(max-width:1279px){.erp-sticky-inspector{position:static;max-height:none;overflow:visible;padding-right:0}}
 @media(prefers-reduced-motion:reduce){.erp-shell *,.auth-shell *{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}.app-background:before,.app-background:after{display:none}}
+
+.backend-auth-shell{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  font-family:'Inter',system-ui,sans-serif;
+  background:linear-gradient(135deg,#d9f1ee 0%,#eaf7ff 48%,#cbd8f2 100%);
+}
+
+.backend-auth-shell:before,
+.backend-auth-shell:after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  border-radius:50%;
+  filter:blur(86px);
+  z-index:-1;
+}
+
+.backend-auth-shell:before{
+  width:520px;
+  height:520px;
+  left:-160px;
+  top:-120px;
+  background:rgba(129,243,229,.42);
+}
+
+.backend-auth-shell:after{
+  width:460px;
+  height:460px;
+  right:-130px;
+  bottom:-120px;
+  background:rgba(148,209,209,.36);
+}
+
+.backend-auth-card{
+  isolation:isolate;
+}
+
+.backend-auth-card img{
+  mix-blend-mode:multiply;
+}
+
+.backend-auth-card input::placeholder{
+  color:#6f7978;
+}
+
+.backend-auth-submit:hover:not(:disabled) svg{
+  transform:translateX(3px);
+}
+
+.backend-auth-submit svg{
+  transition:transform .18s cubic-bezier(.22,1,.36,1);
+}
+
+@media(prefers-reduced-motion:reduce){
+  .backend-auth-shell *,
+  .backend-auth-shell:before,
+  .backend-auth-shell:after{
+    animation-duration:.01ms!important;
+    transition-duration:.01ms!important;
+  }
+}
 
 /* Sidebar and dashboard visual polish */
 .erp-sidebar {
