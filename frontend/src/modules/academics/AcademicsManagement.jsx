@@ -1,289 +1,652 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import {
+  Archive,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  GraduationCap,
+  Layers3,
+  Loader2,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  SplitSquareHorizontal,
+  UserRoundCheck,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createAcademicBatch, createAcademicProgram, createAcademicSubject, getAcademicsData } from '../../firebase/db';
-import { isFirebaseConfigured } from '../../firebase/config';
+import {
+  archiveAcademicResource,
+  createAcademicResource,
+  getCurrentAcademicYear,
+  listAcademicResource,
+  restoreAcademicResource,
+  setCurrentAcademicYear,
+  updateAcademicResource,
+} from '../../api/academics';
 import { canAccess, defaultRoles } from '../userRoles/rolePermissions';
-import StatusBadge from '../students/components/StatusBadge';
-import { filterAcademicItems, formatDisplayDate, validateBatch, validateProgram, validateSubject } from './academicUtils';
-import { filterByCourse } from '../shared/courseFilters';
 
-const tabs = [
-  ['programs', 'Programs'],
-  ['subjects', 'Subjects'],
-  ['batches', 'Batches'],
+const resourceTabs = [
+  { id: 'academicYears', label: 'Academic Years', icon: CalendarDays, singular: 'Academic Year' },
+  { id: 'courses', label: 'Courses', icon: GraduationCap, singular: 'Course' },
+  { id: 'classes', label: 'Classes', icon: Layers3, singular: 'Class' },
+  { id: 'sections', label: 'Sections', icon: SplitSquareHorizontal, singular: 'Section' },
+  { id: 'subjects', label: 'Subjects', icon: BookOpen, singular: 'Subject' },
+  { id: 'teacherAllocations', label: 'Teacher Allocations', icon: UserRoundCheck, singular: 'Teacher Allocation' },
 ];
 
-function AcademicRecordModal({ activeTab, academicYear, programs, onClose, onSave }) {
-  const [form, setForm] = useState({
-    name: '',
-    code: '',
-    subjectName: '',
-    subjectCode: '',
-    programName: '',
-    creditHours: '',
-    className: '',
-    section: '',
-    classTeacher: '',
-    capacity: '',
-    status: 'Active',
+const initialState = {
+  academicYears: [],
+  courses: [],
+  classes: [],
+  sections: [],
+  subjects: [],
+  teacherAllocations: [],
+};
+
+const fieldConfig = {
+  academicYears: [
+    { key: 'name', label: 'Academic Year', required: true, placeholder: '2026-2027' },
+    { key: 'startDate', label: 'Start Date', type: 'date' },
+    { key: 'endDate', label: 'End Date', type: 'date' },
+    { key: 'workingDays', label: 'Working Days', placeholder: 'Monday, Tuesday, Wednesday' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+    { key: 'isCurrent', label: 'Current Year', type: 'checkbox' },
+  ],
+  courses: [
+    { key: 'name', label: 'Course Name', required: true },
+    { key: 'code', label: 'Course Code' },
+    { key: 'academicYear', label: 'Academic Year', required: true, type: 'academicYearSelect' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+  ],
+  classes: [
+    { key: 'name', label: 'Class Name', required: true },
+    { key: 'courseId', label: 'Course', type: 'courseSelect' },
+    { key: 'academicYear', label: 'Academic Year', required: true, type: 'academicYearSelect' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+  ],
+  sections: [
+    { key: 'name', label: 'Section Name', required: true },
+    { key: 'classId', label: 'Class', required: true, type: 'classSelect' },
+    { key: 'capacity', label: 'Capacity', type: 'number' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+  ],
+  subjects: [
+    { key: 'name', label: 'Subject Name', required: true },
+    { key: 'code', label: 'Subject Code' },
+    { key: 'credits', label: 'Credits', type: 'number' },
+    { key: 'classId', label: 'Class', type: 'classSelect' },
+    { key: 'courseId', label: 'Course', type: 'courseSelect' },
+    { key: 'academicYear', label: 'Academic Year', type: 'academicYearSelect' },
+    { key: 'assignedTeacherId', label: 'Assigned Teacher ID' },
+    { key: 'assignedTeacherName', label: 'Assigned Teacher Name' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+  ],
+  teacherAllocations: [
+    { key: 'teacherId', label: 'Teacher ID', required: true },
+    { key: 'teacherName', label: 'Teacher Name' },
+    { key: 'subjectId', label: 'Subject', required: true, type: 'subjectSelect' },
+    { key: 'classId', label: 'Class', type: 'classSelect' },
+    { key: 'sectionId', label: 'Section', type: 'sectionSelect' },
+    { key: 'academicYear', label: 'Academic Year', type: 'academicYearSelect' },
+    { key: 'status', label: 'Status', type: 'select', options: ['active', 'inactive'] },
+  ],
+};
+
+const emptyForm = {
+  status: 'active',
+  isCurrent: false,
+};
+
+function displayStatus(item) {
+  if (item.archived) return 'archived';
+  return item.status || 'active';
+}
+
+function statusClasses(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'archived') return 'bg-slate-100 text-slate-600 border-slate-200';
+  if (normalized === 'inactive') return 'bg-amber-50 text-amber-700 border-amber-200';
+  return 'bg-[#81f3e5]/35 text-[#006f66] border-[#81f3e5]/50';
+}
+
+function labelFor(list, id, fallback = '-') {
+  if (!id) return fallback;
+  return list.find((item) => item.id === id)?.name || fallback;
+}
+
+function normalizeFormPayload(resource, form, data) {
+  const payload = {};
+  fieldConfig[resource].forEach((field) => {
+    const value = form[field.key];
+    if (value === undefined) return;
+    if (field.type === 'checkbox') {
+      payload[field.key] = Boolean(value);
+      return;
+    }
+    if (field.type === 'number') {
+      payload[field.key] = value === '' ? undefined : Number(value);
+      return;
+    }
+    if (field.key === 'workingDays') {
+      payload.workingDays = Array.isArray(value)
+        ? value
+        : String(value || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      return;
+    }
+    payload[field.key] = typeof value === 'string' ? value.trim() : value;
   });
-  const label = tabs.find(([id]) => id === activeTab)?.[1].slice(0, -1) || 'Record';
-  const programOptions = [...new Set(programs.map((program) => program.name).filter(Boolean))];
-  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  if (resource === 'classes' && payload.courseId) {
+    const course = data.courses.find((item) => item.id === payload.courseId);
+    payload.courseName = course?.name || form.courseName || '';
+  }
+
+  if (resource === 'sections' && payload.classId) {
+    const klass = data.classes.find((item) => item.id === payload.classId);
+    payload.className = klass?.name || form.className || '';
+    payload.academicYear = klass?.academicYear || form.academicYear || payload.academicYear;
+  }
+
+  if (resource === 'subjects' && payload.classId) {
+    const klass = data.classes.find((item) => item.id === payload.classId);
+    payload.className = klass?.name || form.className || '';
+    payload.academicYear = payload.academicYear || klass?.academicYear || '';
+  }
+
+  if (resource === 'teacherAllocations') {
+    const subject = data.subjects.find((item) => item.id === payload.subjectId);
+    const klass = data.classes.find((item) => item.id === payload.classId);
+    const section = data.sections.find((item) => item.id === payload.sectionId);
+    payload.subjectName = subject?.name || form.subjectName || '';
+    payload.className = klass?.name || subject?.className || form.className || '';
+    payload.sectionName = section?.name || form.sectionName || '';
+    payload.academicYear = payload.academicYear || subject?.academicYear || klass?.academicYear || '';
+  }
+
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+  return payload;
+}
+
+function validatePayload(resource, payload) {
+  const missing = fieldConfig[resource].find((field) => field.required && !payload[field.key]);
+  return missing ? `${missing.label} is required.` : '';
+}
+
+function AcademicsModal({ activeResource, data, defaultAcademicYear, initialRecord, onClose, onSave }) {
+  const [form, setForm] = useState(() => ({
+    ...emptyForm,
+    academicYear: defaultAcademicYear || '',
+    ...initialRecord,
+    workingDays: Array.isArray(initialRecord?.workingDays) ? initialRecord.workingDays.join(', ') : initialRecord?.workingDays || '',
+  }));
+  const config = resourceTabs.find((item) => item.id === activeResource);
+  const isEdit = Boolean(initialRecord?.id);
+
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event) => {
     event.preventDefault();
-    onSave(form);
+    const payload = normalizeFormPayload(activeResource, form, data);
+    const validation = validatePayload(activeResource, payload);
+    if (validation) {
+      toast.error(validation);
+      return;
+    }
+    onSave(payload);
+  };
+
+  const renderField = (field) => {
+    const value = form[field.key] ?? (field.type === 'checkbox' ? false : '');
+    const commonClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+
+    if (field.type === 'textarea') {
+      return <textarea value={value} onChange={(event) => update(field.key, event.target.value)} className={`${commonClass} py-3`} rows={3} placeholder={field.placeholder || field.label} />;
+    }
+
+    if (field.type === 'select') {
+      return (
+        <select value={value || 'active'} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'academicYearSelect') {
+      return (
+        <select value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          <option value="">Select academic year</option>
+          {data.academicYears.map((year) => <option key={year.id} value={year.name}>{year.name}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'courseSelect') {
+      return (
+        <select value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          <option value="">Select course</option>
+          {data.courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'classSelect') {
+      return (
+        <select value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          <option value="">Select class</option>
+          {data.classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'sectionSelect') {
+      return (
+        <select value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          <option value="">Select section</option>
+          {data.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'subjectSelect') {
+      return (
+        <select value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass}>
+          <option value="">Select subject</option>
+          {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+        </select>
+      );
+    }
+
+    if (field.type === 'checkbox') {
+      return (
+        <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
+          <input type="checkbox" checked={Boolean(value)} onChange={(event) => update(field.key, event.target.checked)} className="h-4 w-4 rounded border-white/40 text-[#006a62]" />
+          Mark as current
+        </label>
+      );
+    }
+
+    return <input type={field.type || 'text'} value={value} onChange={(event) => update(field.key, event.target.value)} className={commonClass} placeholder={field.placeholder || field.label} />;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <form onSubmit={submit} className="w-full max-w-xl bg-white rounded-xl shadow-2xl border border-slate-200">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
+      <form onSubmit={submit} className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/30 bg-[#f3faff]/85 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl">
+        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">New {label}</h2>
-            <p className="text-sm text-slate-500">Save a live academic record for {academicYear}.</p>
+            <p className="text-[11px] font-bold uppercase text-[#006a62]">Academics</p>
+            <h2 className="mt-1 text-xl font-bold text-[#003434]">{isEdit ? 'Edit' : 'Create'} {config.singular}</h2>
           </div>
-          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full hover:bg-slate-100 text-slate-500">x</button>
+          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full bg-white/45 text-[#3f4848] hover:bg-white">x</button>
         </div>
-        <div className="p-6 grid sm:grid-cols-2 gap-4">
-          {activeTab === 'programs' && (
-            <>
-              <label className="sm:col-span-2">
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Program Name</span>
-                <input value={form.name} onChange={(event) => update('name', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" autoFocus />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Program Code</span>
-                <input value={form.code} onChange={(event) => update('code', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-            </>
-          )}
-
-          {activeTab === 'subjects' && (
-            <>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Subject Name</span>
-                <input value={form.subjectName} onChange={(event) => update('subjectName', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" autoFocus />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Subject Code</span>
-                <input value={form.subjectCode} onChange={(event) => update('subjectCode', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Program</span>
-                <input list="academic-program-options" value={form.programName} onChange={(event) => update('programName', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Credit Hours</span>
-                <input type="number" min="0" value={form.creditHours} onChange={(event) => update('creditHours', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-            </>
-          )}
-
-          {activeTab === 'batches' && (
-            <>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Class Name</span>
-                <input value={form.className} onChange={(event) => update('className', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" autoFocus />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Section</span>
-                <input value={form.section} onChange={(event) => update('section', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Program</span>
-                <input list="academic-program-options" value={form.programName} onChange={(event) => update('programName', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Class Teacher</span>
-                <input value={form.classTeacher} onChange={(event) => update('classTeacher', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-              <label>
-                <span className="block text-xs font-semibold text-slate-500 mb-1.5">Capacity</span>
-                <input type="number" min="0" value={form.capacity} onChange={(event) => update('capacity', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-              </label>
-            </>
-          )}
-
-          <label>
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Status</span>
-            <select value={form.status} onChange={(event) => update('status', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm">
-              {['Active', 'Inactive'].map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-          <datalist id="academic-program-options">
-            {programOptions.map((item) => <option key={item} value={item} />)}
-          </datalist>
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+          {fieldConfig[activeResource].map((field) => (
+            <label key={field.key} className={field.type === 'textarea' ? 'sm:col-span-2' : ''}>
+              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">
+                {field.label}{field.required ? ' *' : ''}
+              </span>
+              {renderField(field)}
+            </label>
+          ))}
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">Cancel</button>
-          <button type="submit" className="h-10 px-5 rounded-lg bg-[#33373e] text-white font-semibold text-sm">Save {label}</button>
+        <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
+          <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
+          <button type="submit" className="h-10 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+            Save {config.singular}
+          </button>
         </div>
       </form>
     </div>
   );
 }
 
-export default function AcademicsManagement({ currentUser, academicYear = '', selectedCourse = null, selectedCourseCode = 'all' }) {
-  const [programs, setPrograms] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [batches, setBatches] = useState([]);
-  const [activeTab, setActiveTab] = useState('programs');
+export default function AcademicsManagement({ currentUser, academicYear = '' }) {
+  const [data, setData] = useState(initialState);
+  const [activeResource, setActiveResource] = useState('academicYears');
   const [search, setSearch] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [currentYear, setCurrentYear] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [showRecordModal, setShowRecordModal] = useState(false);
-
-  useEffect(() => {
-    const loadAcademics = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        return;
-      }
-      try {
-        const data = await getAcademicsData(academicYear);
-        setPrograms(data.academicPrograms);
-        setSubjects(data.academicSubjects);
-        setBatches(data.academicBatches);
-        setLoadError('');
-      } catch (error) {
-        console.warn('Unable to load live academic data.', error);
-        setLoadError('Unable to load live academic records.');
-      }
-    };
-    loadAcademics();
-  }, [academicYear]);
+  const [modalRecord, setModalRecord] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const currentRoleId = currentUser?.roleId || 'admin';
   const canManage = canAccess(defaultRoles, currentRoleId, 'academics.manage');
-  const activeRows = useMemo(() => {
-    const map = {
-      programs: filterByCourse(programs, selectedCourseCode, selectedCourse),
-      subjects: filterByCourse(subjects, selectedCourseCode, selectedCourse),
-      batches: filterByCourse(batches, selectedCourseCode, selectedCourse),
-    };
-    return filterAcademicItems(map[activeTab] || [], search);
-  }, [activeTab, batches, programs, search, selectedCourse, selectedCourseCode, subjects]);
+  const activeTab = resourceTabs.find((item) => item.id === activeResource);
+  const defaultAcademicYear = currentYear?.name || academicYear || data.academicYears[0]?.name || '';
 
-  const saveAcademicRecord = async (form) => {
+  const loadAcademics = async () => {
+    setLoading(true);
+    try {
+      const [nextCurrentYear, academicYears, courses, classes, sections, subjects, teacherAllocations] = await Promise.all([
+        getCurrentAcademicYear().catch(() => null),
+        listAcademicResource('academicYears', { includeArchived }),
+        listAcademicResource('courses', { includeArchived }),
+        listAcademicResource('classes', { includeArchived }),
+        listAcademicResource('sections', { includeArchived }),
+        listAcademicResource('subjects', { includeArchived }),
+        listAcademicResource('teacherAllocations', { includeArchived }),
+      ]);
+      setCurrentYear(nextCurrentYear);
+      setData({ academicYears, courses, classes, sections, subjects, teacherAllocations });
+      setLoadError('');
+    } catch (error) {
+      console.error('Unable to load backend academics data.', error);
+      setLoadError(error?.message || 'Unable to load academics from the backend.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) loadAcademics();
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [includeArchived]);
+
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const items = data[activeResource] || [];
+    if (!term) return items;
+    return items.filter((item) =>
+      [
+        item.name,
+        item.code,
+        item.academicYear,
+        item.description,
+        item.courseName,
+        item.className,
+        item.sectionName,
+        item.assignedTeacherName,
+        item.teacherName,
+        item.teacherId,
+        item.subjectName,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term))
+    );
+  }, [activeResource, data, search]);
+
+  const snapshot = {
+    academicYears: data.academicYears.length,
+    courses: data.courses.length,
+    classes: data.classes.length,
+    sections: data.sections.length,
+    subjects: data.subjects.length,
+    teacherAllocations: data.teacherAllocations.length,
+  };
+
+  const openCreate = () => {
+    setModalRecord(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (record) => {
+    setModalRecord(record);
+    setModalOpen(true);
+  };
+
+  const saveRecord = async (payload) => {
     if (!canManage) {
       toast.error('You do not have permission to manage academics.');
       return;
     }
-    const createdAtText = formatDisplayDate();
-    const courseFields = {
-      courseCode: selectedCourseCode === 'all' ? '' : selectedCourseCode,
-      courseName: selectedCourse?.courseName || selectedCourse?.name || '',
-    };
+    setSaving(true);
     try {
-      if (activeTab === 'programs') {
-        const payload = {
-          name: form.name.trim(),
-          code: form.code.trim(),
-          academicYear,
-          status: form.status || 'Active',
-          createdAtText,
-          ...courseFields,
-        };
-        const message = validateProgram(payload);
-        if (message) return toast.error(message);
-        const id = await createAcademicProgram(payload);
-        if (!id) throw new Error('Live academic program was not created.');
-        setPrograms((prev) => [{ id, ...payload }, ...prev]);
-      } else if (activeTab === 'subjects') {
-        const payload = {
-          subjectName: form.subjectName.trim(),
-          subjectCode: form.subjectCode.trim(),
-          programName: form.programName.trim(),
-          creditHours: form.creditHours === '' ? '' : Number(form.creditHours),
-          academicYear,
-          status: form.status || 'Active',
-          createdAtText,
-          ...courseFields,
-        };
-        const message = validateSubject(payload);
-        if (message) return toast.error(message);
-        const id = await createAcademicSubject(payload);
-        if (!id) throw new Error('Live academic subject was not created.');
-        setSubjects((prev) => [{ id, ...payload }, ...prev]);
-      } else if (activeTab === 'batches') {
-        const payload = {
-          className: form.className.trim(),
-          section: form.section.trim(),
-          programName: form.programName.trim(),
-          classTeacher: form.classTeacher.trim(),
-          capacity: form.capacity === '' ? '' : Number(form.capacity),
-          academicYear,
-          status: form.status || 'Active',
-          createdAtText,
-          ...courseFields,
-        };
-        const message = validateBatch(payload);
-        if (message) return toast.error(message);
-        const id = await createAcademicBatch(payload);
-        if (!id) throw new Error('Live academic batch was not created.');
-        setBatches((prev) => [{ id, ...payload }, ...prev]);
-      }
-      toast.success('Academic record created');
-      setShowRecordModal(false);
+      const saved = modalRecord?.id
+        ? await updateAcademicResource(activeResource, modalRecord.id, payload)
+        : await createAcademicResource(activeResource, payload);
+      setData((current) => ({
+        ...current,
+        [activeResource]: modalRecord?.id
+          ? current[activeResource].map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current[activeResource]],
+      }));
+      if (activeResource === 'academicYears' && saved.isCurrent) setCurrentYear(saved);
+      setModalOpen(false);
+      toast.success(`${activeTab.singular} saved`);
     } catch (error) {
-      console.error('Unable to create live academic record.', error);
-      toast.error('Academic record was not saved to live data.');
+      console.error('Unable to save academic record.', error);
+      toast.error(error?.message || `${activeTab.singular} was not saved.`);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const renderRow = (item) => {
-    if (activeTab === 'programs') return [item.name, item.code, item.academicYear, item.status];
-    if (activeTab === 'subjects') return [item.subjectName, item.subjectCode, item.programName, item.status];
-    return [`${item.className} - ${item.section}`, item.programName, item.classTeacher, item.status];
+  const archiveOrRestore = async (record) => {
+    if (!canManage) {
+      toast.error('You do not have permission to manage academics.');
+      return;
+    }
+    try {
+      if (record.archived) {
+        await restoreAcademicResource(activeResource, record.id);
+        toast.success(`${activeTab.singular} restored`);
+      } else {
+        await archiveAcademicResource(activeResource, record.id);
+        toast.success(`${activeTab.singular} archived`);
+      }
+      await loadAcademics();
+    } catch (error) {
+      toast.error(error?.message || `${activeTab.singular} was not updated.`);
+    }
+  };
+
+  const markCurrentYear = async (record) => {
+    if (!canManage) {
+      toast.error('You do not have permission to manage academics.');
+      return;
+    }
+    try {
+      const updated = await setCurrentAcademicYear(record.id);
+      setCurrentYear(updated);
+      await loadAcademics();
+      toast.success('Current academic year updated');
+    } catch (error) {
+      toast.error(error?.message || 'Academic year was not updated.');
+    }
+  };
+
+  const renderCells = (item) => {
+    if (activeResource === 'academicYears') {
+      return [
+        item.name,
+        [item.startDate, item.endDate].filter(Boolean).join(' to ') || '-',
+        Array.isArray(item.workingDays) ? item.workingDays.join(', ') : '-',
+      ];
+    }
+    if (activeResource === 'courses') return [item.name, item.code || '-', item.academicYear || '-'];
+    if (activeResource === 'classes') return [item.name, item.courseName || labelFor(data.courses, item.courseId), item.academicYear || '-'];
+    if (activeResource === 'sections') return [item.name, item.className || labelFor(data.classes, item.classId), item.capacity || '-'];
+    if (activeResource === 'subjects') return [item.name, item.code || '-', item.className || labelFor(data.classes, item.classId)];
+    return [item.teacherName || item.teacherId, item.subjectName || labelFor(data.subjects, item.subjectId), item.className || labelFor(data.classes, item.classId)];
   };
 
   return (
-    <div>
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+    <div className="erp-academics-page min-w-0">
+      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="text-sm font-bold text-slate-500 mb-2">Academics / <span className="text-[#f39a5f]">Academic Setup</span></div>
-          <h1 className="text-2xl font-bold text-slate-900">Academics</h1>
-          <p className="text-sm text-slate-500 mt-1">Programs, subjects, batches, and sections setup.</p>
-          {!isFirebaseConfigured && <p className="text-xs text-rose-600 mt-2">Live Firebase data is not configured.</p>}
-          {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
+            <span>Management</span>
+            <span>/</span>
+            <span className="text-[#006a62]">Academics</span>
+          </div>
+          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Academic Configuration</h1>
+          <p className="mt-2 text-sm text-[#3f4848]">
+            Backend-backed setup for academic years, courses, classes, sections, subjects, and teacher allocations.
+          </p>
+          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
-        <button onClick={() => setShowRecordModal(true)} disabled={!canManage} className="h-10 px-5 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm flex items-center gap-2 disabled:bg-slate-300">
-          <Plus size={16} /> Create {tabs.find(([id]) => id === activeTab)?.[1]}
+        <button
+          type="button"
+          onClick={openCreate}
+          disabled={!canManage || loading || saving}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          <Plus size={17} /> Add {activeTab.singular}
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        {tabs.map(([id, label]) => (
-          <button key={id} onClick={() => setActiveTab(id)} className={`h-10 px-4 rounded-md border text-sm font-semibold ${activeTab === id ? 'bg-[#33373e] text-white border-[#33373e]' : 'bg-white text-slate-600 border-slate-200'}`}>{label}</button>
-        ))}
-      </div>
-      <div className="relative mb-4">
-        <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search academics..." className="w-full h-11 rounded-lg bg-[#f0f0f2] border-0 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-orange-100" />
-      </div>
-      <div className="overflow-hidden border border-slate-100 rounded-lg bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-[#f5f5f6] text-slate-500">
-            <tr>{['Name', 'Code/Type', 'Owner/Year', 'Status'].map((item) => <th key={item} className="text-left px-4 py-3 font-semibold">{item}</th>)}</tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {activeRows.map((item) => {
-              const [a, b, c, d] = renderRow(item);
-              return <tr key={item.id} className="hover:bg-slate-50"><td className="px-4 py-3 font-semibold">{a}</td><td className="px-4 py-3">{b}</td><td className="px-4 py-3">{c}</td><td className="px-4 py-3"><StatusBadge value={d} /></td></tr>;
+      <div className="grid grid-cols-12 gap-6">
+        <aside className="col-span-12 space-y-6 lg:col-span-3">
+          <section className="erp-glass-card relative overflow-hidden rounded-[28px] p-6">
+            <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-[#81f3e5]/30 blur-2xl" />
+            <div className="relative flex items-start justify-between">
+            <span className="text-[11px] font-bold uppercase text-[#3f4848]">Current Cycle</span>
+              <CalendarDays className="text-[#006a62]" size={20} />
+            </div>
+            <h2 className="relative mt-4 font-['Montserrat'] text-2xl font-bold text-[#003434]">{currentYear?.name || defaultAcademicYear || '-'}</h2>
+            <p className="relative mt-1 text-sm text-[#3f4848]">{currentYear?.startDate ? `Starts ${currentYear.startDate}` : 'No current academic year selected.'}</p>
+          </section>
+
+          <section className="erp-glass-card rounded-[24px] p-2">
+            {resourceTabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeResource === tab.id;
+              return (
+                <button
+                  type="button"
+                  key={tab.id}
+                  onClick={() => setActiveResource(tab.id)}
+                  className={`mb-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition last:mb-0 ${
+                    active ? 'bg-[#004d4d] font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]' : 'text-[#3f4848] hover:bg-white/40'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {tab.label}
+                </button>
+              );
             })}
-            {!activeRows.length && <tr><td colSpan="4" className="px-4 py-10 text-center text-slate-500">No academic records found.</td></tr>}
-          </tbody>
-        </table>
+          </section>
+
+          <section className="erp-glass-card rounded-[28px] p-6">
+            <p className="mb-4 text-[11px] font-bold uppercase text-[#3f4848]">Backend Module Snapshot</p>
+            <div className="space-y-3">
+              {resourceTabs.map((tab) => (
+                <div key={tab.id}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#3f4848]">{tab.label}</span>
+                    <b className="text-[#003434]">{loading ? '-' : snapshot[tab.id]}</b>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/35">
+                    <div className="h-full rounded-full bg-[#004d4d]" style={{ width: `${Math.min(100, Math.max(8, snapshot[tab.id] * 12))}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+
+        <section className="erp-glass-card col-span-12 overflow-hidden rounded-[28px] lg:col-span-9">
+          <div className="flex flex-col gap-4 border-b border-white/35 bg-white/10 p-5 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[#003434]">{activeTab.label}</h2>
+              <p className="text-sm text-[#3f4848]">Create, update, archive, and restore records supported by `/api/academics`.</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <label className="flex h-10 items-center gap-2 rounded-full border border-white/40 bg-white/35 px-3 text-xs font-semibold text-[#3f4848]">
+                <input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+                Include archived
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder={`Search ${activeTab.label.toLowerCase()}...`}
+                  className="h-10 w-full rounded-full border border-white/40 bg-white/35 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20 sm:w-72"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead>
+                <tr className="bg-[#004d4d]/5 text-[11px] uppercase text-[#044f4f]">
+                  <th className="border-b border-white/35 px-5 py-4">Name</th>
+                  <th className="border-b border-white/35 px-5 py-4">Reference</th>
+                  <th className="border-b border-white/35 px-5 py-4">Context</th>
+                  <th className="border-b border-white/35 px-5 py-4">Status</th>
+                  <th className="border-b border-white/35 px-5 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/25">
+                {loading && (
+                  <tr>
+                    <td colSpan="5" className="px-5 py-12 text-center text-[#3f4848]">
+                      <span className="inline-flex items-center gap-2 font-semibold"><Loader2 className="animate-spin" size={16} /> Loading academics...</span>
+                    </td>
+                  </tr>
+                )}
+                {!loading && rows.map((item) => {
+                  const [name, reference, context] = renderCells(item);
+                  const status = displayStatus(item);
+                  return (
+                    <tr key={item.id} className="transition hover:bg-white/25">
+                      <td className="px-5 py-4 font-bold text-[#071e27]">{name || '-'}</td>
+                      <td className="px-5 py-4 text-[#3f4848]">{reference || '-'}</td>
+                      <td className="px-5 py-4 text-[#3f4848]">{context || '-'}</td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase ${statusClasses(status)}`}>
+                          {status}
+                        </span>
+                        {activeResource === 'academicYears' && item.isCurrent && (
+                          <span className="ml-2 inline-flex rounded-full border border-[#81f3e5]/50 bg-[#81f3e5]/30 px-3 py-1 text-[11px] font-bold uppercase text-[#006f66]">
+                            Current
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          {activeResource === 'academicYears' && !item.archived && !item.isCurrent && (
+                            <button type="button" onClick={() => markCurrentYear(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-white/35 text-[#006a62] hover:bg-white disabled:opacity-40" title="Set current">
+                              <CheckCircle2 className="mx-auto" size={16} />
+                            </button>
+                          )}
+                          <button type="button" onClick={() => openEdit(item)} disabled={!canManage || item.archived} className="h-9 w-9 rounded-lg bg-white/35 text-[#3f4848] hover:bg-white disabled:opacity-40" title="Edit">
+                            <Pencil className="mx-auto" size={16} />
+                          </button>
+                          <button type="button" onClick={() => archiveOrRestore(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-white/35 text-[#3f4848] hover:bg-white disabled:opacity-40" title={item.archived ? 'Restore' : 'Archive'}>
+                            {item.archived ? <RotateCcw className="mx-auto" size={16} /> : <Archive className="mx-auto" size={16} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!loading && !rows.length && (
+                  <tr>
+                    <td colSpan="5" className="px-5 py-12 text-center text-[#3f4848]">No {activeTab.label.toLowerCase()} found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-      {showRecordModal && (
-        <AcademicRecordModal
-          activeTab={activeTab}
-          academicYear={academicYear}
-          programs={programs}
-          onClose={() => setShowRecordModal(false)}
-          onSave={saveAcademicRecord}
+
+      {modalOpen && (
+        <AcademicsModal
+          activeResource={activeResource}
+          data={data}
+          defaultAcademicYear={defaultAcademicYear}
+          initialRecord={modalRecord}
+          onClose={() => setModalOpen(false)}
+          onSave={saveRecord}
         />
       )}
     </div>
