@@ -73,11 +73,13 @@ const ParentPortal = lazy(() => import('../parentPortal/ParentPortal'));
 const ReportsManagement = lazy(() => import('../reports/ReportsManagement'));
 const SettingsManagement = lazy(() => import('../settings/SettingsManagement'));
 const SubjectNotesManagement = lazy(() => import('../subjectNotes/SubjectNotesManagement'));
+const StudentsManagement = lazy(() => import('./StudentsManagement'));
 const TimetableManagement = lazy(() => import('../timetable/TimetableManagement'));
 const UserRoleManagement = lazy(() => import('../userRoles/UserRoleManagement'));
 
 const DEFAULT_ACADEMIC_YEAR = '2025-2026';
 const NEXT_ACADEMIC_YEAR = '2026-2027';
+const USE_BACKEND_STUDENTS_PAGE = true;
 
 function csvValue(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -914,7 +916,9 @@ export default function StudentInformationManagement({ user, onLogout }) {
                 ) : activePage === 'dashboard' ? (
                   <DashboardManagement academicYear={academicYear} currentUser={user} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} scopedStudents={courseStudents} onNavigate={navigateToModule} />
                 ) : activePage === 'students' ? (
-                selectedStudent ? (
+                USE_BACKEND_STUDENTS_PAGE ? (
+                  <StudentsManagement currentUser={user} academicYear={academicYear} />
+                ) : selectedStudent ? (
                   <StudentDetailPage
                     academicYear={academicYear}
                     attendanceRecords={selectedAttendanceRecords}
