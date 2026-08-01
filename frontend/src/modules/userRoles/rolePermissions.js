@@ -13,6 +13,17 @@ export const permissionGroups = [
     ],
   },
   {
+    id: 'admissions',
+    label: 'Admissions',
+    permissions: [
+      ['admissions.view', 'View admissions'],
+      ['admissions.create', 'Create enquiries'],
+      ['admissions.edit', 'Edit admissions and follow-ups'],
+      ['admissions.approve', 'Approve/reject admissions'],
+      ['admissions.convert', 'Convert admissions to students'],
+    ],
+  },
+  {
     id: 'staff',
     label: 'Faculty & Staff',
     permissions: [
@@ -113,6 +124,11 @@ export const defaultRoles = [
       'students.create',
       'students.edit',
       'students.documents',
+      'admissions.view',
+      'admissions.create',
+      'admissions.edit',
+      'admissions.approve',
+      'admissions.convert',
       'staff.view',
       'staff.create',
       'staff.edit',

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   TrendingUp,
+  UserPlus,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import {
 export const moduleDisplayOrder = [
   'dashboard',
   'students',
+  'admissions',
   'faculty-staff',
   'attendance',
   'timetable',
@@ -66,6 +68,15 @@ export const moduleRegistry = [
     icon: GraduationCap,
     status: 'active',
     permission: 'students.view',
+  },
+  {
+    id: 'admissions',
+    label: 'Admissions',
+    path: '/modules/admissions',
+    group: 'Daily Work',
+    icon: UserPlus,
+    status: 'active',
+    permission: 'admissions.view',
   },
   {
     id: 'faculty-staff',

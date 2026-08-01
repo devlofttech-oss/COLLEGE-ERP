@@ -13,7 +13,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Files | `/api/files` | Pending | Presigned upload/download/resolve/delete utility. Used by student document upload, but no standalone Files frontend yet. |
 | Academics | `/api/academics` | Built | Backend-backed academic years, courses, classes, sections, subjects, teacher allocations. |
 | Students | `/api/students` | Built | Backend-backed list/search/filter, create/edit, archive/restore, import/export, document upload/metadata with verify/reject, promotion/transfer, ID card data/PDF. |
-| Admissions | `/api/admissions` | Pending | Needs backend-backed enquiries/applications/followups/approval/conversion. |
+| Admissions | `/api/admissions` | Built | Backend-backed enquiries, applications, follow-ups, approval/rejection, conversion to student, archive/restore. |
 | Staff | `/api/staff` | Pending | Existing UI must be rewired to backend staff API. |
 | Attendance | `/api/attendance` | Pending | Existing UI must be rewired to backend attendance API. |
 | Fees | `/api/fees` | Pending | Existing UI must be rewired to backend fee APIs. |

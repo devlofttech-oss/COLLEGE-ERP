@@ -80,6 +80,7 @@ const UserRoleManagement = lazy(() => import('../userRoles/UserRoleManagement'))
 const DEFAULT_ACADEMIC_YEAR = '2025-2026';
 const NEXT_ACADEMIC_YEAR = '2026-2027';
 const USE_BACKEND_STUDENTS_PAGE = true;
+const AdmissionsManagement = lazy(() => import('../admissions/AdmissionsManagement'));
 
 function csvValue(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -1025,6 +1026,8 @@ export default function StudentInformationManagement({ user, onLogout }) {
                 </div>
                 </>
                 )
+                ) : activePage === 'admissions' ? (
+                  <AdmissionsManagement currentUser={user} academicYear={academicYear} />
                 ) : activePage === 'reports' ? (
                   <ReportsManagement
                     key={`reports-${location.state?.reportCategory || 'default'}`}
