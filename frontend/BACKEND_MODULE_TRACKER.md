@@ -23,7 +23,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Communication | `/api/communication` | Built | Backend-backed notices, send action, delivery status, and message templates. |
 | Settings | `/api/settings` | Built | Backend-backed institution, branding, integrations, and backup settings. |
 | Reports | `/api/reports` | Pending | Existing UI must be rewired to backend reports API. |
-| Dashboard | `/api/dashboard` | Pending | Existing UI must be rewired to backend overview/activity APIs. |
+| Dashboard | `/api/dashboard` | Built | Backend-backed overview cards, admissions/fees summaries, upcoming exams, latest notices, and recent audit activities. |
 | My Portal | `/api/my` | Pending | Parent/student/teacher self-view routes. |
 
 Non-backend frontend modules to remove or fold into backend-backed modules:

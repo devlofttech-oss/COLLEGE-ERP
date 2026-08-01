@@ -1,418 +1,323 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, FileText, GraduationCap, TrendingUp, Users, Wallet } from 'lucide-react';
-import { getDashboardData } from '../../firebase/db';
-import { isFirebaseConfigured } from '../../firebase/config';
-import { formatCurrency, summarizeFees } from '../fees/feeUtils';
-import { canAccess, canAccessFinancialReports, defaultRoles } from '../userRoles/rolePermissions';
-import { filterByCourse, filterStudentScopedRecords, filterStudentsByCourse } from '../shared/courseFilters';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  BadgeCheck,
+  Bell,
+  CalendarClock,
+  GraduationCap,
+  Loader2,
+  RefreshCcw,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Wallet,
+} from 'lucide-react';
+import { getDashboardOverview, listRecentDashboardActivities } from '../../api/dashboard';
+import {
+  activityActionLabel,
+  activityMetaPreview,
+  buildAdmissionStages,
+  buildDashboardMetrics,
+  buildFeeBreakdown,
+  emptyDashboardOverview,
+  formatDashboardCurrency,
+  formatDashboardDate,
+  formatDashboardDateTime,
+  normalizeDashboardOverview,
+  summarizeDashboardOverview,
+} from './dashboardUtils';
 
-const emptyDashboardData = {
-  students: [],
-  studentAdmissions: [],
-  staff: [],
-  feeAssignments: [],
-  feeCollections: [],
-  feeAdjustments: [],
-  managedDocuments: [],
-  examSchedules: [],
-};
+const ADMIN_ROLES = new Set(['super-admin', 'admin']);
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function parseDashboardDate(value) {
-  if (!value) return null;
-  const parsed = new Date(String(value).includes('T') ? value : `${value}T00:00:00`);
-  if (!Number.isNaN(parsed.getTime())) return parsed;
-
-  const textDate = new Date(value);
-  return Number.isNaN(textDate.getTime()) ? null : textDate;
+function hasPermission(user, permission) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return ADMIN_ROLES.has(user?.roleId) || ADMIN_ROLES.has(user?.role) || permissions.includes(permission);
 }
 
-function buildCollectionTrend(collections = []) {
-  const datedCollections = collections
-    .map((item) => ({ ...item, date: parseDashboardDate(item.paymentDate || item.createdAtText) }))
-    .filter((item) => item.date);
-  const referenceDate = datedCollections.reduce((latest, item) => (
-    !latest || item.date > latest ? item.date : latest
-  ), null) || new Date();
-  const months = [];
-
-  for (let offset = 5; offset >= 0; offset -= 1) {
-    const date = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - offset, 1);
-    months.push({
-      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-      label: MONTH_LABELS[date.getMonth()],
-      value: 0,
-    });
-  }
-
-  datedCollections.forEach((item) => {
-    const key = `${item.date.getFullYear()}-${String(item.date.getMonth() + 1).padStart(2, '0')}`;
-    const month = months.find((entry) => entry.key === key);
-    if (month) month.value += Number(item.amount || 0);
-  });
-
-  return months;
-}
-
-function formatChartCurrency(value) {
-  return `Rs ${Number(value || 0).toLocaleString('en-IN')}`;
-}
-
-function DashboardCard({ color = '#38bdf8', icon, label, value, helper, onClick }) {
+function EmptyState({ message }) {
   return (
-    <button
-      onClick={onClick}
-      className="erp-dashboard-card min-h-28 min-w-0 rounded-lg border border-slate-100 bg-white p-4 text-left flex items-center gap-4 shadow-sm"
-      style={{ '--card-color': color }}
-    >
-      <span className="h-13 w-13 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}22`, color }}>
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-xs font-semibold text-slate-500">{label}</span>
-        <span className="block text-2xl font-extrabold text-slate-900 mt-1">{value}</span>
-        <span className="block text-xs text-slate-500 mt-1">{helper}</span>
-      </span>
-    </button>
+    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+      {message}
+    </div>
   );
 }
 
-export default function DashboardManagement({ academicYear = '', currentUser, onNavigate, scopedStudents = [], selectedCourse = null, selectedCourseCode = 'all' }) {
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(isFirebaseConfigured);
+function SummaryCard({ icon, label, loading, value, helper }) {
+  return (
+    <div className="erp-glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        {icon}
+      </div>
+      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-1 text-xs font-semibold text-[#3f4848]">{loading ? '-' : helper}</div>
+    </div>
+  );
+}
+
+function MetricGrid({ loading, metrics }) {
+  const icons = {
+    students: <Users size={20} className="text-[#006a62]" />,
+    staff: <GraduationCap size={20} className="text-[#006a62]" />,
+    'fees-today': <Wallet size={20} className="text-[#006a62]" />,
+    'fees-month': <TrendingUp size={20} className="text-[#006a62]" />,
+    dues: <AlertCircle size={20} className="text-[#006a62]" />,
+    results: <BadgeCheck size={20} className="text-[#006a62]" />,
+  };
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      {metrics.map((metric) => (
+        <SummaryCard
+          key={metric.id}
+          icon={icons[metric.id] || <Activity size={20} className="text-[#006a62]" />}
+          label={metric.label}
+          loading={loading}
+          value={metric.currency ? formatDashboardCurrency(metric.value) : metric.value}
+          helper={metric.helper}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ProgressList({ items, valueFormatter = (value) => value }) {
+  const maxValue = Math.max(...items.map((item) => Number(item.value || 0)), 1);
+  return (
+    <div className="space-y-3">
+      {items.map((item) => {
+        const percentage = Math.round((Number(item.value || 0) / maxValue) * 100);
+        return (
+          <div key={item.id} className="rounded-xl bg-white/40 p-4">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate font-bold text-[#071e27]">{item.label}</span>
+              <b className="shrink-0 text-[#003434]">{valueFormatter(item.value)}</b>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/45">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.max(6, percentage)}%`, background: item.color }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function UpcomingExams({ exams }) {
+  return (
+    <section className="erp-glass-card rounded-2xl p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-[#003434]">Upcoming Exams</h2>
+          <p className="mt-1 text-xs font-semibold text-[#3f4848]">Next scheduled exams.</p>
+        </div>
+        <CalendarClock size={19} className="text-[#006a62]" />
+      </div>
+      <div className="grid gap-3">
+        {exams.map((exam) => (
+          <div key={exam.id || `${exam.name}-${exam.startDate}`} className="rounded-xl bg-white/40 p-4">
+            <div className="text-sm font-bold text-[#071e27]">{exam.name || '-'}</div>
+            <div className="mt-2 text-xs font-semibold text-[#3f4848]">{formatDashboardDate(exam.startDate)}</div>
+          </div>
+        ))}
+        {!exams.length && <EmptyState message="No upcoming exams available." />}
+      </div>
+    </section>
+  );
+}
+
+function LatestNotices({ notices }) {
+  return (
+    <section className="erp-glass-card rounded-2xl p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-[#003434]">Latest Notices</h2>
+          <p className="mt-1 text-xs font-semibold text-[#3f4848]">Most recent notices.</p>
+        </div>
+        <Bell size={19} className="text-[#006a62]" />
+      </div>
+      <div className="grid gap-3">
+        {notices.map((notice) => (
+          <div key={notice.id || `${notice.title}-${notice.createdAt}`} className="rounded-xl bg-white/40 p-4">
+            <div className="text-sm font-bold text-[#071e27]">{notice.title || '-'}</div>
+            <div className="mt-2 text-xs font-semibold text-[#3f4848]">{formatDashboardDateTime(notice.createdAt)}</div>
+          </div>
+        ))}
+        {!notices.length && <EmptyState message="No notices available." />}
+      </div>
+    </section>
+  );
+}
+
+function RecentActivities({ activities, loading }) {
+  return (
+    <section className="erp-glass-card rounded-2xl p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-[#003434]">Recent Activities</h2>
+          <p className="mt-1 text-xs font-semibold text-[#3f4848]">Latest audit log entries.</p>
+        </div>
+        <Activity size={19} className="text-[#006a62]" />
+      </div>
+      <div className="space-y-3">
+        {loading && (
+          <div className="rounded-xl bg-white/40 p-5 text-center text-sm font-semibold text-[#3f4848]">
+            <Loader2 className="mr-2 inline animate-spin" size={16} /> Loading activities...
+          </div>
+        )}
+        {!loading && activities.map((activity) => {
+          const meta = activityMetaPreview(activity.meta);
+          return (
+            <div key={activity.id} className="rounded-xl bg-white/40 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-[#071e27]">{activityActionLabel(activity.action)}</div>
+                  <div className="mt-1 text-xs font-semibold text-[#3f4848]">
+                    {[activity.entity, activity.entityId].filter(Boolean).join(' / ') || 'Audit log'}
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold uppercase text-[#006a62]">
+                  {activity.actorRole || '-'}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs font-semibold text-[#3f4848] sm:grid-cols-2">
+                <span className="truncate">{activity.actorEmail || activity.actorUid || '-'}</span>
+                <span className="sm:text-right">{formatDashboardDateTime(activity.at)}</span>
+              </div>
+              {meta && <div className="mt-2 text-xs font-semibold text-[#3f4848]">{meta}</div>}
+            </div>
+          );
+        })}
+        {!loading && !activities.length && <EmptyState message="No recent activities available." />}
+      </div>
+    </section>
+  );
+}
+
+export default function DashboardManagement({ currentUser }) {
+  const [overviewData, setOverviewData] = useState(emptyDashboardOverview);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [showAllUpcomingExams, setShowAllUpcomingExams] = useState(false);
+
+  const canView = hasPermission(currentUser, 'dashboard.view');
+  const overview = useMemo(() => normalizeDashboardOverview(overviewData), [overviewData]);
+  const metrics = useMemo(() => buildDashboardMetrics(overview), [overview]);
+  const admissionStages = useMemo(() => buildAdmissionStages(overview.admissions), [overview.admissions]);
+  const feeBreakdown = useMemo(() => buildFeeBreakdown(overview.fees), [overview.fees]);
+  const summary = useMemo(() => summarizeDashboardOverview(overview), [overview]);
+
+  const loadDashboard = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    try {
+      const [nextOverview, nextActivities] = await Promise.all([
+        getDashboardOverview(),
+        listRecentDashboardActivities({ limit: 12 }),
+      ]);
+      setOverviewData(nextOverview || emptyDashboardOverview);
+      setActivities(nextActivities);
+      setLoadError('');
+    } catch (error) {
+      console.error('Unable to load backend dashboard.', error);
+      setLoadError(error?.message || 'Unable to load dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  }, [canView]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const loadDashboard = async () => {
-      if (!isFirebaseConfigured) {
-        setDashboardData(emptyDashboardData);
-        setLoadError('Live Firebase data is not configured.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await getDashboardData(academicYear);
-        if (!mounted) return;
-        setDashboardData(data);
-        setLoadError('');
-      } catch (error) {
-        console.warn('Unable to load live dashboard data.', error);
-        if (!mounted) return;
-        setDashboardData(emptyDashboardData);
-        setLoadError('Unable to load live dashboard data.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    loadDashboard();
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) loadDashboard();
+    });
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, [academicYear]);
+  }, [loadDashboard]);
 
-  const currentRoleId = currentUser?.roleId || 'admin';
-  const canViewStudents = canAccess(defaultRoles, currentRoleId, 'students.view');
-  const canViewStaff = canAccess(defaultRoles, currentRoleId, 'staff.view');
-  const canViewFees = canAccess(defaultRoles, currentRoleId, 'fees.view');
-  const canViewDocuments = canAccess(defaultRoles, currentRoleId, 'documents.view');
-  const canVerifyDocuments = canAccess(defaultRoles, currentRoleId, 'documents.verify');
-  const canViewExams = canAccess(defaultRoles, currentRoleId, ['examinations.view', 'examinations.viewOwn']);
-  const canViewFinancialReports = canAccessFinancialReports(defaultRoles, currentRoleId);
-  const {
-    students = [],
-    staff = [],
-    feeAssignments = [],
-    feeCollections = [],
-    feeAdjustments = [],
-    managedDocuments = [],
-    examSchedules = [],
-  } = dashboardData || emptyDashboardData;
-  const courseStudents = scopedStudents.length ? scopedStudents : filterStudentsByCourse(students, selectedCourseCode, selectedCourse);
-  const courseFeeAssignments = filterStudentScopedRecords(feeAssignments, courseStudents, selectedCourseCode, selectedCourse);
-  const courseAssignmentIds = new Set(courseFeeAssignments.map((item) => item.id).filter(Boolean));
-  const courseFeeCollections = filterStudentScopedRecords(feeCollections, courseStudents, selectedCourseCode, selectedCourse)
-    .filter((item) => !item.assignmentId || courseAssignmentIds.has(item.assignmentId) || selectedCourseCode === 'all');
-  const courseFeeAdjustments = filterStudentScopedRecords(feeAdjustments, courseStudents, selectedCourseCode, selectedCourse)
-    .filter((item) => !item.assignmentId || courseAssignmentIds.has(item.assignmentId) || selectedCourseCode === 'all');
-  const courseDocuments = filterStudentScopedRecords(managedDocuments, courseStudents, selectedCourseCode, selectedCourse);
-  const courseExamSchedules = filterByCourse(examSchedules, selectedCourseCode, selectedCourse);
-  const activeStudents = courseStudents.filter((student) => student.status !== 'Archived');
-  const facultyCount = staff.filter((member) => member.staffType === 'Faculty' && member.status !== 'Archived').length;
-  const courseFeeSummary = useMemo(
-    () => summarizeFees(courseFeeAssignments, courseFeeCollections, courseFeeAdjustments),
-    [courseFeeAdjustments, courseFeeAssignments, courseFeeCollections]
-  );
-  const pendingDocuments = courseDocuments.filter((item) => item.verificationStatus === 'Pending Review');
-  const upcomingExams = courseExamSchedules
-    .filter((item) => item.status !== 'Archived')
-    .sort((first, second) => String(first.examDate || '').localeCompare(String(second.examDate || '')));
-  const visibleUpcomingExams = showAllUpcomingExams ? upcomingExams : upcomingExams.slice(0, 4);
-  const hiddenUpcomingExamCount = Math.max(0, upcomingExams.length - visibleUpcomingExams.length);
-  const collectionTrend = useMemo(() => buildCollectionTrend(courseFeeCollections), [courseFeeCollections]);
-  const hasCollectionTrend = collectionTrend.some((item) => item.value > 0);
-  const maxTrendValue = Math.max(...collectionTrend.map((item) => item.value), 1);
-  const trendPoints = collectionTrend.map((item, index) => {
-    const x = 16 + (index / Math.max(collectionTrend.length - 1, 1)) * 328;
-    const y = 126 - (item.value / maxTrendValue) * 96;
-    return [x, y, item.value];
-  });
-  const trendPath = trendPoints.map(([x, y], index) => `${index ? 'L' : 'M'} ${x} ${y}`).join(' ');
-  const trendArea = `${trendPath} L ${trendPoints.at(-1)[0]} 138 L ${trendPoints[0][0]} 138 Z`;
-  const highlightIndex = trendPoints.reduce((bestIndex, point, index) => (
-    point[2] > trendPoints[bestIndex][2] ? index : bestIndex
-  ), 0);
-  const highlightPoint = trendPoints[highlightIndex];
-  const tooltipX = Math.min(highlightPoint[0] + 12, 232);
-  const tooltipY = Math.max(highlightPoint[1] - 34, 8);
-  const courseStrength = useMemo(() => {
-    const grouped = activeStudents.reduce((map, student) => {
-      const key = student.courseName || student.program || student.courseCode || 'Unassigned';
-      map[key] = (map[key] || 0) + 1;
-      return map;
-    }, {});
-    return Object.entries(grouped)
-      .map(([label, value]) => ({ label, value }))
-      .sort((first, second) => second.value - first.value)
-      .slice(0, 5);
-  }, [activeStudents]);
-  const maxCourseStrength = Math.max(...courseStrength.map((item) => item.value), 1);
-  const verifiedDocuments = courseDocuments.filter((item) => item.verificationStatus === 'Verified' || item.verificationStatus === 'Source PDF').length;
-  const documentReadiness = courseDocuments.length ? Math.round((verifiedDocuments / courseDocuments.length) * 100) : 0;
-  const paymentSplit = [
-    { label: 'Collected', value: courseFeeSummary.totalCollected, color: '#22c55e' },
-    { label: 'Pending', value: courseFeeSummary.totalOutstanding, color: '#f59e0b' },
-    { label: 'Adjusted', value: courseFeeSummary.totalAdjusted, color: '#ef4444' },
-  ];
-  const splitTotal = Math.max(paymentSplit.reduce((sum, item) => sum + item.value, 0), 1);
-  const collectionRate = courseFeeSummary.totalAssigned
-    ? Math.round((courseFeeSummary.totalCollected / courseFeeSummary.totalAssigned) * 100)
-    : 0;
-  let pieCursor = 0;
-  const pieGradient = paymentSplit.map((item) => {
-    const start = pieCursor;
-    const end = pieCursor + (item.value / splitTotal) * 100;
-    pieCursor = end;
-    return `${item.color} ${start}% ${end}%`;
-  }).join(', ');
-
-  const dashboardCards = [
-    canViewStudents && { color: '#2563eb', icon: <Users size={22} />, label: 'Students', value: loading ? '-' : activeStudents.length, helper: loading ? '-' : 'Active records', page: 'students' },
-    canViewStaff && { color: '#22c55e', icon: <GraduationCap size={22} />, label: 'Faculty', value: loading ? '-' : facultyCount, helper: loading ? '-' : 'Teaching staff', page: 'faculty-staff' },
-    canViewFees && { color: '#f59e0b', icon: <Wallet size={22} />, label: 'Collection', value: loading ? '-' : formatCurrency(courseFeeSummary.totalCollected), helper: loading ? '-' : `${courseFeeSummary.dueStudents} due students`, page: 'fees' },
-    canViewDocuments && { color: '#8b5cf6', icon: <FileText size={22} />, label: 'Documents', value: loading ? '-' : pendingDocuments.length, helper: loading ? '-' : 'Pending review', page: 'document-management' },
-    canViewExams && { color: '#ef4444', icon: <TrendingUp size={22} />, label: 'Exams', value: loading ? '-' : upcomingExams.length, helper: loading ? '-' : 'Upcoming exams', page: 'examination-results' },
-  ].filter(Boolean);
-
-  const pendingWork = [
-    canViewDocuments && canVerifyDocuments && {
-      label: loading ? 'Documents need review' : `${pendingDocuments.length} documents need review`,
-      helper: loading ? '-' : 'Open verification queue',
-      page: 'document-management',
-    },
-    canViewExams && {
-      label: loading ? 'Upcoming exams' : `${upcomingExams.length} upcoming exams`,
-      helper: loading ? '-' : 'View exam schedule',
-      page: 'examination-results',
-    },
-    canViewFees && courseFeeSummary.dueStudents > 0 && {
-      label: `${courseFeeSummary.dueStudents} students have pending dues`,
-      helper: 'Open payment due list',
-      page: 'fees',
-      state: { feeTask: 'due-tracking', feeBranch: 'due-list' },
-    },
-  ].filter(Boolean);
+  if (!canView) {
+    return (
+      <div className="erp-dashboard-page">
+        <EmptyState message="You do not have permission to view the dashboard." />
+      </div>
+    );
+  }
 
   return (
-    <div className="erp-dashboard min-w-0">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+    <div className="erp-dashboard-page">
+      <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Today&apos;s college overview for {academicYear}.</p>
-          {loading && <p className="text-xs text-slate-500 mt-2">Loading live dashboard data...</p>}
-          {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
+          <p className="text-[11px] font-bold uppercase text-[#006a62]">Dashboard</p>
+          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Overview</h1>
+          <p className="mt-2 text-sm font-semibold text-[#3f4848]">Institution overview, notices, exams, and recent activities.</p>
+          {overview.generatedAt && (
+            <p className="mt-2 text-xs font-semibold text-[#3f4848]">Generated {formatDashboardDateTime(overview.generatedAt)}</p>
+          )}
+          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
         </div>
+        <button
+          type="button"
+          onClick={loadDashboard}
+          disabled={loading}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d] disabled:opacity-70"
+        >
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Refresh
+        </button>
       </div>
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-4 py-5">
-        {dashboardCards.map((card) => (
-          <DashboardCard key={card.label} {...card} onClick={() => onNavigate?.(card.page)} />
+      <MetricGrid loading={loading} metrics={metrics} />
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
+        <div className="space-y-5">
+          <section className="erp-glass-card rounded-2xl p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#003434]">Admissions</h2>
+                <p className="mt-1 text-xs font-semibold text-[#3f4848]">{summary.admissionWork} active admission items.</p>
+              </div>
+              <UserPlus size={19} className="text-[#006a62]" />
+            </div>
+            <ProgressList items={admissionStages} />
+          </section>
+
+          <section className="erp-glass-card rounded-2xl p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-[#003434]">Fees</h2>
+                <p className="mt-1 text-xs font-semibold text-[#3f4848]">Collected amounts and pending dues.</p>
+              </div>
+              <Wallet size={19} className="text-[#006a62]" />
+            </div>
+            <ProgressList items={feeBreakdown} valueFormatter={formatDashboardCurrency} />
+          </section>
+        </div>
+
+        <RecentActivities activities={activities} loading={loading} />
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <UpcomingExams exams={overview.exams.upcoming} />
+        <LatestNotices notices={overview.notices.latest} />
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        {[
+          ['Student Records', summary.studentRecords],
+          ['Staff Records', summary.staffRecords],
+          ['Upcoming Exams', summary.upcomingExams],
+          ['Latest Notices', summary.latestNotices],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-white/35 bg-white/35 p-4 text-sm font-semibold text-[#3f4848]">
+            <span className="block text-[11px] font-bold uppercase">{label}</span>
+            <b className="mt-2 block text-xl text-[#003434]">{value}</b>
+          </div>
         ))}
       </div>
-
-      <div className="grid xl:grid-cols-[1.5fr_.9fr] gap-5">
-        {canViewFinancialReports && (
-        <section className="min-w-0 rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div>
-              <h2 className="font-bold text-slate-900">Payment Trend</h2>
-              <p className="text-xs text-slate-500 mt-1">Smooth monthly collection movement.</p>
-            </div>
-            <span className="rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-semibold text-slate-600">{academicYear}</span>
-          </div>
-          <div className="relative">
-            {hasCollectionTrend ? (
-            <>
-            <svg viewBox="0 0 360 160" className="w-full h-64 max-w-full">
-              <defs>
-                <linearGradient id="paymentTrendFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.28" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <path d={trendArea} fill="url(#paymentTrendFill)" />
-              <path d={trendPath} fill="none" stroke="#f97316" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1={highlightPoint[0]} x2={highlightPoint[0]} y1="12" y2="142" stroke="rgba(148,163,184,.55)" strokeWidth="2" strokeDasharray="6 6" />
-              <circle cx={highlightPoint[0]} cy={highlightPoint[1]} r="6" fill="#f97316" stroke="#ffffff" strokeWidth="3" />
-              <g transform={`translate(${tooltipX} ${tooltipY})`}>
-                <rect x="0" y="0" width="112" height="32" rx="10" fill="white" opacity="0.96" />
-                <text x="10" y="21" fill="#111827" fontSize="14" fontWeight="700">{loading ? '-' : formatChartCurrency(highlightPoint[2])}</text>
-              </g>
-              {trendPoints.map(([x], index) => (
-                <line key={index} x1={x} x2={x} y1="145" y2="150" stroke="rgba(148,163,184,.5)" strokeWidth="2" />
-              ))}
-            </svg>
-            <div className="grid grid-cols-6 gap-2 text-[11px] text-slate-500 px-4 -mt-4">
-              {collectionTrend.map((month) => <span key={month.key}>{month.label}</span>)}
-            </div>
-            </>
-            ) : (
-              <div className="h-64 rounded-lg bg-[#f5f5f6] flex items-center justify-center text-sm text-slate-500">
-                No payment collections yet.
-              </div>
-            )}
-          </div>
-        </section>
-        )}
-
-        <section className="min-w-0 rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <h2 className="font-bold text-slate-900">Pending Work</h2>
-            <AlertCircle size={18} className="text-[#fb8d49]" />
-          </div>
-          <div className="space-y-3">
-            {pendingWork.map((item) => (
-              <button key={item.label} onClick={() => onNavigate?.(item.page, item.state ? { state: item.state } : undefined)} className="w-full rounded-lg bg-[#f5f5f6] p-4 text-left">
-                <span className="block font-bold text-sm text-slate-900">{item.label}</span>
-                <span className="block text-xs text-slate-500 mt-1">{item.helper}</span>
-              </button>
-            ))}
-            {!pendingWork.length && (
-              <div className="rounded-lg bg-[#f5f5f6] p-4 text-sm text-slate-500">
-                No pending items available for your role.
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 mt-5">
-        {canViewStudents && (
-        <section className="erp-dashboard-course-card min-w-0 overflow-hidden rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div className="min-w-0">
-              <h2 className="font-bold text-slate-900">Course Strength</h2>
-              <p className="text-xs text-slate-500 mt-1">Active student distribution and record readiness.</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-bold text-emerald-600">{loading ? '-' : `${documentReadiness}% docs ready`}</span>
-          </div>
-          {courseStrength.length ? (
-          <div className="erp-dashboard-course-content grid md:grid-cols-[minmax(0,1fr)_150px] lg:grid-cols-[minmax(0,1fr)_164px] gap-5 items-center">
-            <div className="min-w-0 space-y-3">
-              {courseStrength.map((item, index) => (
-                <div key={item.label} className="min-w-0">
-                  <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 flex-1 truncate font-semibold text-slate-700">{item.label}</span>
-                    <b className="shrink-0">{loading ? '-' : item.value}</b>
-                  </div>
-                  <div className="mt-2 h-3 rounded-full bg-[#f5f5f6] overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(8, Math.round((item.value / maxCourseStrength) * 100))}%`,
-                        background: ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'][index],
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="relative h-36 w-36 lg:h-40 lg:w-40 mx-auto rounded-full shrink-0" style={{ background: `conic-gradient(#22c55e 0 ${documentReadiness}%, #f59e0b ${documentReadiness}% 100%)` }}>
-              <div className="erp-dashboard-donut-hole absolute inset-7 rounded-full flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-slate-900">{loading ? '-' : `${documentReadiness}%`}</span>
-                <span className="text-xs text-slate-500">Docs ready</span>
-              </div>
-            </div>
-          </div>
-          ) : (
-            <div className="h-44 rounded-lg bg-[#f5f5f6] flex items-center justify-center text-sm text-slate-500">
-              No active student distribution available.
-            </div>
-          )}
-        </section>
-        )}
-
-        {canViewFees && (
-        <section className="erp-dashboard-fee-card min-w-0 overflow-hidden rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div className="min-w-0">
-              <h2 className="font-bold text-slate-900">Fee Collection</h2>
-              <p className="text-xs text-slate-500 mt-1">Collected, pending, and adjusted split.</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-semibold text-slate-600">{academicYear}</span>
-          </div>
-          <div className="grid md:grid-cols-[156px_minmax(0,1fr)] lg:grid-cols-[172px_minmax(0,1fr)] gap-5 items-center">
-            <div className="relative h-40 w-40 lg:h-44 lg:w-44 mx-auto rounded-full shrink-0" style={{ background: `conic-gradient(${pieGradient})` }}>
-              <div className="erp-dashboard-donut-hole absolute inset-8 rounded-full flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-slate-900">{loading ? '-' : `${collectionRate}%`}</span>
-                <span className="text-xs text-slate-500">Collected</span>
-              </div>
-            </div>
-            <div className="min-w-0 space-y-3">
-              {paymentSplit.map((item) => (
-                <div key={item.label} className="flex min-w-0 items-center gap-3 text-sm">
-                  <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: item.color }} />
-                  <span className="min-w-0 flex-1 truncate text-slate-600">{item.label}</span>
-                  <b className="shrink-0 text-slate-900">{loading ? '-' : formatCurrency(item.value)}</b>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        )}
-      </div>
-
-      {canViewExams && (
-      <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm mt-5">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="font-bold text-slate-900">Upcoming Exams</h2>
-          <TrendingUp size={18} className="text-slate-400" />
-        </div>
-        <div className="grid md:grid-cols-2 gap-3">
-          {visibleUpcomingExams.map((exam) => (
-            <button key={exam.id} onClick={() => onNavigate?.('examination-results')} className="rounded-lg bg-[#f5f5f6] p-4 text-left">
-              <span className="block text-sm font-bold text-slate-900">{exam.examName}</span>
-              <span className="block text-xs text-slate-500 mt-1">{exam.classKey} - {exam.subject}</span>
-              <span className="block text-xs font-semibold text-[#fb8d49] mt-3">{exam.examDate}</span>
-            </button>
-          ))}
-        </div>
-        {upcomingExams.length > 4 && (
-          <button
-            type="button"
-            onClick={() => setShowAllUpcomingExams((value) => !value)}
-            className="mt-4 h-10 w-full rounded-lg border border-dashed border-slate-200 bg-[#f5f5f6] text-sm font-bold text-slate-600"
-          >
-            {showAllUpcomingExams ? 'View less' : `View more (${hiddenUpcomingExamCount})`}
-          </button>
-        )}
-      </div>
-      )}
     </div>
   );
 }
