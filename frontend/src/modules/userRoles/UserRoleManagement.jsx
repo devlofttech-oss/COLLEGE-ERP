@@ -1,316 +1,561 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, ShieldCheck, UserRound } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  createRole,
-  createUserProfile,
-  getStudentInformationData,
-  getUserRoleData,
-  updateRole,
-  updateUserProfile,
-} from '../../firebase/db';
-import { createManagedAuthUser } from '../../firebase/auth';
-import { isFirebaseConfigured } from '../../firebase/config';
-import { canAccess, defaultRoles, validateUserForm, validateUserUpdate } from './rolePermissions';
-import RolePermissionEditor from './components/RolePermissionEditor';
-import UserModal from './components/UserModal';
-import UserTable from './components/UserTable';
+  Archive,
+  ArchiveRestore,
+  CheckCircle2,
+  Edit3,
+  Eye,
+  Link2,
+  Loader2,
+  Plus,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+  UserRound,
+  Users,
+  X,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { listStudents } from '../../api/students';
+import {
+  archiveUser,
+  changeUserRole,
+  createUser,
+  getUser,
+  listUsers,
+  restoreUser,
+  setLinkedStudents,
+  updateUser,
+} from '../../api/users';
+import {
+  backendUserRoles,
+  filterBackendUsers,
+  formatDisplayDate,
+  getUserId,
+  getUserRole,
+  getUserStatus,
+  roleLabel,
+  summarizeUsers,
+  validateUserForm,
+  validateUserUpdate,
+} from './rolePermissions';
 
-function mergeRoles(firestoreRoles) {
-  const byId = new Map(defaultRoles.map((role) => [role.id, role]));
-  firestoreRoles.forEach((role) => byId.set(role.id, { ...byId.get(role.id), ...role }));
-  return [...byId.values()];
+const ADMIN_ROLES = new Set(['super-admin', 'admin']);
+const statusOptions = ['active', 'suspended'];
+const textInputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20 disabled:cursor-not-allowed disabled:opacity-70';
+
+function hasPermission(user, permission) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return ADMIN_ROLES.has(user?.roleId) || ADMIN_ROLES.has(user?.role) || permissions.includes(permission);
+}
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function activeItems(items = []) {
+  return items.filter((item) => !item.archived && String(item.status || 'active').toLowerCase() !== 'inactive');
+}
+
+function arraysEqual(first = [], second = []) {
+  if (first.length !== second.length) return false;
+  const values = new Set(first);
+  return second.every((item) => values.has(item));
+}
+
+function statusClasses(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'active') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === 'archived') return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (normalized === 'suspended' || normalized === 'inactive') return 'border-rose-200 bg-rose-50 text-rose-700';
+  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+}
+
+function SummaryCard({ icon, label, loading, value }) {
+  return (
+    <div className="erp-glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        {icon}
+      </div>
+      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+    </div>
+  );
+}
+
+function EmptyState({ message }) {
+  return (
+    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+      {message}
+    </div>
+  );
+}
+
+function TextField({ disabled, label, onChange, type = 'text', value }) {
+  return (
+    <label>
+      <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{label}</span>
+      <input
+        type={type}
+        value={value || ''}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className={textInputClass}
+      />
+    </label>
+  );
+}
+
+function RoleBadge({ role }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold uppercase text-[#004d4d]">
+      <ShieldCheck size={13} /> {roleLabel(role)}
+    </span>
+  );
+}
+
+function ModalFrame({ children, footer, onClose, title }) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl">
+        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+          <div>
+            <p className="text-[11px] font-bold uppercase text-[#006a62]">Users</p>
+            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+            <X size={17} />
+          </button>
+        </div>
+        {children}
+        {footer}
+      </div>
+    </div>
+  );
+}
+
+function UserModal({ initialUser = null, onClose, onSave, saving, students = [] }) {
+  const isEdit = Boolean(getUserId(initialUser));
+  const initialRole = getUserRole(initialUser) || 'admin';
+  const initialLinkedIds = Array.isArray(initialUser?.linkedStudentIds) ? initialUser.linkedStudentIds : [];
+  const [form, setForm] = useState(() => ({
+    name: initialUser?.name || '',
+    email: initialUser?.email || '',
+    password: '',
+    role: initialRole,
+    phone: initialUser?.phone || '',
+    status: getUserStatus(initialUser),
+    linkedStudentIds: initialLinkedIds,
+  }));
+  const showLinkedStudents = ['parent', 'student'].includes(form.role);
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const toggleLinkedStudent = (studentId) => setForm((current) => {
+    const next = new Set(current.linkedStudentIds || []);
+    if (next.has(studentId)) next.delete(studentId);
+    else next.add(studentId);
+    return { ...current, linkedStudentIds: [...next] };
+  });
+  const submit = (event) => {
+    event.preventDefault();
+    onSave({
+      ...form,
+      linkedStudentIds: showLinkedStudents ? form.linkedStudentIds : [],
+    });
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <ModalFrame
+        title={isEdit ? 'Edit User' : 'Create User'}
+        onClose={onClose}
+        footer={(
+          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white disabled:opacity-70">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save
+            </button>
+          </div>
+        )}
+      >
+        <div className="grid max-h-[68vh] gap-4 overflow-y-auto p-6 md:grid-cols-2">
+          <TextField disabled={saving} label="Name *" value={form.name} onChange={(value) => update('name', value)} />
+          <TextField disabled={isEdit || saving} label="Email *" type="email" value={form.email} onChange={(value) => update('email', value)} />
+          {!isEdit && <TextField disabled={saving} label="Password *" type="password" value={form.password} onChange={(value) => update('password', value)} />}
+          <TextField disabled={saving} label="Phone" value={form.phone} onChange={(value) => update('phone', value)} />
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Role *</span>
+            <select value={form.role} onChange={(event) => update('role', event.target.value)} disabled={saving} className={textInputClass}>
+              {backendUserRoles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <select value={form.status} onChange={(event) => update('status', event.target.value)} disabled={saving} className={textInputClass}>
+              {statusOptions.map((status) => <option key={status} value={status}>{roleLabel(status)}</option>)}
+            </select>
+          </label>
+          {showLinkedStudents && (
+            <fieldset className="md:col-span-2 rounded-xl bg-white/40 p-4">
+              <legend className="px-1 text-xs font-bold text-[#3f4848]">Linked Students</legend>
+              <div className="mt-2 grid max-h-56 gap-2 overflow-y-auto sm:grid-cols-2">
+                {students.map((student) => (
+                  <label key={student.id} className="flex items-center gap-3 rounded-xl bg-white/40 p-3 text-sm font-semibold text-[#3f4848]">
+                    <input
+                      type="checkbox"
+                      checked={(form.linkedStudentIds || []).includes(student.id)}
+                      onChange={() => toggleLinkedStudent(student.id)}
+                      disabled={saving}
+                      className="h-4 w-4 rounded border-white/50 text-[#006a62]"
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[#071e27]">{student.name}</span>
+                      <span className="block truncate text-xs">{student.admissionNumber || student.rollNumber || student.id}</span>
+                    </span>
+                  </label>
+                ))}
+                {!students.length && <div className="sm:col-span-2"><EmptyState message="No students available." /></div>}
+              </div>
+            </fieldset>
+          )}
+        </div>
+      </ModalFrame>
+    </form>
+  );
+}
+
+function UsersTable({ canManage, loading, onArchive, onEdit, onOpen, onRestore, selectedUserId, users }) {
+  return (
+    <section className="erp-glass-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
+        <h2 className="text-sm font-bold text-[#003434]">Users</h2>
+        <span className="text-xs font-bold uppercase text-[#3f4848]">{users.length} listed</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[920px] text-sm">
+          <thead className="bg-[#004d4d] text-left text-white">
+            <tr>
+              <th className="px-5 py-3">User</th>
+              <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">Phone</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Linked</th>
+              <th className="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading users...</td></tr>}
+            {!loading && users.map((user) => {
+              const uid = getUserId(user);
+              const isSelected = selectedUserId === uid;
+              const archived = Boolean(user.archived);
+              return (
+                <tr key={uid} className={isSelected ? 'bg-white/35' : ''}>
+                  <td className="px-5 py-4">
+                    <button type="button" onClick={() => onOpen(uid)} className="flex min-w-0 items-center gap-3 text-left">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#004d4d] text-white"><UserRound size={18} /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate font-bold text-[#071e27]">{user.name || '-'}</span>
+                        <span className="block truncate text-xs font-semibold text-[#3f4848]">{user.email || '-'}</span>
+                      </span>
+                    </button>
+                  </td>
+                  <td className="px-5 py-4"><RoleBadge role={getUserRole(user)} /></td>
+                  <td className="px-5 py-4 font-semibold text-[#3f4848]">{user.phone || '-'}</td>
+                  <td className="px-5 py-4">
+                    <span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(archived ? 'archived' : getUserStatus(user)))}>
+                      {archived ? 'Archived' : getUserStatus(user)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 font-semibold text-[#3f4848]">{(user.linkedStudentIds || []).length}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => onOpen(uid)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Eye size={13} /> View</button>
+                      {canManage && !archived && <button type="button" onClick={() => onEdit(user)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>}
+                      {canManage && !archived && <button type="button" onClick={() => onArchive(user)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>}
+                      {canManage && archived && <button type="button" onClick={() => onRestore(user)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><ArchiveRestore size={13} /> Restore</button>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {!loading && !users.length && <tr><td colSpan="6" className="px-5 py-12"><EmptyState message="No users found." /></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function UserPreview({ studentMap, user }) {
+  const linkedIds = user?.linkedStudentIds || [];
+  return (
+    <section className="erp-glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-[#003434]">Profile</h2>
+        {user && <RoleBadge role={getUserRole(user)} />}
+      </div>
+      {!user ? (
+        <div className="mt-5"><EmptyState message="Select a user to view profile details." /></div>
+      ) : (
+        <div className="mt-5 grid gap-4">
+          <div className="rounded-2xl bg-white/40 p-5">
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#004d4d] text-white"><UserRound size={24} /></span>
+              <div className="min-w-0">
+                <h3 className="truncate text-xl font-bold text-[#003434]">{user.name || '-'}</h3>
+                <p className="mt-1 truncate text-sm font-semibold text-[#3f4848]">{user.email || '-'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-white/40 p-3 text-sm"><span className="font-bold text-[#3f4848]">UID</span><br /><b className="break-all text-[#071e27]">{getUserId(user) || '-'}</b></div>
+            <div className="rounded-xl bg-white/40 p-3 text-sm"><span className="font-bold text-[#3f4848]">Status</span><br /><b className="text-[#071e27]">{user.archived ? 'archived' : getUserStatus(user)}</b></div>
+            <div className="rounded-xl bg-white/40 p-3 text-sm"><span className="font-bold text-[#3f4848]">Phone</span><br /><b className="text-[#071e27]">{user.phone || '-'}</b></div>
+            <div className="rounded-xl bg-white/40 p-3 text-sm"><span className="font-bold text-[#3f4848]">Created</span><br /><b className="text-[#071e27]">{formatDisplayDate(user.createdAt)}</b></div>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-bold text-[#003434]">Linked Students</h3>
+            <div className="grid gap-2">
+              {linkedIds.map((studentId) => {
+                const student = studentMap.get(studentId);
+                return (
+                  <div key={studentId} className="flex items-center gap-2 rounded-xl bg-white/40 p-3 text-sm font-semibold text-[#3f4848]">
+                    <Link2 size={14} className="text-[#006a62]" />
+                    <span className="min-w-0 truncate">{student?.name ? `${student.name} - ${studentId}` : studentId}</span>
+                  </div>
+                );
+              })}
+              {!linkedIds.length && <EmptyState message="No linked students." />}
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function UserRoleManagement({ currentUser }) {
   const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState(defaultRoles);
-  const [selectedRoleId, setSelectedRoleId] = useState('admin');
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(isFirebaseConfigured);
-  const [savingRole, setSavingRole] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
   const [studentOptions, setStudentOptions] = useState([]);
+  const [filters, setFilters] = useState({ search: '', role: '', status: '', includeArchived: false });
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalUser, setModalUser] = useState(undefined);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState('');
+  const [loadError, setLoadError] = useState('');
+
+  const canView = hasPermission(currentUser, 'users.view');
+  const canManage = hasPermission(currentUser, 'users.manage');
+
+  const loadUsers = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    try {
+      const [nextUsers, studentData] = await Promise.all([
+        listUsers({ includeArchived: filters.includeArchived ? 'true' : '' }),
+        listStudents({ includeArchived: 'true' }).catch(() => ({ students: [] })),
+      ]);
+      setUsers(nextUsers);
+      setStudentOptions(activeItems(studentData.students || []));
+      setSelectedUser((current) => current || nextUsers[0] || null);
+      setLoadError('');
+    } catch (error) {
+      console.error('Unable to load backend users.', error);
+      setLoadError(error?.message || 'Unable to load users from the backend.');
+    } finally {
+      setLoading(false);
+    }
+  }, [canView, filters.includeArchived]);
 
   useEffect(() => {
-    const loadUsersAndRoles = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        setLoading(false);
-        return;
-      }
-      try {
-        const data = await getUserRoleData();
-        setRoles(mergeRoles(data.roles));
-        setUsers(data.users || []);
-        const studentData = await getStudentInformationData().catch(() => ({ students: [] }));
-        setStudentOptions(studentData.students.filter((student) => student.status !== 'Archived'));
-        setLoadError('');
-      } catch (error) {
-        console.error('Unable to load live users/roles.', error);
-        setLoadError('Unable to load live users/roles.');
-      } finally {
-        setLoading(false);
-      }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) loadUsers();
+    });
+    return () => {
+      active = false;
     };
+  }, [loadUsers]);
 
-    loadUsersAndRoles();
-  }, []);
+  const studentMap = useMemo(() => new Map(studentOptions.map((student) => [student.id, student])), [studentOptions]);
+  const visibleUsers = useMemo(() => filterBackendUsers(users, filters), [filters, users]);
+  const summary = useMemo(() => summarizeUsers(users), [users]);
+  const selectedUserId = getUserId(selectedUser);
+  const selectedVisibleUser = visibleUsers.find((user) => getUserId(user) === selectedUserId) || visibleUsers[0] || null;
 
-  const rolesById = useMemo(() => Object.fromEntries(roles.map((role) => [role.id, role])), [roles]);
-  const selectedRole = rolesById[selectedRoleId] || roles[0];
-  const canCreateUsers = canAccess(roles, currentUser?.roleId || 'admin', 'users.create');
-  const canEditUsers = canAccess(roles, currentUser?.roleId || 'admin', 'users.edit');
-  const canEditRoles = canAccess(roles, currentUser?.roleId || 'admin', 'roles.edit');
+  const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
 
-  const filteredUsers = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return users;
-    return users.filter((user) =>
-      [user.name, user.email, rolesById[user.roleId]?.name, user.status]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(term))
+  const openUser = async (uid) => {
+    if (!uid) return;
+    try {
+      const user = await getUser(uid);
+      setSelectedUser(user);
+    } catch (error) {
+      toast.error(error?.message || 'User profile was not loaded.');
+    }
+  };
+
+  const saveUser = async (form) => {
+    if (!canManage) {
+      toast.error('You do not have permission to manage users.');
+      return;
+    }
+    const isEdit = Boolean(getUserId(modalUser));
+    const validationMessage = isEdit ? validateUserUpdate(form) : validateUserForm(form);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+
+    setSaving(isEdit ? 'edit' : 'create');
+    try {
+      let saved;
+      if (isEdit) {
+        const uid = getUserId(modalUser);
+        saved = await updateUser(uid, {
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          status: form.status,
+        });
+        if (form.role !== getUserRole(modalUser)) saved = await changeUserRole(uid, form.role);
+        if (!arraysEqual(form.linkedStudentIds || [], modalUser.linkedStudentIds || [])) {
+          saved = await setLinkedStudents(uid, form.linkedStudentIds || []);
+        }
+      } else {
+        saved = await createUser({
+          email: form.email.trim(),
+          password: form.password,
+          name: form.name.trim(),
+          role: form.role,
+          phone: form.phone.trim(),
+          status: form.status || 'active',
+          linkedStudentIds: form.linkedStudentIds || [],
+        });
+      }
+      setModalUser(undefined);
+      setSelectedUser(saved);
+      toast.success(isEdit ? 'User updated' : 'User created');
+      await loadUsers();
+    } catch (error) {
+      toast.error(error?.message || 'User was not saved.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const archiveUserRecord = async (user) => {
+    if (!canManage) {
+      toast.error('You do not have permission to manage users.');
+      return;
+    }
+    if (!window.confirm(`Archive ${user.name || user.email || 'this user'}?`)) return;
+    setSaving(`archive-${getUserId(user)}`);
+    try {
+      const saved = await archiveUser(getUserId(user));
+      setSelectedUser(saved);
+      toast.success('User archived');
+      await loadUsers();
+    } catch (error) {
+      toast.error(error?.message || 'User was not archived.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const restoreUserRecord = async (user) => {
+    if (!canManage) {
+      toast.error('You do not have permission to manage users.');
+      return;
+    }
+    setSaving(`restore-${getUserId(user)}`);
+    try {
+      const saved = await restoreUser(getUserId(user));
+      setSelectedUser(saved);
+      toast.success('User restored');
+      await loadUsers();
+    } catch (error) {
+      toast.error(error?.message || 'User was not restored.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  if (!canView) {
+    return (
+      <div className="erp-users-page">
+        <EmptyState message="You do not have permission to view users." />
+      </div>
     );
-  }, [rolesById, search, users]);
-
-  const getLinkedStudentPayload = (form) => {
-    if (form.roleId !== 'parent') {
-      return {
-        linkedStudentRecordIds: [],
-        linkedStudentIds: [],
-      };
-    }
-
-    const selected = studentOptions.filter((student) => form.linkedStudentRecordIds?.includes(student.id));
-    return {
-      linkedStudentRecordIds: selected.map((student) => student.id),
-      linkedStudentIds: selected.map((student) => student.studentId).filter(Boolean),
-    };
-  };
-
-  const stats = [
-    { label: 'Users', value: users.length, icon: <UserRound size={22} /> },
-    { label: 'Active Users', value: users.filter((user) => user.status !== 'Suspended').length, icon: <UserRound size={22} /> },
-    { label: 'Roles', value: roles.length, icon: <ShieldCheck size={22} /> },
-    { label: 'Permissions', value: selectedRole?.permissions?.length || 0, icon: <ShieldCheck size={22} /> },
-  ];
-
-  const seedDefaultRoles = async () => {
-    if (!canEditRoles) {
-      toast.error('You do not have permission to edit roles.');
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-    setSavingRole(true);
-    try {
-      const missingRoles = defaultRoles.filter((role) => !roles.some((item) => item.id === role.id));
-      await Promise.all(missingRoles.map((role) => createRole(role)));
-      setRoles(mergeRoles([...roles, ...missingRoles]));
-      toast.success(missingRoles.length ? 'Default roles seeded' : 'Default roles already available');
-    } catch {
-      toast.error('Default roles were not synced to live data.');
-    } finally {
-      setSavingRole(false);
-    }
-  };
-
-  const saveRole = async (nextRole) => {
-    if (!canEditRoles) {
-      toast.error('You do not have permission to edit roles.');
-      return;
-    }
-    if (nextRole.locked) return;
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-    setSavingRole(true);
-    try {
-      await updateRole(nextRole.id, nextRole);
-      setRoles((prev) => prev.map((role) => (role.id === nextRole.id ? nextRole : role)));
-      toast.success('Role permissions updated');
-    } catch {
-      toast.error('Role permissions were not saved to live data.');
-    } finally {
-      setSavingRole(false);
-    }
-  };
-
-  const createUser = async (form) => {
-    if (!canCreateUsers) {
-      toast.error('You do not have permission to create users.');
-      return;
-    }
-
-    const validationMessage = validateUserForm(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const createdAtText = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    try {
-      const authUser = await createManagedAuthUser({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-      });
-      const profile = {
-        uid: authUser.uid,
-        name: form.name.trim(),
-        email: authUser.email,
-        roleId: form.roleId,
-        status: 'Active',
-        createdBy: currentUser?.uid || '',
-        createdAtText,
-        ...getLinkedStudentPayload(form),
-      };
-      await createUserProfile(authUser.uid, profile);
-      setUsers((prev) => [profile, ...prev]);
-      toast.success('User created');
-      setShowUserModal(false);
-    } catch {
-      toast.error('User was not created in live data.');
-    }
-  };
-
-  const updateUser = async (form) => {
-    if (!editingUser) return;
-    if (!canEditUsers) {
-      toast.error('You do not have permission to edit users.');
-      return;
-    }
-
-    const validationMessage = validateUserUpdate(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const updates = {
-      name: form.name.trim(),
-      roleId: form.roleId,
-      status: form.status,
-      updatedAtText: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      ...getLinkedStudentPayload(form),
-    };
-
-    try {
-      await updateUserProfile(editingUser.uid, updates);
-      setUsers((prev) => prev.map((user) => (user.uid === editingUser.uid ? { ...user, ...updates } : user)));
-      toast.success('User updated');
-      setEditingUser(null);
-    } catch {
-      toast.error('User was not updated in live data.');
-    }
-  };
+  }
 
   return (
-    <div>
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+    <div className="erp-users-page">
+      <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-sm font-bold text-slate-500 mb-2">Administration / <span className="text-[#f39a5f]">User & Role Management</span></div>
-          <h1 className="text-2xl font-bold text-slate-900">User & Role Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Create ERP users, assign roles, and manage module permissions.</p>
-          {!isFirebaseConfigured && <p className="text-xs text-orange-600 mt-2">Live Firebase data is not configured.</p>}
-          {isFirebaseConfigured && <p className="text-xs text-slate-500 mt-2">For a fresh Firebase project, create the first admin profile before tightening deployed rules.</p>}
-          {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
+          <p className="text-[11px] font-bold uppercase text-[#006a62]">Admin Setup</p>
+          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Users</h1>
+          <p className="mt-2 text-sm font-semibold text-[#3f4848]">ERP accounts, roles, status, and linked students.</p>
+          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={seedDefaultRoles}
-            disabled={savingRole || !canEditRoles}
-            className="h-10 px-5 rounded-lg bg-[#33373e] text-white font-semibold text-sm disabled:bg-slate-300"
-          >
-            Sync Default Roles
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button type="button" onClick={loadUsers} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d] disabled:opacity-70">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Refresh
           </button>
-          <button
-            onClick={() => setShowUserModal(true)}
-            disabled={!canCreateUsers}
-            className="h-10 px-5 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed"
-          >
-            <Plus size={16} /> New User
-          </button>
+          {canManage && (
+            <button type="button" onClick={() => setModalUser(null)} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white">
+              <Plus size={16} /> New User
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 py-5">
-        {stats.map(({ label, value, icon }) => (
-          <div key={label} className="bg-[#f5f5f6] rounded-lg p-4 flex items-center gap-4">
-            <div className="h-12 w-12 bg-white rounded-lg flex items-center justify-center text-[#34363d] shadow-sm">
-              {icon}
-            </div>
-            <div>
-              <div className="text-xs text-slate-500">{label}</div>
-              <div className="text-xl font-bold text-slate-900">{loading ? '...' : value}</div>
-            </div>
-          </div>
-        ))}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={<Users size={20} className="text-[#006a62]" />} label="Users" loading={loading} value={summary.total} />
+        <SummaryCard icon={<UserRound size={20} className="text-[#006a62]" />} label="Active" loading={loading} value={summary.active} />
+        <SummaryCard icon={<Archive size={20} className="text-[#006a62]" />} label="Archived" loading={loading} value={summary.archived} />
+        <SummaryCard icon={<Link2 size={20} className="text-[#006a62]" />} label="Linked" loading={loading} value={summary.linked} />
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-5">
-        <div className="xl:w-[64%] min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-5">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                onClick={() => setSelectedRoleId(role.id)}
-                className={`h-10 px-4 rounded-md border text-sm flex items-center gap-2 ${
-                  selectedRole?.id === role.id
-                    ? 'bg-[#33373e] text-white border-[#33373e]'
-                    : 'bg-white text-slate-600 border-slate-200'
-                }`}
-              >
-                <ShieldCheck size={15} /> {role.name}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative mb-4">
-            <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by user, email, role, status..."
-              className="w-full h-11 rounded-lg bg-[#f0f0f2] border-0 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-orange-100"
-            />
-          </div>
-
-          <UserTable users={filteredUsers} rolesById={rolesById} canEdit={canEditUsers} onEdit={setEditingUser} />
+      <div className="my-5 grid gap-3 lg:grid-cols-[minmax(220px,1fr)_200px_180px_150px]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={16} />
+          <input value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} className="h-11 w-full rounded-full border border-white/40 bg-white/45 pl-10 pr-4 text-sm font-semibold text-[#071e27] outline-none" placeholder="Search users" />
         </div>
-
-        <RolePermissionEditor role={selectedRole} canEdit={canEditRoles} saving={savingRole} onChange={saveRole} />
+        <select value={filters.role} onChange={(event) => updateFilter('role', event.target.value)} className="h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
+          <option value="">All roles</option>
+          {backendUserRoles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+        </select>
+        <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)} className="h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
+          <option value="">All status</option>
+          {statusOptions.map((status) => <option key={status} value={status}>{roleLabel(status)}</option>)}
+        </select>
+        <label className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+          <input type="checkbox" checked={filters.includeArchived} onChange={(event) => updateFilter('includeArchived', event.target.checked)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+          Archived
+        </label>
       </div>
 
-      {showUserModal && (
-        <UserModal
-          roles={roles}
-          students={studentOptions}
-          onClose={() => setShowUserModal(false)}
-          onSave={createUser}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <UsersTable
+          canManage={canManage}
+          loading={loading}
+          onArchive={archiveUserRecord}
+          onEdit={setModalUser}
+          onOpen={openUser}
+          onRestore={restoreUserRecord}
+          selectedUserId={getUserId(selectedVisibleUser)}
+          users={visibleUsers}
         />
-      )}
-      {editingUser && (
+        <UserPreview studentMap={studentMap} user={selectedVisibleUser} />
+      </div>
+
+      {modalUser !== undefined && (
         <UserModal
-          mode="edit"
-          initialUser={editingUser}
-          roles={roles}
+          initialUser={modalUser}
+          onClose={() => setModalUser(undefined)}
+          onSave={saveUser}
+          saving={Boolean(saving)}
           students={studentOptions}
-          onClose={() => setEditingUser(null)}
-          onSave={updateUser}
         />
       )}
     </div>

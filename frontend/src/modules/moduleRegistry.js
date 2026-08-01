@@ -200,10 +200,10 @@ export const moduleRegistry = [
   },
   {
     id: 'user-roles',
-    label: 'Users & Roles',
+    label: 'Users',
     path: '/modules/user-roles',
     group: 'Admin Setup',
-    icon: Settings,
+    icon: Users,
     status: 'active',
     permission: 'users.view',
     hideFromSidebar: true,

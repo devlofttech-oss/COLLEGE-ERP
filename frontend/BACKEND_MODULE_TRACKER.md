@@ -8,7 +8,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | --- | --- | --- | --- |
 | Health | `/api/health` | Pending | Use for app readiness/status only. |
 | Auth | `/api/auth` | Built | Backend login, session restore, logout, password reset. |
-| Users | `/api/users` | Pending | Existing UI must be rewired to backend users API. |
+| Users | `/api/users` | Built | Backend-backed user list/detail, create, update, role change, student linking, archive, and restore. |
 | Roles | `/api/roles` | Pending | Existing UI must be rewired to backend roles and permission catalog. |
 | Files | `/api/files` | Pending | Presigned upload/download/resolve/delete utility. Used by student document upload, but no standalone Files frontend yet. |
 | Academics | `/api/academics` | Built | Backend-backed academic years, courses, classes, sections, subjects, teacher allocations. |

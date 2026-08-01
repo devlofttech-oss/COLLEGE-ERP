@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
 import {
+  backendUserRoles,
   canAccess,
   canAccessFinancialReports,
   defaultRoles,
+  filterBackendUsers,
   getRoleById,
+  getUserId,
+  getUserRole,
+  getUserStatus,
   hasPermission,
+  roleLabel,
+  summarizeUsers,
   togglePermission,
   validateUserForm,
   validateUserUpdate,
@@ -21,10 +28,10 @@ assert.equal(hasPermission(admin, 'students.edit'), true);
 assert.equal(hasPermission(admin, 'students.create'), true);
 assert.equal(hasPermission(admin, 'students.documents'), true);
 assert.equal(hasPermission(admin, 'students.archive'), false);
-assert.equal(hasPermission(admin, 'users.view'), false);
-assert.equal(hasPermission(admin, 'users.create'), false);
+assert.equal(hasPermission(admin, 'users.view'), true);
+assert.equal(hasPermission(admin, 'users.manage'), true);
 assert.equal(hasPermission(admin, 'staff.create'), true);
-assert.equal(hasPermission(parent, 'users.create'), false);
+assert.equal(hasPermission(parent, 'users.manage'), false);
 
 assert.equal(canAccess(defaultRoles, 'admin', 'attendance.report'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'timetable.manage'), true);
@@ -56,9 +63,13 @@ assert.equal(canAccess(defaultRoles, 'admin', 'parentPortal.view'), false);
 assert.equal(canAccess(defaultRoles, 'admin', 'parentPortal.viewAll'), false);
 assert.equal(canAccess(defaultRoles, 'admin', 'settings.view'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'settings.manage'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'users.view'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'users.manage'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'roles.view'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'academicCurriculum.view'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'academics.manage'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'users.view'), true);
+assert.equal(canAccess(defaultRoles, 'super-admin', 'users.manage'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'settings.manage'), true);
 
 assert.equal(canAccess(defaultRoles, 'faculty', 'students.view'), true);
@@ -110,10 +121,25 @@ assert.equal(canAccess(defaultRoles, 'parent', 'attendance.view'), false);
 assert.equal(canAccess(defaultRoles, 'parent', 'fees.view'), false);
 assert.equal(canAccess(defaultRoles, 'parent', 'reports.view'), false);
 
-const withoutUsersCreate = togglePermission(admin, 'users.create');
-assert.equal(withoutUsersCreate.includes('users.create'), true);
-const withUsersCreate = togglePermission({ ...admin, permissions: withoutUsersCreate }, 'users.create');
-assert.equal(withUsersCreate.includes('users.create'), false);
+const withoutUsersManage = togglePermission(admin, 'users.manage');
+assert.equal(withoutUsersManage.includes('users.manage'), false);
+const withUsersManage = togglePermission({ ...admin, permissions: withoutUsersManage }, 'users.manage');
+assert.equal(withUsersManage.includes('users.manage'), true);
+
+const users = [
+  { id: 'uid-1', name: 'Riya Parent', email: 'riya@example.com', role: 'parent', status: 'active', linkedStudentIds: ['stu-1'] },
+  { id: 'uid-2', name: 'Arun Teacher', email: 'arun@example.com', role: 'teacher', status: 'suspended', linkedStudentIds: [] },
+  { uid: 'uid-3', name: 'Old Admin', email: 'old@example.com', roleId: 'admin', status: 'active', archived: true },
+];
+assert.equal(backendUserRoles.some((role) => role.id === 'principal'), true);
+assert.equal(roleLabel('super-admin'), 'Super Admin');
+assert.equal(getUserId(users[2]), 'uid-3');
+assert.equal(getUserRole(users[2]), 'admin');
+assert.equal(getUserStatus(users[0]), 'active');
+assert.deepEqual(summarizeUsers(users), { total: 3, active: 1, archived: 1, linked: 1 });
+assert.deepEqual(filterBackendUsers(users, { role: 'parent' }).map((user) => getUserId(user)), ['uid-1']);
+assert.deepEqual(filterBackendUsers(users, { status: 'suspended' }).map((user) => getUserId(user)), ['uid-2']);
+assert.deepEqual(filterBackendUsers(users, { search: 'teacher' }).map((user) => getUserId(user)), ['uid-2']);
 
 assert.equal(validateUserForm({}), 'Name is required.');
 assert.equal(
@@ -121,7 +147,7 @@ assert.equal(
     name: 'Admin',
     email: 'bad',
     password: '123456',
-    roleId: 'admin',
+    role: 'admin',
   }),
   'Valid email is required.'
 );
@@ -130,7 +156,7 @@ assert.equal(
     name: 'Admin',
     email: 'admin@college.edu',
     password: '123',
-    roleId: 'admin',
+    role: 'admin',
   }),
   'Password must be at least 12 characters.'
 );
@@ -139,12 +165,14 @@ assert.equal(
     name: 'Admin',
     email: 'admin@college.edu',
     password: '123456789012',
-    roleId: 'admin',
+    role: 'admin',
   }),
   ''
 );
 
-assert.equal(validateUserUpdate({ name: 'Admin', roleId: 'admin', status: 'Active' }), '');
-assert.equal(validateUserUpdate({ name: 'Admin', roleId: '', status: 'Active' }), 'Role is required.');
+assert.equal(validateUserForm({ name: 'Admin', email: 'admin@college.edu', password: '123456789012', role: 'bad' }), 'A valid role is required.');
+assert.equal(validateUserUpdate({ name: 'Admin', role: 'admin', status: 'active' }), '');
+assert.equal(validateUserUpdate({ name: 'Admin', role: '', status: 'active' }), 'Role is required.');
+assert.equal(validateUserUpdate({ name: 'Admin', role: 'bad', status: 'active' }), 'A valid role is required.');
 
 console.log('User role tests passed.');

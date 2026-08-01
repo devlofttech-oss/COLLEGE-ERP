@@ -40,10 +40,9 @@ export const permissionGroups = [
     label: 'Users & Roles',
     permissions: [
       ['users.view', 'View users'],
-      ['users.create', 'Create users'],
-      ['users.edit', 'Edit users'],
+      ['users.manage', 'Manage users'],
       ['roles.view', 'View roles'],
-      ['roles.edit', 'Edit permissions'],
+      ['roles.manage', 'Manage permissions'],
     ],
   },
   {
@@ -159,6 +158,10 @@ export const defaultRoles = [
       'results.process',
       'results.publish',
       'results.viewOwn',
+      'users.view',
+      'users.manage',
+      'roles.view',
+      'roles.manage',
       'fees.view',
       'fees.structure',
       'fees.collect',
@@ -256,17 +259,94 @@ export function togglePermission(role, permission) {
   return [...permissions].sort();
 }
 
+export const backendUserRoles = [
+  { id: 'super-admin', label: 'Super Admin', description: 'Devloft internal setup, deployment, system-level users.' },
+  { id: 'admin', label: 'Institution Admin', description: 'Full access to institution modules and settings.' },
+  { id: 'principal', label: 'Principal', description: 'Academic and management oversight.' },
+  { id: 'accountant', label: 'Accountant', description: 'Fee and payment operations.' },
+  { id: 'reception', label: 'Reception / Admin Staff', description: 'Admissions and student records.' },
+  { id: 'teacher', label: 'Teacher', description: 'Attendance, marks entry, assigned classes.' },
+  { id: 'parent', label: 'Parent', description: 'Mobile app user own child data.' },
+  { id: 'student', label: 'Student', description: 'Mobile app user own data.' },
+];
+
+export function roleLabel(roleId = '') {
+  const found = backendUserRoles.find((role) => role.id === roleId);
+  if (found) return found.label;
+  return String(roleId || '')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || '-';
+}
+
+export function getUserId(user = {}) {
+  return user.id || user.uid || '';
+}
+
+export function getUserRole(user = {}) {
+  return user.role || user.roleId || '';
+}
+
+export function getUserStatus(user = {}) {
+  return String(user.status || 'active').toLowerCase();
+}
+
+export function summarizeUsers(users = []) {
+  return users.reduce((summary, user) => ({
+    total: summary.total + 1,
+    active: summary.active + (!user.archived && getUserStatus(user) === 'active' ? 1 : 0),
+    archived: summary.archived + (user.archived ? 1 : 0),
+    linked: summary.linked + ((user.linkedStudentIds || []).length ? 1 : 0),
+  }), {
+    total: 0,
+    active: 0,
+    archived: 0,
+    linked: 0,
+  });
+}
+
+export function filterBackendUsers(users = [], filters = {}) {
+  const term = (filters.search || '').trim().toLowerCase();
+  return users.filter((user) => {
+    const role = getUserRole(user);
+    const status = getUserStatus(user);
+    const roleMatches = !filters.role || role === filters.role;
+    const statusMatches = !filters.status || status === filters.status;
+    const textMatches = !term || [user.name, user.email, user.phone, roleLabel(role), status, getUserId(user)]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(term));
+    return roleMatches && statusMatches && textMatches;
+  });
+}
+
+export function formatDisplayDate(value = new Date()) {
+  if (!value) return '-';
+  if (value instanceof Date) {
+    return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(value);
+  }
+  if (typeof value === 'string') {
+    const parsed = new Date(String(value).includes('T') ? value : `${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? value : formatDisplayDate(parsed);
+  }
+  if (value?._seconds) return formatDisplayDate(new Date(value._seconds * 1000));
+  if (value?.seconds) return formatDisplayDate(new Date(value.seconds * 1000));
+  return String(value);
+}
+
 export function validateUserForm(form) {
   if (!form.name?.trim()) return 'Name is required.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email || '')) return 'Valid email is required.';
-  if (!form.roleId) return 'Role is required.';
+  if (!form.role && !form.roleId) return 'Role is required.';
+  if (!backendUserRoles.some((role) => role.id === (form.role || form.roleId))) return 'A valid role is required.';
   if (!form.password || form.password.length < 12) return 'Password must be at least 12 characters.';
   return '';
 }
 
 export function validateUserUpdate(form) {
   if (!form.name?.trim()) return 'Name is required.';
-  if (!form.roleId) return 'Role is required.';
+  if (!form.role && !form.roleId) return 'Role is required.';
+  if (!backendUserRoles.some((role) => role.id === (form.role || form.roleId))) return 'A valid role is required.';
   if (!form.status) return 'Status is required.';
   return '';
 }
