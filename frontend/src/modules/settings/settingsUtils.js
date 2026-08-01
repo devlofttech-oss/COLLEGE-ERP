@@ -48,6 +48,28 @@ export function summarizeSettings(institution = {}, branding = {}, integrations 
   };
 }
 
+export function normalizeHealthStatus(status = {}) {
+  return {
+    status: status.status || '',
+    service: status.service || '',
+    firebase: Boolean(status.firebase),
+    r2: Boolean(status.r2),
+    time: status.time || '',
+    message: status.message || '',
+  };
+}
+
+export function summarizeHealthStatus(status = {}) {
+  const normalized = normalizeHealthStatus(status);
+  const checks = [normalized.status === 'ok', normalized.firebase, normalized.r2];
+  return {
+    backendReady: checks[0],
+    servicesReady: checks.every(Boolean),
+    checksReady: checks.filter(Boolean).length,
+    totalChecks: checks.length,
+  };
+}
+
 export function validateInstitutionSettings(form = {}) {
   if (!form.name?.trim()) return 'Institution name is required.';
   if (form.email && !isValidEmail(form.email)) return 'Valid institution email is required.';

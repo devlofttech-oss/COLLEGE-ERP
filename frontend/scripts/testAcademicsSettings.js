@@ -11,6 +11,8 @@ import {
 import {
   countConfiguredSecrets,
   formatDisplayDate,
+  normalizeHealthStatus,
+  summarizeHealthStatus,
   summarizeSettings,
   toDateTimeInputValue,
   validateBackupSettings,
@@ -63,6 +65,29 @@ assert.deepEqual(
 assert.equal(formatDisplayDate('2026-06-01'), '01 Jun 2026');
 assert.equal(toDateTimeInputValue('2026-06-01T10:30:00.000Z').length, 16);
 assert.equal(countConfiguredSecrets({ smsApiKeySet: true, emailApiKeySet: false, paymentKeySecretSet: true }), 2);
+assert.deepEqual(
+  normalizeHealthStatus({
+    status: 'ok',
+    service: 'college-erp-backend',
+    firebase: true,
+    r2: false,
+    time: '2026-08-02T10:00:00.000Z',
+  }),
+  {
+    status: 'ok',
+    service: 'college-erp-backend',
+    firebase: true,
+    r2: false,
+    time: '2026-08-02T10:00:00.000Z',
+    message: '',
+  }
+);
+assert.deepEqual(summarizeHealthStatus({ status: 'ok', firebase: true, r2: false }), {
+  backendReady: true,
+  servicesReady: false,
+  checksReady: 2,
+  totalChecks: 3,
+});
 assert.equal(normalizeInstitutionSettings({ name: 'DB College', registrationNumber: 'DBC' }).name, 'DB College');
 assert.equal(normalizeInstituteSettings({ name: 'DB College', registrationNumber: 'DBC' }).instituteId, 'DBC');
 assert.equal(normalizeBrandingSettings({}).primaryColor, '#004d4d');

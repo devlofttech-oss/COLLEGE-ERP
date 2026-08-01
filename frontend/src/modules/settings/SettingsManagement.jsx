@@ -10,12 +10,14 @@ import {
   PlugZap,
   RefreshCcw,
   Save,
+  ServerCog,
   ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   getBackupSettings,
   getBrandingSettings,
+  getHealthStatus,
   getInstitutionSettings,
   getIntegrationSettings,
   updateBackupSettings,
@@ -38,6 +40,8 @@ import {
 import {
   countConfiguredSecrets,
   formatDisplayDate,
+  normalizeHealthStatus,
+  summarizeHealthStatus,
   summarizeSettings,
   toDateTimeInputValue,
   validateBackupSettings,
@@ -52,6 +56,7 @@ const TABS = [
   { id: 'branding', label: 'Branding', icon: Palette, permission: 'view' },
   { id: 'integrations', label: 'Integrations', icon: PlugZap, permission: 'manage' },
   { id: 'backup', label: 'Backup', icon: DatabaseBackup, permission: 'manage' },
+  { id: 'system-status', label: 'System Status', icon: ServerCog, permission: 'view' },
 ];
 
 const SECRET_LABELS = {
@@ -89,8 +94,14 @@ function buildClearState() {
 function statusClasses(value) {
   const normalized = String(value || '').toLowerCase();
   if (['ready', 'configured', 'enabled', 'set', 'daily', 'weekly', 'monthly'].includes(normalized)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (['pending', 'missing', 'not set'].includes(normalized)) return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (['pending', 'missing', 'not set', 'partial'].includes(normalized)) return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (['unavailable', 'failed', 'error'].includes(normalized)) return 'border-rose-200 bg-rose-50 text-rose-700';
   return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+}
+
+function healthStatusBadge(summary = {}) {
+  if (!summary.backendReady) return 'Unavailable';
+  return summary.servicesReady ? 'Ready' : 'Partial';
 }
 
 function SummaryCard({ icon, label, loading, value }) {
@@ -101,6 +112,19 @@ function SummaryCard({ icon, label, loading, value }) {
         {icon}
       </div>
       <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+    </div>
+  );
+}
+
+function SystemStatusItem({ badge, icon, label, value }) {
+  return (
+    <div className="rounded-xl bg-white/40 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/45 text-[#006a62]">{icon}</span>
+        {badge && <span className={cx('rounded-full border px-3 py-1 text-[10px] font-bold uppercase', statusClasses(badge))}>{badge}</span>}
+      </div>
+      <p className="mt-4 text-xs font-bold uppercase text-[#3f4848]">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold text-[#071e27]">{value || '-'}</p>
     </div>
   );
 }
@@ -216,6 +240,7 @@ export default function SettingsManagement({ currentUser }) {
   const [branding, setBranding] = useState(emptyBrandingSettings);
   const [integrations, setIntegrations] = useState(emptyIntegrationSettings);
   const [backup, setBackup] = useState(emptyBackupSettings);
+  const [health, setHealth] = useState(() => normalizeHealthStatus());
   const [integrationSecrets, setIntegrationSecrets] = useState(buildSecretState);
   const [clearSecrets, setClearSecrets] = useState(buildClearState);
   const [loading, setLoading] = useState(false);
@@ -230,12 +255,17 @@ export default function SettingsManagement({ currentUser }) {
     if (!canView) return;
     setLoading(true);
     try {
-      const [institutionData, brandingData] = await Promise.all([
+      const [institutionData, brandingData, healthData] = await Promise.all([
         getInstitutionSettings(),
         getBrandingSettings(),
+        getHealthStatus().catch((error) => ({
+          status: 'unavailable',
+          message: error?.message || 'Unable to reach backend health endpoint.',
+        })),
       ]);
       setInstitution(normalizeInstitutionSettings(institutionData));
       setBranding(normalizeBrandingSettings(brandingData));
+      setHealth(normalizeHealthStatus(healthData));
 
       if (canManage) {
         const [integrationData, backupData] = await Promise.all([
@@ -271,6 +301,8 @@ export default function SettingsManagement({ currentUser }) {
 
   const effectiveActiveTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : availableTabs[0]?.id || 'institution';
   const summary = useMemo(() => summarizeSettings(institution, branding, integrations, backup), [backup, branding, institution, integrations]);
+  const healthSummary = useMemo(() => summarizeHealthStatus(health), [health]);
+  const canSaveActiveTab = canManage && ['institution', 'branding', 'integrations', 'backup'].includes(effectiveActiveTab);
   const disabled = !canManage || Boolean(saving);
 
   const updateInstitutionField = (key, value) => setInstitution((current) => ({ ...current, [key]: value }));
@@ -279,7 +311,7 @@ export default function SettingsManagement({ currentUser }) {
   const updateBackupField = (key, value) => setBackup((current) => ({ ...current, [key]: value }));
 
   const saveActiveSettings = async () => {
-    if (!canManage) {
+    if (!canSaveActiveTab) {
       toast.error('You do not have permission to manage settings.');
       return;
     }
@@ -380,14 +412,14 @@ export default function SettingsManagement({ currentUser }) {
         <div>
           <p className="text-[11px] font-bold uppercase text-[#006a62]">Admin Setup</p>
           <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Settings</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">Institution, branding, integrations, and backup.</p>
+          <p className="mt-2 text-sm font-semibold text-[#3f4848]">Institution, branding, integrations, backup, and system status.</p>
           {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button type="button" onClick={loadSettings} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d] disabled:opacity-70">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Refresh
           </button>
-          {canManage && (
+          {canSaveActiveTab && (
             <button type="button" onClick={saveActiveSettings} disabled={Boolean(saving) || loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white disabled:opacity-70">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
             </button>
@@ -395,11 +427,12 @@ export default function SettingsManagement({ currentUser }) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard icon={<Building2 size={20} className="text-[#006a62]" />} label="Institution" loading={loading} value={summary.institutionConfigured ? 'Ready' : 'Pending'} />
         <SummaryCard icon={<Palette size={20} className="text-[#006a62]" />} label="Branding" loading={loading} value={summary.brandingConfigured ? 'Configured' : 'Pending'} />
         <SummaryCard icon={<PlugZap size={20} className="text-[#006a62]" />} label="Integrations" loading={loading} value={`${summary.providersConfigured}/${countConfiguredSecrets(integrations)}`} />
         <SummaryCard icon={<DatabaseBackup size={20} className="text-[#006a62]" />} label="Backup" loading={loading} value={`${summary.backupSchedule} / ${summary.retentionDays}d`} />
+        <SummaryCard icon={<ServerCog size={20} className="text-[#006a62]" />} label="System" loading={loading} value={`${healthSummary.checksReady}/${healthSummary.totalChecks}`} />
       </div>
 
       <div className="my-5 flex flex-wrap gap-2">
@@ -553,6 +586,51 @@ export default function SettingsManagement({ currentUser }) {
               <p className="mt-3 text-sm font-semibold text-[#3f4848]">Last backup: {formatDisplayDate(backup.lastBackupAt)}</p>
             </div>
           </div>
+        </section>
+      )}
+
+      {effectiveActiveTab === 'system-status' && (
+        <section className="erp-glass-card overflow-hidden rounded-2xl">
+          <SectionHeader
+            badge={healthStatusBadge(healthSummary)}
+            icon={<ServerCog size={19} />}
+            title="System Status"
+          />
+          <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-5">
+            <SystemStatusItem
+              badge={health.status === 'ok' ? 'Ready' : 'Unavailable'}
+              icon={<CheckCircle2 size={17} />}
+              label="Status"
+              value={health.status}
+            />
+            <SystemStatusItem
+              icon={<ServerCog size={17} />}
+              label="Service"
+              value={health.service}
+            />
+            <SystemStatusItem
+              badge={health.firebase ? 'Ready' : 'Unavailable'}
+              icon={<ShieldCheck size={17} />}
+              label="Firebase"
+              value={String(health.firebase)}
+            />
+            <SystemStatusItem
+              badge={health.r2 ? 'Ready' : 'Unavailable'}
+              icon={<DatabaseBackup size={17} />}
+              label="R2"
+              value={String(health.r2)}
+            />
+            <SystemStatusItem
+              icon={<RefreshCcw size={17} />}
+              label="Time"
+              value={health.time}
+            />
+          </div>
+          {health.message && (
+            <div className="mx-5 mb-5 rounded-xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm font-semibold text-rose-800">
+              {health.message}
+            </div>
+          )}
         </section>
       )}
 

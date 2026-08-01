@@ -4,9 +4,11 @@ Source of truth: backend routes under `backend/src/routes.js`.
 
 Stitch is visual reference only. Frontend functionality must match backend modules, routes, permissions, and actions.
 
+Current backend module coverage: 19/19 built, 0 remaining.
+
 | Backend module | API prefix | Frontend status | Notes |
 | --- | --- | --- | --- |
-| Health | `/api/health` | Pending | Use for app readiness/status only. |
+| Health | `/api/health` | Built | Covered inside Settings as system status for backend status, service, Firebase readiness, R2 readiness, and time. |
 | Auth | `/api/auth` | Built | Backend login, session restore, logout, password reset. |
 | Users | `/api/users` | Built | Backend-backed user list/detail, create, update, role change, student linking, archive, and restore. |
 | Roles | `/api/roles` | Built | Backend-backed role list, permission catalog, permission override save, and reset to defaults. |

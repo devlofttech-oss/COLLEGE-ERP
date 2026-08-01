@@ -1,5 +1,9 @@
 import { api, apiRequest } from './client';
 
+export async function getHealthStatus() {
+  return api.get('/health');
+}
+
 export async function getInstitutionSettings() {
   const data = await api.get('/settings/institution');
   return data.institution || {};
