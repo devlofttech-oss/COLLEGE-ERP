@@ -1,35 +1,43 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle, Search, UserCheck, Users, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  BadgeCheck,
+  BarChart3,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  Loader2,
+  RefreshCcw,
+  Search,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
+import { listAcademicResource } from '../../api/academics';
 import {
-  createStudentAttendanceRecord,
-  createStaffAttendanceRecord,
-  getAttendanceManagementData,
-  updateStaffAttendanceRecord,
-  updateStudentAttendanceRecord,
-} from '../../firebase/db';
-import { isFirebaseConfigured } from '../../firebase/config';
-import { canAccess, defaultRoles } from '../userRoles/rolePermissions';
-import {
-  buildAttendanceKey,
-  formatDisplayDate,
-  isAttendanceRecordEditable,
-  summarizeAttendance,
-} from './attendanceUtils';
-import AttendanceTable from './components/AttendanceTable';
-import { demoStaffMembers } from '../facultyStaff/demoFacultyStaff';
-import { filterStudentScopedRecords, filterStudentsByCourse } from '../shared/courseFilters';
-import {
-  buildSemesterOptions,
-  getSemesterDisplayForRecord,
-  getSemesterLabels,
-  getSemesterNumbersForAcademicRecord,
-  getSemesterNumbersForStudent,
-  parseSemesterNumber,
-  recordMatchesSemester,
-} from '../shared/semesterUtils';
+  getDailyAttendanceReport,
+  getMonthlyAttendanceReport,
+  getStudentAttendancePercentage,
+  listStaffAttendance,
+  listStudentAttendance,
+  markStaffAttendance,
+  markStudentAttendance,
+} from '../../api/attendance';
+import { listStaff } from '../../api/staff';
+import { listStudents } from '../../api/students';
 
-function getTodayInputValue() {
+const ADMIN_ROLES = new Set(['super-admin', 'admin']);
+const ATTENDANCE_STATUSES = ['present', 'absent', 'late', 'leave'];
+
+function hasPermission(user, permission) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return ADMIN_ROLES.has(user?.roleId) || permissions.includes(permission);
+}
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function todayInputValue() {
   const today = new Date();
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -37,841 +45,762 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
-function formatInputDate(inputDate) {
-  return formatDisplayDate(new Date(`${inputDate}T00:00:00`));
+function monthStartValue() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function getStudentSemester(student = {}) {
-  return getSemesterDisplayForRecord(student) || student.semester || student.courseYear || student.yearLabel || student.className || '';
+function valueOrDash(value) {
+  return value === undefined || value === null || value === '' ? '-' : value;
 }
 
-function getStudentAttendanceScope(branchId = '', fallback = 'subject') {
-  if (branchId === 'mark-general-students') return 'general';
-  if (branchId === 'mark-students' || branchId === 'mark-subject-students') return 'subject';
-  return fallback;
+function statusLabel(status) {
+  return String(status || '').replace(/^\w/, (char) => char.toUpperCase());
 }
 
-function getSubjectTopics(subject = {}) {
-  const rawTopics = Array.isArray(subject.topics) ? subject.topics : [];
-  return [...new Set(rawTopics.map((item) => String(item).trim()).filter(Boolean))];
+function statusClasses(value) {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'present') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === 'absent') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'late') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'leave') return 'border-sky-200 bg-sky-50 text-sky-700';
+  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
 }
 
-function normalizeTeacherKey(value = '') {
-  return String(value || '').trim().toLowerCase();
+function tally(records = []) {
+  return records.reduce((summary, record) => {
+    const status = record.status;
+    if (summary[status] !== undefined) summary[status] += 1;
+    summary.total += 1;
+    return summary;
+  }, { present: 0, absent: 0, late: 0, leave: 0, total: 0 });
 }
 
-function isTeacherStaffRecord(member = {}) {
-  const type = normalizeTeacherKey(member.staffType || member.role || member.designation);
-  if (!type) return true;
-  return type.includes('faculty') || type.includes('teacher') || type.includes('teaching');
+function attendancePercentage(summary) {
+  return summary.total ? Math.round(((summary.present + summary.late) / summary.total) * 100) : 0;
 }
 
-function buildTeacherOptionId(prefix, index, name = '') {
-  return `${prefix}-${index}-${normalizeTeacherKey(name).replace(/[^a-z0-9]+/g, '-') || 'teacher'}`;
+function buildRecordMap(records = [], idKey) {
+  return new Map(records.map((record) => [record[idKey], record]));
 }
 
-function addTeacherOption(map, option = {}) {
-  const name = String(option.name || option.facultyName || '').trim();
-  if (!name) return;
-  const identity = normalizeTeacherKey(option.id || option.employeeId || option.facultyId || option.facultyRecordId || name);
-  const nameKey = normalizeTeacherKey(name);
-  if (map.has(identity) || map.has(nameKey)) return;
-  const normalized = {
-    id: option.id || option.facultyRecordId || option.facultyId || name,
-    employeeId: option.employeeId || option.facultyId || '',
-    name,
-  };
-  map.set(identity, normalized);
-  map.set(nameKey, normalized);
+function initialsFor(name = '') {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'AT';
 }
 
-function addCurrentUserTeacherOption(map, currentUser = {}) {
-  if (!currentUser?.name && !currentUser?.displayName && !currentUser?.email) return;
-  addTeacherOption(map, {
-    id: currentUser.staffRecordId || currentUser.uid || currentUser.employeeId || currentUser.email || 'current-faculty',
-    employeeId: currentUser.employeeId || currentUser.displayId || '',
-    name: currentUser.name || currentUser.displayName || currentUser.email,
+function entityLabel(entity, mode) {
+  if (mode === 'staff') return entity.employeeId || entity.id;
+  return entity.admissionNumber || entity.rollNumber || entity.id;
+}
+
+function getDepartmentLabel(staffMember = {}) {
+  return staffMember.department || staffMember.designation || staffMember.type || '-';
+}
+
+function getClassLabel(student = {}) {
+  return [student.className || student.course || student.courseName, student.section].filter(Boolean).join(' - ') || '-';
+}
+
+function buildAttendanceEntries(entities, drafts, mode) {
+  return entities.map((entity) => {
+    const draft = drafts[entity.id] || {};
+    return mode === 'staff'
+      ? {
+        staffId: entity.id,
+        staffName: entity.name || null,
+        status: draft.status || 'present',
+        remarks: draft.remarks?.trim() || null,
+      }
+      : {
+        studentId: entity.id,
+        studentName: entity.name || null,
+        status: draft.status || 'present',
+        remarks: draft.remarks?.trim() || null,
+      };
   });
 }
 
+function SummaryCard({ icon, label, loading, value }) {
+  return (
+    <div className="erp-glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        {icon}
+      </div>
+      <div className="mt-3 font-['Montserrat'] text-3xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+    </div>
+  );
+}
+
+function EmptyState({ message }) {
+  return (
+    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+      {message}
+    </div>
+  );
+}
+
 export default function AttendanceManagement({
-  currentUser,
   academicYear = '',
+  currentUser,
   initialBranch = '',
   initialMode = 'students',
-  initialTask = '',
   scopedStudents = [],
   selectedCourse = null,
   selectedCourseCode = 'all',
 }) {
+  const initialModeFromRoute = initialMode === 'staff' || String(initialBranch || '').includes('staff') ? 'staff' : 'students';
+  const [mode, setMode] = useState(initialModeFromRoute);
   const [students, setStudents] = useState([]);
   const [staff, setStaff] = useState([]);
-  const [studentAttendance, setStudentAttendance] = useState([]);
-  const [staffAttendance, setStaffAttendance] = useState([]);
-  const [academicSubjects, setAcademicSubjects] = useState([]);
-  const [timetableEntries, setTimetableEntries] = useState([]);
-  const [mode, setMode] = useState(initialMode || 'students');
-  const [selectedSubjectCode, setSelectedSubjectCode] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [studentRecords, setStudentRecords] = useState([]);
+  const [staffRecords, setStaffRecords] = useState([]);
+  const [drafts, setDrafts] = useState({});
+  const [studentCount, setStudentCount] = useState(0);
+  const [staffCount, setStaffCount] = useState(0);
+  const [date, setDate] = useState(todayInputValue);
+  const [fromDate, setFromDate] = useState(monthStartValue);
+  const [toDate, setToDate] = useState(todayInputValue);
+  const [classId, setClassId] = useState('');
+  const [sectionId, setSectionId] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedDateInput, setSelectedDateInput] = useState(getTodayInputValue);
-  const [loading, setLoading] = useState(isFirebaseConfigured);
+  const [reportType, setReportType] = useState('daily');
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [dailyReport, setDailyReport] = useState(null);
+  const [monthlyReport, setMonthlyReport] = useState(null);
+  const [studentPercentage, setStudentPercentage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [activeAttendanceTask, setActiveAttendanceTask] = useState(initialTask || '');
-  const [activeAttendanceBranch, setActiveAttendanceBranch] = useState(initialBranch || '');
-  const [studentAttendanceScope, setStudentAttendanceScope] = useState(getStudentAttendanceScope(initialBranch, 'subject'));
-  const [selectedEntityId, setSelectedEntityId] = useState('');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedFacultyId, setSelectedFacultyId] = useState('');
-  const [topic, setTopic] = useState('');
-  const [draftAttendance, setDraftAttendance] = useState({ contextKey: '', statuses: {} });
-  const [savingDraft, setSavingDraft] = useState(false);
 
-  useEffect(() => {
-    const loadAttendance = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        setLoading(false);
-        return;
-      }
-      try {
-        const data = await getAttendanceManagementData(academicYear);
-        setStudents(data.students.filter((student) => student.status !== 'Archived'));
-        setStaff(data.staff.filter((member) => member.status !== 'Archived'));
-        setStudentAttendance(data.studentAttendance);
-        setStaffAttendance(data.staffAttendance);
-        setAcademicSubjects(data.academicSubjects || []);
-        setTimetableEntries(data.timetableEntries || []);
-        setLoadError('');
-      } catch (error) {
-        console.warn('Unable to load live attendance data.', error);
-        setLoadError('Unable to load live attendance records.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadAttendance();
-  }, [academicYear]);
+  const canView = hasPermission(currentUser, 'attendance.view');
+  const canMark = hasPermission(currentUser, 'attendance.mark');
+  const canReport = canView || hasPermission(currentUser, 'attendance.report');
 
-  useEffect(() => {
-    const currentState = window.history.state || {};
-    window.history.replaceState({
-      ...currentState,
-      attendanceFlow: currentState.attendanceFlow || {
-        task: initialTask || '',
-        branch: initialBranch || '',
-        mode: initialMode || 'students',
-        scope: initialMode === 'students' ? getStudentAttendanceScope(initialBranch, 'subject') : 'staff',
-      },
-    }, '');
-
-    const handleHistoryBack = (event) => {
-      const flow = event.state?.attendanceFlow;
-      if (!flow) {
-        setActiveAttendanceTask('');
-        setActiveAttendanceBranch('');
-        setSelectedEntityId('');
-        return;
-      }
-      setActiveAttendanceTask(flow.task || '');
-      setActiveAttendanceBranch(flow.branch || '');
-      setMode(flow.mode || 'students');
-      setStudentAttendanceScope(flow.scope || getStudentAttendanceScope(flow.branch, 'subject'));
-      setSelectedEntityId('');
-      setSearch('');
-    };
-
-    window.addEventListener('popstate', handleHistoryBack);
-    return () => window.removeEventListener('popstate', handleHistoryBack);
-  }, [initialBranch, initialMode, initialTask]);
-
-  const currentRoleId = currentUser?.roleId || 'admin';
-  const canMarkStudents = canAccess(defaultRoles, currentRoleId, 'attendance.markStudents');
-  const canMarkStaff = canAccess(defaultRoles, currentRoleId, 'attendance.markStaff');
-
-  const courseStudents = scopedStudents.length ? scopedStudents : filterStudentsByCourse(students, selectedCourseCode, selectedCourse);
-  const semesterOptions = useMemo(() => {
-    const courseSubjects = academicSubjects.filter((subject) =>
-      selectedCourseCode === 'all' || subject.courseCode === selectedCourseCode || subject.programName === selectedCourse?.courseName
-    );
-    return buildSemesterOptions([...courseSubjects, ...courseStudents]);
-  }, [academicSubjects, courseStudents, selectedCourse, selectedCourseCode]);
-  const semesterStudents = selectedSemester
-    ? courseStudents.filter((student) => recordMatchesSemester(student, selectedSemester))
-    : courseStudents;
-  const facultyOptions = useMemo(() => {
-    const teacherMap = new Map();
-    const activeStaff = staff.filter((member) => member.status !== 'Archived');
-    const typedTeachers = activeStaff.filter(isTeacherStaffRecord);
-    (typedTeachers.length ? typedTeachers : activeStaff).forEach((member) => addTeacherOption(teacherMap, member));
-    if (currentRoleId === 'faculty') {
-      demoStaffMembers
-        .filter((member) => member.status !== 'Archived' && isTeacherStaffRecord(member))
-        .forEach((member) => addTeacherOption(teacherMap, member));
-      addCurrentUserTeacherOption(teacherMap, currentUser);
-    }
-    timetableEntries
-      .filter((entry) => entry.status !== 'Archived')
-      .forEach((entry, index) => addTeacherOption(teacherMap, {
-        id: entry.facultyRecordId || entry.facultyId || buildTeacherOptionId('timetable', index, entry.facultyName),
-        employeeId: entry.facultyId || '',
-        name: entry.facultyName,
-      }));
-    academicSubjects
-      .filter((subject) => subject.status !== 'Archived')
-      .forEach((subject, index) => addTeacherOption(teacherMap, {
-        id: subject.facultyRecordId || subject.facultyId || buildTeacherOptionId('subject', index, subject.facultyName),
-        employeeId: subject.facultyId || '',
-        name: subject.facultyName,
-      }));
-    studentAttendance
-      .filter((record) => record.attendanceScope === 'subject' || record.subjectName || record.subject)
-      .forEach((record, index) => addTeacherOption(teacherMap, {
-        id: record.facultyRecordId || record.facultyId || buildTeacherOptionId('attendance', index, record.facultyName),
-        employeeId: record.facultyId || '',
-        name: record.facultyName,
-      }));
-    return [...new Set(teacherMap.values())].sort((first, second) => first.name.localeCompare(second.name));
-  }, [academicSubjects, currentRoleId, currentUser, staff, studentAttendance, timetableEntries]);
-  const selectedFaculty = facultyOptions.find((member) => member.id === selectedFacultyId) || null;
-  const subjectOptions = useMemo(() => {
-    return academicSubjects
-      .filter((subject) => selectedCourseCode === 'all' || subject.courseCode === selectedCourseCode || subject.programName === selectedCourse?.courseName)
-      .filter((subject) => !selectedSemester || recordMatchesSemester(subject, selectedSemester))
-      .map((subject) => ({
-        code: subject.subjectCode || subject.id || subject.subjectName,
-        name: subject.subjectName || subject.name,
-        topics: getSubjectTopics(subject),
-        semesterNumbers: getSemesterNumbersForAcademicRecord(subject),
-        semesterLabels: getSemesterLabels(getSemesterNumbersForAcademicRecord(subject)),
-      }))
-      .filter((subject) => subject.name);
-  }, [academicSubjects, selectedCourse, selectedCourseCode, selectedSemester]);
-  const selectedSubject = subjectOptions.find((subject) => subject.code === selectedSubjectCode) || null;
-  const topicSuggestions = selectedSubject?.topics || [];
-  const topicDatalistId = selectedSubject?.code
-    ? `attendance-topic-${selectedSubject.code.replace(/[^a-z0-9_-]/gi, '-')}`
-    : 'attendance-topic-suggestions';
-  const courseStudentAttendance = filterStudentScopedRecords(studentAttendance, semesterStudents, selectedCourseCode, selectedCourse);
-  const allModeRecords = mode === 'students' ? courseStudentAttendance : staffAttendance;
-  const isSubjectStudentAttendance = mode === 'students' && Boolean(activeAttendanceBranch) && studentAttendanceScope === 'subject';
-  const isGeneralStudentAttendance = mode === 'students' && Boolean(activeAttendanceBranch) && studentAttendanceScope === 'general';
-  const activeRecords = mode === 'students'
-    ? allModeRecords.filter((record) => {
-      const recordSubject = record.subjectName || record.subject || '';
-      if (selectedSemester && !recordMatchesSemester(record, selectedSemester)) return false;
-      if (isGeneralStudentAttendance) return !recordSubject;
-      if (isSubjectStudentAttendance) return !selectedSubject?.name || recordSubject === selectedSubject.name;
-      return true;
-    })
-    : allModeRecords;
-  const selectedDate = formatInputDate(selectedDateInput);
-  const selectedDateRecords = activeRecords.filter((record) => record.dateText === selectedDate);
-  const activeEntities = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const source = mode === 'students' ? semesterStudents : staff;
-    if (!term) return source;
-    return source.filter((entity) =>
-      [entity.name, entity.studentId, entity.employeeId, entity.className, entity.department]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(term))
-    );
-  }, [mode, search, semesterStudents, staff]);
-  const attendanceDraftContextKey = [
-    activeAttendanceBranch,
-    mode,
-    selectedDateInput,
-    selectedFacultyId,
-    selectedSemester,
-    selectedSubjectCode,
-    studentAttendanceScope,
-  ].join('|');
-  const draftStatuses = draftAttendance.contextKey === attendanceDraftContextKey ? draftAttendance.statuses : {};
-  const draftCount = Object.keys(draftStatuses).length;
-  const setScopedDraftStatuses = (updater) => {
-    setDraftAttendance((prev) => {
-      const currentStatuses = prev.contextKey === attendanceDraftContextKey ? prev.statuses : {};
-      const nextStatuses = typeof updater === 'function' ? updater(currentStatuses) : updater;
-      return { contextKey: attendanceDraftContextKey, statuses: nextStatuses };
-    });
-  };
-  const clearScopedDraftStatuses = () => {
-    setDraftAttendance({ contextKey: attendanceDraftContextKey, statuses: {} });
-  };
-
-  const summary = summarizeAttendance(selectedDateRecords);
-  const stats = [
-    { label: 'Present', value: summary.present, icon: <CheckCircle size={22} /> },
-    { label: 'Absent', value: summary.absent, icon: <XCircle size={22} /> },
-    { label: 'Attendance %', value: `${summary.percentage}%`, icon: <CalendarDays size={22} /> },
-  ];
-  const openAttendanceTask = (taskId, nextMode = mode) => {
-    setActiveAttendanceTask(taskId);
-    setActiveAttendanceBranch('');
-    setSelectedEntityId('');
-    setSearch('');
-    setMode(nextMode);
-    const nextScope = nextMode === 'students' ? 'subject' : 'staff';
-    setStudentAttendanceScope(nextScope);
-    window.history.pushState({ ...(window.history.state || {}), attendanceFlow: { task: taskId, branch: '', mode: nextMode, scope: nextScope } }, '');
-  };
-
-  const openAttendanceBranch = ({ branchId, nextMode = mode, scope = '' }) => {
-    const nextScope = nextMode === 'students' ? (scope || getStudentAttendanceScope(branchId, studentAttendanceScope)) : 'staff';
-    setActiveAttendanceBranch(branchId);
-    setSelectedEntityId('');
-    setSearch('');
-    setMode(nextMode);
-    setStudentAttendanceScope(nextScope);
-    window.history.pushState({ ...(window.history.state || {}), attendanceFlow: { task: activeAttendanceTask, branch: branchId, mode: nextMode, scope: nextScope } }, '');
-  };
-
-  const goBackOneAttendanceStep = () => {
-    const flow = window.history.state?.attendanceFlow;
-    if (flow?.branch || flow?.task) {
-      window.history.back();
-      return;
-    }
-    if (activeAttendanceBranch) {
-      setActiveAttendanceBranch('');
-      setSelectedEntityId('');
-      return;
-    }
-    setActiveAttendanceTask('');
-  };
-
-  const attendanceTaskOptions = [
-    {
-      id: 'students',
-      title: 'Student Attendance',
-      description: 'Mark students and follow up absentees.',
-      icon: <Users size={22} />,
-      meta: [`${courseStudents.length} students`, canMarkStudents ? 'Mark enabled' : 'View only'],
-      onOpen: () => openAttendanceTask('students', 'students'),
-    },
-    {
-      id: 'staff',
-      title: 'Staff Attendance',
-      description: 'Mark faculty and staff attendance.',
-      icon: <UserCheck size={22} />,
-      meta: [`${staff.length} staff`, canMarkStaff ? 'Mark enabled' : 'View only'],
-      onOpen: () => openAttendanceTask('staff', 'staff'),
-    },
-  ].filter(Boolean);
-
-  const attendanceBranchOptions = {
-    students: [
-      { id: 'mark-general-students', title: 'Mark General Attendance', description: 'Mark daily student attendance without selecting a subject.', icon: <CalendarDays size={20} />, nextMode: 'students', scope: 'general' },
-      { id: 'mark-students', title: 'Mark Subject Attendance', description: 'Select a subject, then mark student attendance.', icon: <CheckCircle size={20} />, nextMode: 'students', scope: 'subject' },
-    ],
-    staff: [
-      { id: 'mark-staff', title: 'Mark Staff Attendance', description: 'Select a staff member, then mark attendance.', icon: <UserCheck size={20} />, nextMode: 'staff' },
-    ],
-  };
-
-  const activeTask = attendanceTaskOptions.find((task) => task.id === activeAttendanceTask);
-  const activeBranches = attendanceBranchOptions[activeAttendanceTask] || [];
-  const activeBranch = activeBranches.find((branch) => branch.id === activeAttendanceBranch);
-
-  const validateAttendanceContext = () => {
-    if (mode === 'students' && studentAttendanceScope === 'subject' && !selectedSemester) {
-      toast.error('Select a semester before marking subject attendance.');
-      return false;
-    }
-    if (mode === 'students' && studentAttendanceScope === 'subject' && !selectedSubject) {
-      toast.error('Select a live subject before marking student attendance.');
-      return false;
-    }
-    if (mode === 'students' && studentAttendanceScope === 'subject' && !selectedFaculty) {
-      toast.error('Select the faculty member before saving subject attendance.');
-      return false;
-    }
-    if (mode === 'students' && studentAttendanceScope === 'subject' && !topic.trim()) {
-      toast.error('Enter the class topic before saving subject attendance.');
-      return false;
-    }
-    return true;
-  };
-
-  const getAttendanceSubjectName = () => (
-    mode === 'students' && studentAttendanceScope === 'subject' ? selectedSubject?.name || '' : ''
+  const effectiveAcademicYear = academicYear || classes[0]?.academicYear || '';
+  const effectiveCourseId = selectedCourse?.id || (selectedCourseCode !== 'all' ? selectedCourseCode : '');
+  const visibleSections = useMemo(
+    () => sections.filter((section) => !classId || section.classId === classId),
+    [classId, sections]
   );
 
-  const findExistingAttendanceRecord = (entity) => {
-    const entityId = entity.studentId || entity.employeeId;
-    const subjectName = getAttendanceSubjectName();
-    const key = buildAttendanceKey(entityId, selectedDate, subjectName);
-    return allModeRecords.find((record) => buildAttendanceKey(record.entityId || record.studentId || record.employeeId, record.dateText, record.subjectName || record.subject || '') === key);
-  };
+  const entityRecords = mode === 'staff' ? staffRecords : studentRecords;
+  const entitySummary = useMemo(() => tally(entityRecords), [entityRecords]);
+  const entityPercentage = attendancePercentage(entitySummary);
 
-  const markAttendance = (entity, status) => {
-    if (mode === 'students' && !canMarkStudents) {
-      toast.error('You do not have permission to mark student attendance.');
-      return;
-    }
-    if (mode === 'staff' && !canMarkStaff) {
-      toast.error('You do not have permission to mark staff attendance.');
-      return;
-    }
-    if (!validateAttendanceContext()) return;
-    const entityId = entity.studentId || entity.employeeId;
-    const exists = findExistingAttendanceRecord(entity);
-    if (exists) {
-      if (exists.status === status) {
-        setScopedDraftStatuses((prev) => {
-          const next = { ...prev };
-          delete next[entityId];
-          return next;
-        });
-        toast.success(`${entity.name} is already marked ${status.toLowerCase()}`);
-        return;
-      }
-      if (!isAttendanceRecordEditable(exists)) {
-        toast.error('Attendance can only be edited within 24 hours of marking.');
-        return;
-      }
-    }
-    setScopedDraftStatuses((prev) => ({ ...prev, [entityId]: status }));
-  };
+  const roster = useMemo(() => {
+    const entities = mode === 'staff' ? staff : (scopedStudents.length && !classId && !sectionId ? scopedStudents : students);
+    const needle = search.trim().toLowerCase();
+    if (!needle) return entities;
+    return entities.filter((entity) => [
+      entity.name,
+      entity.employeeId,
+      entity.admissionNumber,
+      entity.rollNumber,
+      entity.mobile,
+      entity.phone,
+      entity.email,
+    ].some((value) => String(value || '').toLowerCase().includes(needle)));
+  }, [classId, mode, scopedStudents, search, sectionId, staff, students]);
 
-  const markRemainingPresent = () => {
-    if (!validateAttendanceContext()) return;
-    let changed = 0;
-    const nextDraftStatuses = { ...draftStatuses };
-    activeEntities.forEach((entity) => {
-      const entityId = entity.studentId || entity.employeeId;
-      const exists = findExistingAttendanceRecord(entity);
-      if (exists && !isAttendanceRecordEditable(exists)) return;
-      if (nextDraftStatuses[entityId] === 'Absent') return;
-      if (exists?.status === 'Present' && !nextDraftStatuses[entityId]) return;
-      nextDraftStatuses[entityId] = 'Present';
-      changed += 1;
-    });
-    setScopedDraftStatuses(nextDraftStatuses);
-    toast.success(changed ? `${changed} remaining record${changed === 1 ? '' : 's'} set to present in draft` : 'No remaining records to mark present.');
-  };
-
-  const clearDraftAttendance = () => {
-    clearScopedDraftStatuses();
-    toast.success('Attendance draft cleared');
-  };
-
-  const closeAttendanceSession = () => {
-    setActiveAttendanceBranch('');
-    setSelectedEntityId('');
-    setSearch('');
-    clearScopedDraftStatuses();
-    window.history.replaceState({
-      ...(window.history.state || {}),
-      attendanceFlow: {
-        task: activeAttendanceTask,
-        branch: '',
-        mode,
-        scope: studentAttendanceScope,
-      },
-    }, '');
-  };
-
-  const buildAttendancePayload = (entity, status, sessionId, now) => {
-    const entityId = entity.studentId || entity.employeeId;
-    const subjectName = getAttendanceSubjectName();
-    const normalizedTopic = topic.trim();
-    const matchedTopic = topicSuggestions.find((item) => item.toLowerCase() === normalizedTopic.toLowerCase()) || '';
-    const selectedSemesterNumber = parseSemesterNumber(selectedSemester);
-    const entitySemesterNumbers = selectedSemesterNumber ? [selectedSemesterNumber] : getSemesterNumbersForStudent(entity);
-    const entitySemesterLabels = getSemesterLabels(entitySemesterNumbers);
-    const payload = {
-      entityType: mode === 'students' ? 'Student' : 'Staff',
-      entityRecordId: entity.id,
-      entityId,
-      studentRecordId: mode === 'students' ? entity.id : '',
-      studentId: mode === 'students' ? entity.studentId || '' : '',
-      staffRecordId: mode === 'staff' ? entity.id : '',
-      employeeId: mode === 'staff' ? entity.employeeId || '' : '',
-      entityName: entity.name,
-      academicYear,
-      className: entity.className || '',
-      section: entity.section || '',
-      semester: mode === 'students' ? selectedSemester || getStudentSemester(entity) : '',
-      semesterNumber: mode === 'students' ? selectedSemesterNumber || entitySemesterNumbers[0] || '' : '',
-      semesterNumbers: mode === 'students' ? entitySemesterNumbers : [],
-      semesterLabels: mode === 'students' ? entitySemesterLabels : [],
-      department: entity.department || '',
-      courseCode: entity.courseCode || selectedCourseCode,
-      courseName: entity.courseName || entity.program || selectedCourse?.courseName || '',
-      attendanceScope: mode === 'students' ? studentAttendanceScope : 'staff',
-      subjectCode: mode === 'students' && studentAttendanceScope === 'subject' ? selectedSubject?.code || '' : '',
-      subjectName,
-      facultyRecordId: mode === 'students' && studentAttendanceScope === 'subject' ? selectedFaculty?.id || '' : '',
-      facultyId: mode === 'students' && studentAttendanceScope === 'subject' ? selectedFaculty?.employeeId || '' : '',
-      facultyName: mode === 'students' && studentAttendanceScope === 'subject' ? selectedFaculty?.name || '' : '',
-      topic: mode === 'students' && studentAttendanceScope === 'subject' ? normalizedTopic : '',
-      syllabusTopic: mode === 'students' && studentAttendanceScope === 'subject' ? matchedTopic : '',
-      syllabusTopicMatched: mode === 'students' && studentAttendanceScope === 'subject' ? Boolean(matchedTopic) : false,
-      dateText: selectedDate,
-      status,
-      sessionId,
-      markedAtText: formatDisplayDate(now),
-      markedAtIso: now.toISOString(),
-      parentNotified: false,
-    };
-    return payload;
-  };
-
-  const saveDraftAttendance = async () => {
-    if (savingDraft) return;
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-    if (mode === 'students' && !canMarkStudents) {
-      toast.error('You do not have permission to mark student attendance.');
-      return;
-    }
-    if (mode === 'staff' && !canMarkStaff) {
-      toast.error('You do not have permission to mark staff attendance.');
-      return;
-    }
-    if (!validateAttendanceContext()) return;
-
-    const draftRows = activeEntities
-      .map((entity) => {
-        const entityId = entity.studentId || entity.employeeId;
-        return { entity, entityId, status: draftStatuses[entityId] };
-      })
-      .filter((row) => row.status);
-
-    if (!draftRows.length) {
-      toast.error('No attendance changes to save.');
-      return;
-    }
-
+  const loadAcademicLookups = useCallback(async () => {
     try {
-      setSavingDraft(true);
-      const now = new Date();
-      const sessionContext = [
-        mode,
-        selectedDateInput,
-        selectedSemester,
-        selectedSubjectCode,
-        draftRows.length,
-        now.getTime(),
-      ].filter(Boolean).join('-').replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
-      const sessionId = `attendance-${sessionContext}`;
-      const results = await Promise.all(draftRows.map(async ({ entity, status }) => {
-        const exists = findExistingAttendanceRecord(entity);
-        if (exists && !isAttendanceRecordEditable(exists)) {
-          return { skipped: true, name: entity.name };
-        }
-        const payload = buildAttendancePayload(entity, status, sessionId, now);
-        if (exists) {
-          const updates = {
-            ...payload,
-            editedAtText: formatDisplayDate(now),
-            editedAtIso: now.toISOString(),
-          };
-          if (mode === 'students') await updateStudentAttendanceRecord(exists.id, updates);
-          else await updateStaffAttendanceRecord(exists.id, updates);
-          return { action: 'updated', record: { ...exists, ...updates } };
-        }
-        const id = mode === 'students'
-          ? await createStudentAttendanceRecord(payload)
-          : await createStaffAttendanceRecord(payload);
-        if (!id) throw new Error('Live attendance record was not created.');
-        return { action: 'created', record: { id, ...payload } };
-      }));
-
-      const savedRecords = results.filter((result) => result.record).map((result) => result.record);
-      const savedIds = new Set(savedRecords.map((record) => record.id));
-      const createdRecords = results.filter((result) => result.action === 'created').map((result) => result.record);
-
-      if (mode === 'students') {
-        setStudentAttendance((prev) => [
-          ...createdRecords,
-          ...prev.map((record) => savedIds.has(record.id)
-            ? savedRecords.find((savedRecord) => savedRecord.id === record.id) || record
-            : record),
-        ]);
-      } else {
-        setStaffAttendance((prev) => [
-          ...createdRecords,
-          ...prev.map((record) => savedIds.has(record.id)
-            ? savedRecords.find((savedRecord) => savedRecord.id === record.id) || record
-            : record),
-        ]);
-      }
-
-      const skipped = results.filter((result) => result.skipped).length;
-      toast.success(`${savedRecords.length} attendance record${savedRecords.length === 1 ? '' : 's'} saved${skipped ? `, ${skipped} skipped` : ''}`);
-      closeAttendanceSession();
+      const classParams = {
+        academicYear: effectiveAcademicYear,
+        courseId: effectiveCourseId,
+        status: 'active',
+      };
+      const sectionParams = {
+        academicYear: effectiveAcademicYear,
+        status: 'active',
+      };
+      const [nextClasses, nextSections] = await Promise.all([
+        listAcademicResource('classes', classParams),
+        listAcademicResource('sections', sectionParams),
+      ]);
+      setClasses(nextClasses);
+      setSections(nextSections);
     } catch (error) {
-      console.error('Unable to save live attendance records.', error);
-      toast.error('Attendance was not saved to live data.');
+      console.error('Unable to load attendance academic lookups.', error);
+      toast.error(error?.message || 'Academic lookup data could not be loaded.');
+    }
+  }, [effectiveAcademicYear, effectiveCourseId]);
+
+  const loadAttendanceData = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
+    try {
+      const studentParams = {
+        academicYear: effectiveAcademicYear,
+        classId,
+        sectionId,
+        courseId: effectiveCourseId,
+        status: 'active',
+      };
+      const studentAttendanceParams = {
+        date,
+        academicYear: effectiveAcademicYear,
+        classId,
+        sectionId,
+      };
+      const [studentData, staffData, nextStudentRecords, nextStaffRecords] = await Promise.all([
+        listStudents(studentParams),
+        listStaff({ status: 'active' }),
+        listStudentAttendance(studentAttendanceParams),
+        listStaffAttendance({ date }),
+      ]);
+      setStudents(studentData.students);
+      setStudentCount(studentData.count);
+      setStaff(staffData.staff);
+      setStaffCount(staffData.count);
+      setStudentRecords(nextStudentRecords);
+      setStaffRecords(nextStaffRecords);
+      setLoadError('');
+    } catch (error) {
+      console.error('Unable to load backend attendance data.', error);
+      setLoadError(error?.message || 'Unable to load attendance from the backend.');
     } finally {
-      setSavingDraft(false);
+      setLoading(false);
+    }
+  }, [canView, classId, date, effectiveAcademicYear, effectiveCourseId, sectionId]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(async () => {
+      if (!active || !canView) return;
+      await Promise.all([loadAcademicLookups(), loadAttendanceData()]);
+    });
+    return () => {
+      active = false;
+    };
+  }, [canView, loadAcademicLookups, loadAttendanceData]);
+
+  useEffect(() => {
+    let active = true;
+    const records = mode === 'staff' ? staffRecords : studentRecords;
+    const recordMap = buildRecordMap(records, mode === 'staff' ? 'staffId' : 'studentId');
+    const nextDrafts = {};
+    roster.forEach((entity) => {
+      const existing = recordMap.get(entity.id);
+      nextDrafts[entity.id] = {
+        status: existing?.status || 'present',
+        remarks: existing?.remarks || '',
+      };
+    });
+    queueMicrotask(() => {
+      if (active) setDrafts(nextDrafts);
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, roster, staffRecords, studentRecords]);
+
+  useEffect(() => {
+    if (classId && !classes.some((item) => item.id === classId)) {
+      queueMicrotask(() => setClassId(''));
+    }
+  }, [classId, classes]);
+
+  useEffect(() => {
+    if (sectionId && !visibleSections.some((item) => item.id === sectionId)) {
+      queueMicrotask(() => setSectionId(''));
+    }
+  }, [sectionId, visibleSections]);
+
+  const updateDraft = (entityId, patch) => {
+    setDrafts((current) => ({
+      ...current,
+      [entityId]: {
+        status: current[entityId]?.status || 'present',
+        remarks: current[entityId]?.remarks || '',
+        ...patch,
+      },
+    }));
+  };
+
+  const setAllStatuses = (status) => {
+    setDrafts(Object.fromEntries(roster.map((entity) => [entity.id, {
+      status,
+      remarks: drafts[entity.id]?.remarks || '',
+    }])));
+  };
+
+  const saveAttendance = async () => {
+    if (!canMark) {
+      toast.error('You do not have permission to mark attendance.');
+      return;
+    }
+    if (!date) {
+      toast.error('Date is required.');
+      return;
+    }
+    if (!roster.length) {
+      toast.error('No roster records available to mark.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const entries = buildAttendanceEntries(roster, drafts, mode);
+      if (mode === 'staff') {
+        await markStaffAttendance({ date, entries });
+      } else {
+        await markStudentAttendance({
+          date,
+          academicYear: effectiveAcademicYear || null,
+          classId: classId || null,
+          sectionId: sectionId || null,
+          entries,
+        });
+      }
+      toast.success('Attendance saved');
+      await loadAttendanceData();
+    } catch (error) {
+      toast.error(error?.message || 'Attendance was not saved.');
+    } finally {
+      setSaving(false);
     }
   };
+
+  const loadReport = async () => {
+    if (!canReport) {
+      toast.error('You do not have permission to view attendance reports.');
+      return;
+    }
+    setReportLoading(true);
+    try {
+      if (reportType === 'daily') {
+        if (!date) {
+          toast.error('Date is required.');
+          return;
+        }
+        const report = await getDailyAttendanceReport({ date, classId, sectionId });
+        setDailyReport(report);
+      } else if (reportType === 'monthly') {
+        if (!fromDate || !toDate || !classId) {
+          toast.error('From date, to date, and class are required.');
+          return;
+        }
+        const report = await getMonthlyAttendanceReport({ from: fromDate, to: toDate, classId, sectionId });
+        setMonthlyReport(report);
+      } else {
+        if (!selectedStudentId) {
+          toast.error('Student is required.');
+          return;
+        }
+        const report = await getStudentAttendancePercentage({ studentId: selectedStudentId, from: fromDate, to: toDate });
+        setStudentPercentage(report);
+      }
+    } catch (error) {
+      toast.error(error?.message || 'Attendance report could not be loaded.');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const studentRecordMap = useMemo(() => buildRecordMap(studentRecords, 'studentId'), [studentRecords]);
+  const staffRecordMap = useMemo(() => buildRecordMap(staffRecords, 'staffId'), [staffRecords]);
+  const activeRecordMap = mode === 'staff' ? staffRecordMap : studentRecordMap;
+
+  if (!canView) {
+    return (
+      <div className="erp-attendance-page min-w-0">
+        <section className="erp-glass-card rounded-2xl p-8 text-center">
+          <h1 className="font-['Montserrat'] text-2xl font-bold text-[#003434]">Attendance Management</h1>
+          <p className="mt-2 text-sm font-semibold text-[#3f4848]">You do not have permission to view attendance.</p>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+    <div className="erp-attendance-page min-w-0">
+      <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="text-sm font-bold text-slate-500 mb-2">Academics / <span className="text-[#f39a5f]">Attendance Management</span></div>
-          <h1 className="text-2xl font-bold text-slate-900">Attendance Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Student and faculty attendance tracking. Attendance summaries open from the Reports module.</p>
-          {!isFirebaseConfigured && <p className="text-xs text-rose-600 mt-2">Live Firebase data is not configured.</p>}
-          {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
+            <span>Daily Work</span>
+            <span>/</span>
+            <span className="text-[#006a62]">Attendance</span>
+          </div>
+          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Attendance Management</h1>
+          <p className="mt-2 text-sm text-[#3f4848]">Backend-backed student and staff attendance marking with reports.</p>
+          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
-        <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
-          {mode === 'students' && activeAttendanceBranch && (
-            <span className="hidden rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 sm:inline-flex">
-              {studentAttendanceScope === 'general' ? 'General Attendance' : 'Subject Attendance'}
-            </span>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={loadAttendanceData} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/45 bg-white/40 px-4 text-sm font-bold text-[#004d4d]">
+            <RefreshCcw size={17} /> Refresh
+          </button>
+          {canMark && (
+            <button type="button" onClick={saveAttendance} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
+              {saving ? <Loader2 className="animate-spin" size={17} /> : <CheckCircle2 size={17} />}
+              Save Attendance
+            </button>
           )}
-          <label className="erp-attendance-date-control">
-            <span className="erp-attendance-date-label">
-              <CalendarDays size={15} />
-              Attendance Date
+        </div>
+      </div>
+
+      <section className="mb-6 grid gap-4 lg:grid-cols-5">
+        <SummaryCard label={mode === 'staff' ? 'Staff Roster' : 'Student Roster'} value={mode === 'staff' ? staffCount : studentCount} loading={loading} icon={<Users size={18} className="text-[#006a62]" />} />
+        <SummaryCard label="Present" value={entitySummary.present} loading={loading} icon={<BadgeCheck size={18} className="text-[#006a62]" />} />
+        <SummaryCard label="Late" value={entitySummary.late} loading={loading} icon={<CalendarDays size={18} className="text-[#006a62]" />} />
+        <SummaryCard label="Absent" value={entitySummary.absent} loading={loading} icon={<UserCheck size={18} className="text-[#006a62]" />} />
+        <SummaryCard label="Attendance %" value={`${entityPercentage}%`} loading={loading} icon={<BarChart3 size={18} className="text-[#006a62]" />} />
+      </section>
+
+      <section className="erp-glass-card mb-6 rounded-2xl p-5">
+        <div className="grid gap-4 lg:grid-cols-12">
+          <div className="flex flex-wrap items-end gap-2 lg:col-span-3">
+            {[
+              ['students', 'Student Attendance'],
+              ['staff', 'Staff Attendance'],
+              ['reports', 'Reports'],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMode(value)}
+                className={cx('h-11 rounded-xl px-4 text-sm font-bold', mode === value ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="lg:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Date</span>
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]" />
+          </label>
+          <label className="lg:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
+            <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+              <option value="">All classes</option>
+              {classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
+            </select>
+          </label>
+          <label className="lg:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
+            <select value={sectionId} onChange={(event) => setSectionId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+              <option value="">All sections</option>
+              {visibleSections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
+            </select>
+          </label>
+          <label className="lg:col-span-3">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Search Roster</span>
+            <span className="relative block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62]" placeholder="Name, ID, phone, email" />
             </span>
-            <input
-              type="date"
-              value={selectedDateInput}
-              onChange={(event) => event.target.value && setSelectedDateInput(event.target.value)}
-              className="erp-attendance-date-input"
-            />
           </label>
         </div>
-      </div>
+      </section>
 
-      {!activeAttendanceTask ? (
-      <>
-      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 py-5">
-        {stats.map(({ label, value, icon }) => (
-          <div key={label} className="bg-[#f5f5f6] rounded-lg p-4 flex items-center gap-4">
-            <div className="h-12 w-12 bg-white rounded-lg flex items-center justify-center text-[#34363d] shadow-sm">{icon}</div>
-            <div>
-              <div className="text-xs text-slate-500">{label}</div>
-              <div className="text-xl font-bold text-slate-900">{loading ? '...' : value}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        {attendanceTaskOptions.map((task) => (
-          <button key={task.id} onClick={task.onOpen} className="group min-h-40 text-left rounded-lg border border-slate-100 bg-white p-5 shadow-sm hover:-translate-y-1 transition-all">
-            <div className="flex items-start justify-between gap-4">
-              <div className="h-12 w-12 rounded-lg bg-[#f5f5f6] text-[#34363d] flex items-center justify-center">{task.icon}</div>
-              <ArrowRight size={18} className="text-slate-400 group-hover:text-[#fb8d49]" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 mt-5">{task.title}</h2>
-            <p className="text-sm text-slate-500 mt-2">{task.description}</p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {task.meta.map((item) => (
-                <span key={item} className="rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-semibold text-slate-600">{item}</span>
-              ))}
-            </div>
-          </button>
-        ))}
-      </div>
-      </>
-      ) : !activeAttendanceBranch ? (
-      <>
-      <div className="erp-back-row my-5">
-        <button onClick={goBackOneAttendanceStep} className="erp-back-button h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-sm flex items-center gap-2">
-          <ArrowLeft size={15} /> Back
-        </button>
-      </div>
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5 rounded-lg bg-[#f5f5f6] p-4">
-        <div>
-          <div className="text-xs font-bold text-slate-500">Attendance / <span className="text-[#fb8d49]">{activeTask?.title}</span></div>
-          <h2 className="text-lg font-bold text-slate-900 mt-1">Choose next step</h2>
-        </div>
-      </div>
-      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {activeBranches.map((branch) => (
-          <button
-            key={branch.id}
-            onClick={() => openAttendanceBranch({ branchId: branch.id, nextMode: branch.nextMode || mode, scope: branch.scope })}
-            className="group min-h-36 text-left rounded-lg border border-slate-100 bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="h-11 w-11 rounded-lg bg-[#f5f5f6] text-[#34363d] flex items-center justify-center">{branch.icon}</div>
-              <ArrowRight size={17} className="text-slate-400 group-hover:text-[#fb8d49]" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 mt-4">{branch.title}</h3>
-            <p className="text-sm text-slate-500 mt-2">{branch.description}</p>
-          </button>
-        ))}
-      </div>
-      </>
-      ) : (
-      <>
-      <div className="erp-back-row my-5">
-        <button onClick={goBackOneAttendanceStep} className="erp-back-button h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-sm flex items-center gap-2">
-          <ArrowLeft size={15} /> Back
-        </button>
-      </div>
-      <div className="erp-branch-focus flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 rounded-lg bg-[#f5f5f6] p-5 border border-slate-100">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="erp-branch-icon h-16 w-16 rounded-lg bg-white text-[#fb8d49] flex items-center justify-center shrink-0">{activeBranch?.icon}</div>
-          <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold text-slate-900">{activeBranch?.title}</h2>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div className="min-w-0">
-          {!canMarkStudents && mode === 'students' && (
-            <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-              You can view student attendance but cannot mark it.
-            </div>
-          )}
-          {!canMarkStaff && mode === 'staff' && (
-            <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-              You can view staff attendance but cannot mark it.
-            </div>
-          )}
-
-          {mode === 'students' && (
-            <div className="erp-attendance-context-panel mb-4 grid md:grid-cols-2 xl:grid-cols-4 gap-3 rounded-lg border border-slate-100 bg-[#f5f5f6] p-4">
-              <label className="erp-attendance-field">
-                <span className="erp-attendance-field-label block text-xs font-semibold text-slate-500 mb-1.5">Semester</span>
-                <select
-                  value={selectedSemester}
-                  onChange={(event) => {
-                    setSelectedSemester(event.target.value);
-                    setSelectedSubjectCode('');
-                    setTopic('');
-                  }}
-                  className="erp-attendance-select w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                >
-                  <option value="">All semesters</option>
-                  {semesterOptions.map((semester) => (
-                    <option key={semester.value} value={semester.value}>{semester.label}</option>
-                  ))}
-                </select>
-              </label>
-              {studentAttendanceScope === 'subject' && (
-                <>
-                  <label className="erp-attendance-field">
-                    <span className="erp-attendance-field-label block text-xs font-semibold text-slate-500 mb-1.5">Subject</span>
-                    <select
-                      value={selectedSubject?.code || ''}
-                      onChange={(event) => {
-                        setSelectedSubjectCode(event.target.value);
-                        setTopic('');
-                      }}
-                      className="erp-attendance-select w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                    >
-                      <option value="">{subjectOptions.length ? 'Select Subject' : 'No Live Subjects'}</option>
-                      {subjectOptions.map((subject) => (
-                        <option key={subject.code} value={subject.code}>{subject.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="erp-attendance-field">
-                    <span className="erp-attendance-field-label block text-xs font-semibold text-slate-500 mb-1.5">Faculty</span>
-                    <select
-                      value={selectedFacultyId}
-                      onChange={(event) => setSelectedFacultyId(event.target.value)}
-                      className="erp-attendance-select w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                    >
-                      <option value="">{facultyOptions.length ? 'Select Faculty' : 'No Faculty Records'}</option>
-                      {facultyOptions.map((member) => (
-                        <option key={member.id} value={member.id}>{member.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="erp-attendance-field">
-                    <span className="erp-attendance-field-label block text-xs font-semibold text-slate-500 mb-1.5">Topic</span>
-                    <input
-                      list={topicSuggestions.length ? topicDatalistId : undefined}
-                      value={topic}
-                      onChange={(event) => setTopic(event.target.value)}
-                      placeholder={topicSuggestions.length ? 'Select or type topic taught' : 'Topic taught'}
-                      className="erp-attendance-input w-full h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                    />
-                    {topicSuggestions.length > 0 && (
-                      <>
-                        <datalist id={topicDatalistId}>
-                          {topicSuggestions.map((item) => (
-                            <option key={item} value={item} />
-                          ))}
-                        </datalist>
-                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                          {topicSuggestions.length} syllabus topic{topicSuggestions.length === 1 ? '' : 's'} available
-                        </p>
-                      </>
-                    )}
-                  </label>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="relative mb-4">
-            <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search attendance roster..."
-              className="erp-attendance-search-input w-full h-11 rounded-lg bg-[#f0f0f2] border-0 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-orange-100"
-            />
-          </div>
-
-          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-slate-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-xs font-bold uppercase text-slate-500">Draft Attendance</div>
-              <div className="text-sm font-bold text-slate-900">
-                {draftCount} unsaved change{draftCount === 1 ? '' : 's'}
+      {mode !== 'reports' ? (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="erp-glass-card overflow-hidden rounded-2xl">
+            <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-[#003434]">{mode === 'staff' ? 'Staff Roster' : 'Student Roster'}</h2>
+                <p className="mt-1 text-xs font-semibold text-[#3f4848]">Re-marking the same date updates the backend record.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ATTENDANCE_STATUSES.map((status) => (
+                  <button key={status} type="button" onClick={() => setAllStatuses(status)} className={cx('h-8 rounded-lg border px-3 text-xs font-bold', statusClasses(status))}>
+                    All {statusLabel(status)}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={markRemainingPresent}
-                disabled={mode === 'students' ? !canMarkStudents : !canMarkStaff}
-                className="h-10 px-4 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm font-bold disabled:opacity-50"
-              >
-                Mark Remaining Present
-              </button>
-              <button
-                type="button"
-                onClick={clearDraftAttendance}
-                disabled={!draftCount}
-                className="h-10 px-4 rounded-lg bg-slate-100 text-slate-700 text-sm font-bold disabled:opacity-50"
-              >
-                Clear Draft
-              </button>
-              <button
-                type="button"
-                onClick={saveDraftAttendance}
-                disabled={!draftCount || savingDraft || (mode === 'students' ? !canMarkStudents : !canMarkStaff)}
-                className="h-10 px-4 rounded-lg bg-[#033500] text-white text-sm font-bold shadow-[0_10px_22px_rgba(3,53,0,0.2)] disabled:opacity-50"
-              >
-                {savingDraft ? 'Saving...' : 'Save & Close'}
-              </button>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[880px] text-sm">
+                <thead className="bg-[#004d4d] text-left text-white">
+                  <tr>
+                    <th className="px-5 py-3">{mode === 'staff' ? 'Staff' : 'Student'}</th>
+                    <th className="px-5 py-3">{mode === 'staff' ? 'Department' : 'Class'}</th>
+                    <th className="px-5 py-3">Existing Record</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/30">
+                  {loading && (
+                    <tr>
+                      <td colSpan="5" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">
+                        <Loader2 className="mr-2 inline animate-spin" size={16} /> Loading roster...
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && roster.map((entity) => {
+                    const existing = activeRecordMap.get(entity.id);
+                    return (
+                      <tr key={entity.id}>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#004d4d] text-xs font-bold text-white">
+                              {initialsFor(entity.name)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#071e27]">{entity.name || '-'}</p>
+                              <p className="mt-1 text-xs font-semibold text-[#3f4848]">{entityLabel(entity, mode)}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-[#3f4848]">{mode === 'staff' ? getDepartmentLabel(entity) : getClassLabel(entity)}</td>
+                        <td className="px-5 py-4">
+                          {existing ? (
+                            <span className={cx('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(existing.status))}>{existing.status}</span>
+                          ) : (
+                            <span className="text-xs font-semibold text-[#3f4848]">Not marked</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            {ATTENDANCE_STATUSES.map((status) => (
+                              <button
+                                key={status}
+                                type="button"
+                                onClick={() => updateDraft(entity.id, { status })}
+                                disabled={!canMark}
+                                className={cx(
+                                  'h-8 rounded-lg border px-3 text-xs font-bold disabled:opacity-70',
+                                  drafts[entity.id]?.status === status ? statusClasses(status) : 'border-white/40 bg-white/35 text-[#3f4848]'
+                                )}
+                              >
+                                {statusLabel(status)}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <input
+                            value={drafts[entity.id]?.remarks || ''}
+                            onChange={(event) => updateDraft(entity.id, { remarks: event.target.value })}
+                            disabled={!canMark}
+                            className="h-9 w-full min-w-40 rounded-lg border border-white/40 bg-white/45 px-3 text-xs text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-70"
+                            placeholder="Optional"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!loading && !roster.length && (
+                    <tr>
+                      <td colSpan="5" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No roster records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </section>
+
+          <aside className="space-y-5">
+            <section className="erp-glass-card rounded-2xl p-5">
+              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Selected Date</p>
+              <h2 className="mt-1 text-lg font-bold text-[#003434]">{date}</h2>
+              <div className="mt-5 space-y-3">
+                {ATTENDANCE_STATUSES.map((status) => (
+                  <div key={status}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-[#3f4848]">{statusLabel(status)}</span>
+                      <b className="text-[#071e27]">{entitySummary[status]}</b>
+                    </div>
+                    <div className="mt-1 h-2 rounded-full bg-white/40">
+                      <div className="h-full rounded-full bg-[#006a62]" style={{ width: `${entitySummary.total ? Math.round((entitySummary[status] / entitySummary.total) * 100) : 0}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="erp-glass-card rounded-2xl p-5">
+              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Loaded Records</p>
+              <div className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
+                {entityRecords.map((record) => (
+                  <div key={record.id || `${record.date}-${record.studentId || record.staffId}`} className="rounded-xl border border-white/35 bg-white/35 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-[#071e27]">{record.studentName || record.staffName || record.studentId || record.staffId}</p>
+                        <p className="mt-1 text-xs text-[#3f4848]">{record.date} | {record.remarks || 'No remarks'}</p>
+                      </div>
+                      <span className={cx('rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', statusClasses(record.status))}>{record.status}</span>
+                    </div>
+                  </div>
+                ))}
+                {!entityRecords.length && <EmptyState message="No attendance records loaded for this date." />}
+              </div>
+            </section>
+          </aside>
+        </div>
+      ) : (
+        <section className="erp-glass-card rounded-2xl p-5">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[#003434]">Attendance Reports</h2>
+              <p className="mt-1 text-sm text-[#3f4848]">Student attendance report endpoints from the backend.</p>
+            </div>
+            <button type="button" onClick={loadReport} disabled={reportLoading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white disabled:bg-slate-300">
+              {reportLoading ? <Loader2 className="animate-spin" size={16} /> : <ClipboardCheck size={16} />}
+              Load Report
+            </button>
           </div>
 
-          <AttendanceTable
-            canMark={mode === 'students' ? canMarkStudents : canMarkStaff}
-            draftStatuses={draftStatuses}
-            entities={activeEntities}
-            isRecordEditable={isAttendanceRecordEditable}
-            mode={mode}
-            records={activeRecords}
-            selectedDate={selectedDate}
-            onMark={markAttendance}
-            onSelect={setSelectedEntityId}
-            selectedId={selectedEntityId}
-            showActions={false}
-          />
-        </div>
-      </div>
-      </>
+          <div className="mb-6 grid gap-4 lg:grid-cols-12">
+            <div className="flex flex-wrap items-end gap-2 lg:col-span-3">
+              {[
+                ['daily', 'Daily'],
+                ['monthly', 'Monthly'],
+                ['student', 'Student %'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setReportType(value)}
+                  className={cx('h-10 rounded-xl px-4 text-sm font-bold', reportType === value ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="lg:col-span-2">
+              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Date</span>
+              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={reportType !== 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+            </label>
+            <label className="lg:col-span-2">
+              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">From</span>
+              <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+            </label>
+            <label className="lg:col-span-2">
+              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">To</span>
+              <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+            </label>
+            <label className="lg:col-span-3">
+              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{reportType === 'student' ? 'Student' : 'Class'}</span>
+              {reportType === 'student' ? (
+                <select value={selectedStudentId} onChange={(event) => setSelectedStudentId(event.target.value)} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                  <option value="">Select student</option>
+                  {students.map((student) => <option key={student.id} value={student.id}>{student.name} - {entityLabel(student, 'students')}</option>)}
+                </select>
+              ) : (
+                <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+                  <option value="">All classes</option>
+                  {classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
+                </select>
+              )}
+            </label>
+          </div>
+
+          {reportType === 'daily' && dailyReport && (
+            <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <div className="rounded-2xl border border-white/35 bg-white/35 p-5">
+                <p className="text-[11px] font-bold uppercase text-[#3f4848]">Daily Summary</p>
+                <h3 className="mt-1 text-xl font-bold text-[#003434]">{dailyReport.date}</h3>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {ATTENDANCE_STATUSES.map((status) => (
+                    <div key={status} className="rounded-xl bg-white/45 p-3">
+                      <p className="text-xs font-bold uppercase text-[#3f4848]">{statusLabel(status)}</p>
+                      <p className="mt-1 text-2xl font-bold text-[#003434]">{dailyReport.summary?.[status] || 0}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <ReportRecords records={dailyReport.records || []} />
+            </div>
+          )}
+
+          {reportType === 'monthly' && monthlyReport && (
+            <div className="overflow-x-auto rounded-2xl border border-white/35 bg-white/35">
+              <table className="w-full min-w-[720px] text-sm">
+                <thead className="bg-[#004d4d] text-left text-white">
+                  <tr>
+                    <th className="px-5 py-3">Student</th>
+                    <th className="px-5 py-3">Present</th>
+                    <th className="px-5 py-3">Late</th>
+                    <th className="px-5 py-3">Absent</th>
+                    <th className="px-5 py-3">Leave</th>
+                    <th className="px-5 py-3">Total</th>
+                    <th className="px-5 py-3">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(monthlyReport.students || []).map((student) => (
+                    <tr key={student.studentId}>
+                      <td className="px-5 py-4 font-bold text-[#071e27]">{student.studentName || student.studentId}</td>
+                      <td className="px-5 py-4">{student.present}</td>
+                      <td className="px-5 py-4">{student.late}</td>
+                      <td className="px-5 py-4">{student.absent}</td>
+                      <td className="px-5 py-4">{student.leave}</td>
+                      <td className="px-5 py-4">{student.total}</td>
+                      <td className="px-5 py-4 font-bold text-[#006a62]">{student.percentage}%</td>
+                    </tr>
+                  ))}
+                  {!monthlyReport.students?.length && (
+                    <tr><td colSpan="7" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">No monthly report rows found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {reportType === 'student' && studentPercentage && (
+            <div className="grid gap-4 md:grid-cols-6">
+              {[
+                ['Student ID', studentPercentage.studentId],
+                ['Present', studentPercentage.present],
+                ['Late', studentPercentage.late],
+                ['Absent', studentPercentage.absent],
+                ['Leave', studentPercentage.leave],
+                ['Percentage', `${studentPercentage.percentage}%`],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-white/35 bg-white/35 p-5">
+                  <p className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</p>
+                  <p className="mt-2 text-2xl font-bold text-[#003434]">{valueOrDash(value)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {reportType === 'daily' && !dailyReport && <EmptyState message="Load a daily report to see backend results." />}
+          {reportType === 'monthly' && !monthlyReport && <EmptyState message="Load a monthly report to see backend results." />}
+          {reportType === 'student' && !studentPercentage && <EmptyState message="Load a student percentage report to see backend results." />}
+        </section>
       )}
+    </div>
+  );
+}
+
+function ReportRecords({ records }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-white/35 bg-white/35">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead className="bg-[#004d4d] text-left text-white">
+          <tr>
+            <th className="px-5 py-3">Student</th>
+            <th className="px-5 py-3">Date</th>
+            <th className="px-5 py-3">Status</th>
+            <th className="px-5 py-3">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((record) => (
+            <tr key={record.id || `${record.date}-${record.studentId}`}>
+              <td className="px-5 py-4 font-bold text-[#071e27]">{record.studentName || record.studentId}</td>
+              <td className="px-5 py-4 text-[#3f4848]">{record.date}</td>
+              <td className="px-5 py-4">
+                <span className={cx('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(record.status))}>{record.status}</span>
+              </td>
+              <td className="px-5 py-4 text-[#3f4848]">{record.remarks || '-'}</td>
+            </tr>
+          ))}
+          {!records.length && (
+            <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">No report records found.</td></tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

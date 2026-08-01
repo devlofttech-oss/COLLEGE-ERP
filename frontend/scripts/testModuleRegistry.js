@@ -33,6 +33,7 @@ const adminSidebarVisible = visibleSidebarIds('admin');
 assert.deepEqual(adminSidebarVisible, [
   'dashboard',
   'students',
+  'admissions',
   'faculty-staff',
   'attendance',
   'timetable',
@@ -48,6 +49,7 @@ assert.deepEqual(adminSidebarVisible, [
 assert.deepEqual(visibleSidebarIds('super-admin'), [
   'dashboard',
   'students',
+  'admissions',
   'faculty-staff',
   'attendance',
   'timetable',
@@ -73,6 +75,7 @@ const superAdminVisible = enabled
 assert.deepEqual(superAdminVisible, [
   'dashboard',
   'students',
+  'admissions',
   'faculty-staff',
   'attendance',
   'timetable',
@@ -110,6 +113,7 @@ const adminVisible = enabled.filter((module) => canAccess(defaultRoles, 'admin',
 assert.deepEqual(adminVisible, [
   'dashboard',
   'students',
+  'admissions',
   'faculty-staff',
   'attendance',
   'timetable',

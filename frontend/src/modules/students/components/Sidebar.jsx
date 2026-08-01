@@ -65,14 +65,6 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
   const submenuItemsByModule = useMemo(() => ({
     attendance: [
       {
-        id: 'general-attendance',
-        label: 'General Attendance',
-        icon: <CalendarDays size={16} />,
-        moduleId: 'attendance',
-        state: { attendanceSubmenu: 'general-attendance', attendanceTask: 'students', attendanceBranch: 'mark-general-students', attendanceMode: 'students' },
-        enabled: canAccess(defaultRoles, currentRoleId, 'attendance.view'),
-      },
-      {
         id: 'student-attendance',
         label: 'Student Attendance',
         icon: <Users size={16} />,
@@ -86,7 +78,7 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
         icon: <UserCheck size={16} />,
         moduleId: 'attendance',
         state: { attendanceSubmenu: 'staff-attendance', attendanceTask: 'staff', attendanceBranch: 'mark-staff', attendanceMode: 'staff' },
-        enabled: canAccess(defaultRoles, currentRoleId, 'attendance.markStaff') || canAccess(defaultRoles, currentRoleId, 'staff.attendance'),
+        enabled: canAccess(defaultRoles, currentRoleId, 'attendance.mark') || canAccess(defaultRoles, currentRoleId, 'staff.attendance'),
       },
     ],
     reports: [
@@ -104,7 +96,7 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
         icon: <ClipboardList size={16} />,
         moduleId: 'reports',
         state: { reportCategory: 'attendance' },
-        enabled: canAccess(defaultRoles, currentRoleId, 'attendance.reports'),
+        enabled: canAccess(defaultRoles, currentRoleId, 'attendance.report') || canAccess(defaultRoles, currentRoleId, 'attendance.view'),
       },
       {
         id: 'documents',
