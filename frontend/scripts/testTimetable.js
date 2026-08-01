@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
 import {
+  DAYS,
+  displayPeriodRange,
   filterTimetableEntriesByCourse,
   getClassOptions,
   getTimeSlotOptions,
+  groupTimetableByDay,
   hasTimetableConflict,
   normalizeTimeSlotFields,
+  sortPeriods,
   validateTimetableEntry,
+  validateTimetablePeriod,
 } from '../src/modules/timetable/timetableUtils.js';
 
 const students = [
@@ -15,16 +20,17 @@ const students = [
   { className: 'Class X', section: 'C', status: 'Archived' },
 ];
 
+assert.equal(DAYS.includes('Sunday'), true);
 assert.deepEqual(getClassOptions(students), ['Class XI - A', 'Class XII - B']);
-assert.equal(validateTimetableEntry({}), 'Class is required.');
+assert.equal(validateTimetablePeriod({}), 'Name is required.');
+assert.equal(validateTimetablePeriod({ name: 'P1', startTime: '09:00', endTime: '10:00' }), '');
+assert.equal(validateTimetableEntry({}), 'Day is required.');
 assert.equal(
   validateTimetableEntry({
-    classKey: 'Class XI - A',
-    subject: 'Physics',
-    facultyId: 'staff-1',
-    classroomId: 'room-1',
     day: 'Monday',
-    timeSlot: '09:00 - 10:00',
+    periodId: 'period-1',
+    classId: 'class-1',
+    subjectId: 'subject-1',
   }),
   ''
 );
@@ -32,29 +38,37 @@ assert.equal(
 const entries = [
   {
     id: 'entry-1',
-    classKey: 'Class XI - A',
-    facultyId: 'staff-1',
-    classroomId: 'room-1',
+    classId: 'class-1',
+    teacherId: 'staff-1',
+    room: 'Room 1',
     day: 'Monday',
-    timeSlot: '09:00 - 10:00',
-    status: 'Draft',
+    periodId: 'period-1',
+    status: 'active',
   },
 ];
 
 assert.equal(hasTimetableConflict(entries, {
-  classKey: 'Class XI - A',
-  facultyId: 'staff-2',
-  classroomId: 'room-2',
+  classId: 'class-2',
+  teacherId: 'staff-1',
+  room: 'Room 2',
   day: 'Monday',
-  timeSlot: '09:00 - 10:00',
+  periodId: 'period-1',
 }), true);
 
 assert.equal(hasTimetableConflict(entries, {
-  classKey: 'Class XII - B',
-  facultyId: 'staff-2',
-  classroomId: 'room-2',
+  classId: 'class-1',
+  teacherId: 'staff-2',
+  room: 'Room 1',
+  day: 'Monday',
+  periodId: 'period-1',
+}), true);
+
+assert.equal(hasTimetableConflict(entries, {
+  classId: 'class-1',
+  teacherId: 'staff-2',
+  room: 'Room 2',
   day: 'Tuesday',
-  timeSlot: '09:00 - 10:00',
+  periodId: 'period-1',
 }), false);
 
 assert.deepEqual(normalizeTimeSlotFields({ timeSlot: '02:00 - 03:00' }), {
@@ -65,9 +79,9 @@ assert.deepEqual(normalizeTimeSlotFields({ timeSlot: '02:00 - 03:00' }), {
 
 assert.deepEqual(
   getTimeSlotOptions([
-    { timeSlot: '02:00 - 03:00', status: 'Published' },
-    { timeSlot: '09:00 - 10:00', status: 'Published' },
-    { timeSlot: '01:00 - 02:00', status: 'Archived' },
+    { timeSlot: '02:00 - 03:00', status: 'active' },
+    { timeSlot: '09:00 - 10:00', status: 'active' },
+    { timeSlot: '01:00 - 02:00', archived: true },
   ]),
   [
     { label: '09:00 - 10:00', startTime: '09:00', endTime: '10:00' },
@@ -75,12 +89,19 @@ assert.deepEqual(
   ]
 );
 
+assert.deepEqual(sortPeriods([
+  { id: 'period-2', name: 'P2', startTime: '10:00', order: 2 },
+  { id: 'period-1', name: 'P1', startTime: '09:00', order: 1 },
+]).map((period) => period.id), ['period-1', 'period-2']);
+assert.equal(displayPeriodRange({ startTime: '09:00', endTime: '10:00' }), '09:00 - 10:00');
+assert.deepEqual(groupTimetableByDay([{ id: 'entry-1', day: 'Monday' }]).Monday.map((entry) => entry.id), ['entry-1']);
+
 assert.deepEqual(
   filterTimetableEntriesByCourse([
     { id: 'mlt-lateral', courseCode: 'MLTLAT', courseName: 'II B Sc MLT' },
     { id: 'mlt-regular', courseCode: 'MLTREG', courseName: 'I B Sc MLT' },
     { id: 'atot-regular', courseCode: 'ATOTREG', courseName: 'I B Sc Anaesthesia and Operation Theater Technology' },
-    { id: 'legacy-entry', subject: 'Anatomy' },
+    { id: 'legacy-entry', subjectName: 'Anatomy' },
   ], 'MLTLAT').map((entry) => entry.id),
   ['mlt-lateral', 'legacy-entry']
 );

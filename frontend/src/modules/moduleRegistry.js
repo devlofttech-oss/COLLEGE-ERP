@@ -103,7 +103,7 @@ export const moduleRegistry = [
     group: 'Daily Work',
     icon: BookOpen,
     status: 'active',
-    permission: 'timetable.view',
+    permission: ['timetable.view', 'timetable.viewOwn'],
   },
   {
     id: 'subject-notes',

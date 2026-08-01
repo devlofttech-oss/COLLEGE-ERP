@@ -6,6 +6,7 @@ const enabled = getEnabledModules();
 assert.equal(enabled.every((module) => module.status !== 'disabled'), true);
 assert.equal(getModuleById('dashboard').label, 'Dashboard');
 assert.equal(getModuleById('students').permission, 'students.view');
+assert.deepEqual(getModuleById('timetable').permission, ['timetable.view', 'timetable.viewOwn']);
 assert.equal(getModuleById('fees').permission, 'fees.view');
 assert.equal(getModuleById('fees').label, 'Payment');
 assert.equal(getModuleById('communication').label, 'Communication');

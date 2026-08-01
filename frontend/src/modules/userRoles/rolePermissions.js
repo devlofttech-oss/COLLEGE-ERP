@@ -60,10 +60,8 @@ export const permissionGroups = [
       ['academics.view', 'Academics module'],
       ['academics.manage', 'Manage academics'],
       ['timetable.view', 'Timetable module'],
-      ['timetable.create', 'Create timetable'],
-      ['timetable.edit', 'Edit timetable'],
-      ['timetable.publish', 'Publish timetable'],
-      ['timetable.classrooms', 'Manage classrooms'],
+      ['timetable.manage', 'Manage timetable periods and slots'],
+      ['timetable.viewOwn', 'View own timetable'],
       ['subjectNotes.view', 'Subject notes module'],
       ['subjectNotes.upload', 'Upload subject notes'],
       ['subjectNotes.edit', 'Edit subject notes'],
@@ -144,10 +142,8 @@ export const defaultRoles = [
       'attendance.report',
       'attendance.viewOwn',
       'timetable.view',
-      'timetable.create',
-      'timetable.edit',
-      'timetable.publish',
-      'timetable.classrooms',
+      'timetable.manage',
+      'timetable.viewOwn',
       'subjectNotes.view',
       'subjectNotes.upload',
       'subjectNotes.edit',
@@ -198,6 +194,7 @@ export const defaultRoles = [
       'attendance.edit',
       'attendance.report',
       'timetable.view',
+      'timetable.viewOwn',
       'subjectNotes.view',
       'subjectNotes.upload',
       'subjectNotes.edit',
@@ -214,7 +211,7 @@ export const defaultRoles = [
     locked: false,
     permissions: [
       'academicCurriculum.view',
-      'timetable.view',
+      'timetable.viewOwn',
       'notices.view',
       'documents.view',
       'parentPortal.view',
@@ -231,6 +228,7 @@ export function getRoleById(roles, roleId) {
 }
 
 export function canAccess(roles, roleId, permission) {
+  if (Array.isArray(permission)) return permission.some((item) => hasPermission(getRoleById(roles, roleId), item));
   return hasPermission(getRoleById(roles, roleId), permission);
 }
 

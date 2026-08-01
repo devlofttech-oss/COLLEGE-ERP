@@ -1,4 +1,5 @@
-export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+export const weekDays = DAYS;
 
 export const timeSlots = [
   '09:00 - 10:00',
@@ -12,6 +13,12 @@ export const timeSlots = [
   '03:00 - 04:00',
   '04:00 - 05:00',
 ];
+
+export function compactPayload(payload = {}) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  );
+}
 
 function parseTimePart(value = '') {
   const match = String(value).trim().match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)?$/i);
@@ -40,10 +47,23 @@ function timeToMinutes(value = '') {
   return hours * 60 + minutes;
 }
 
+export function displayPeriodRange(period = {}) {
+  return [period.startTime, period.endTime].filter(Boolean).join(' - ') || '-';
+}
+
+export function sortPeriods(periods = []) {
+  return [...periods].sort((a, b) => {
+    const orderA = Number(a.order ?? Number.MAX_SAFE_INTEGER);
+    const orderB = Number(b.order ?? Number.MAX_SAFE_INTEGER);
+    if (orderA !== orderB) return orderA - orderB;
+    return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+  });
+}
+
 export function getTimeSlotLabel(entry = {}) {
   if (entry.timeSlot) return entry.timeSlot;
   if (entry.startTime && entry.endTime) return `${entry.startTime} - ${entry.endTime}`;
-  return '';
+  return displayPeriodRange(entry);
 }
 
 export function normalizeTimeSlotFields(entry = {}) {
@@ -59,11 +79,11 @@ export function normalizeTimeSlotFields(entry = {}) {
 export function getTimeSlotOptions(entries = [], { includeArchived = false } = {}) {
   const options = new Map();
   entries
-    .filter((entry) => includeArchived || entry.status !== 'Archived')
+    .filter((entry) => includeArchived || !entry.archived)
     .map(normalizeTimeSlotFields)
     .forEach((entry) => {
       const label = getTimeSlotLabel(entry);
-      if (!label) return;
+      if (!label || label === '-') return;
       options.set(label, {
         label,
         startTime: entry.startTime,
@@ -100,24 +120,47 @@ export function filterTimetableEntriesByCourse(entries = [], selectedCourseCode 
 }
 
 export function hasTimetableConflict(entries, candidate, ignoreId = '') {
-  const candidateSlot = getTimeSlotLabel(candidate);
   return entries.some((entry) => {
-    if (entry.id === ignoreId || entry.status === 'Archived') return false;
-    const sameSlot = entry.day === candidate.day && getTimeSlotLabel(entry) === candidateSlot;
-    if (!sameSlot) return false;
-    return entry.classKey === candidate.classKey || entry.facultyId === candidate.facultyId || entry.classroomId === candidate.classroomId;
+    if (entry.id === ignoreId || entry.archived) return false;
+    const samePeriod = entry.day === candidate.day && entry.periodId === candidate.periodId;
+    if (!samePeriod) return false;
+    return (
+      (candidate.teacherId && entry.teacherId === candidate.teacherId) ||
+      (candidate.room && entry.room === candidate.room)
+    );
   });
 }
 
-export function validateTimetableEntry(form) {
+export function groupTimetableByDay(entries = []) {
+  const grid = {};
+  DAYS.forEach((day) => {
+    grid[day] = [];
+  });
+  entries.forEach((entry) => {
+    const day = DAYS.includes(entry.day) ? entry.day : DAYS[0];
+    grid[day] = [...(grid[day] || []), entry];
+  });
+  return grid;
+}
+
+export function validateTimetablePeriod(form = {}) {
   const requiredFields = [
-    ['classKey', 'Class'],
-    ['subject', 'Subject'],
-    ['facultyId', 'Faculty'],
-    ['classroomId', 'Classroom'],
-    ['day', 'Day'],
-    ['timeSlot', 'Time slot'],
+    ['name', 'Name'],
+    ['startTime', 'Start time'],
+    ['endTime', 'End time'],
   ];
   const missing = requiredFields.find(([key]) => !String(form[key] || '').trim());
   return missing ? `${missing[1]} is required.` : '';
+}
+
+export function validateTimetableEntry(form = {}) {
+  const requiredFields = [
+    ['day', 'Day'],
+    ['periodId', 'Period'],
+    ['classId', 'Class'],
+    ['subjectId', 'Subject'],
+  ];
+  const missing = requiredFields.find(([key]) => !String(form[key] || '').trim());
+  if (missing) return `${missing[1]} is required.`;
+  return DAYS.includes(form.day) ? '' : 'Day must be a valid timetable day.';
 }
