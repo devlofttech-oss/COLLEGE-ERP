@@ -8,7 +8,7 @@ import { normalizeInstituteSettings } from './settingsModel';
 import { buildNextId, formatDisplayDate, summarizeSettings, validateAcademicYearSettings, validateInstituteSettings } from './settingsUtils';
 import AcademicsManagement from '../academics/AcademicsManagement';
 import UserRoleManagement from '../userRoles/UserRoleManagement';
-import PaymentSettingsPanel from '../fees/components/PaymentSettingsPanel';
+import FeesManagement from '../fees/FeesManagement';
 
 const lockedModuleDefaultKeys = new Set(['onlinePayments', 'receiptGeneration', 'communicationModule']);
 
@@ -71,7 +71,7 @@ export default function SettingsManagement({
   const canManageUsers = canAccess(defaultRoles, currentRoleId, 'users.view');
   const canViewAcademics = canAccess(defaultRoles, currentRoleId, 'academics.view');
   const canViewPaymentSettings = canAccess(defaultRoles, currentRoleId, 'fees.view');
-  const canManagePaymentSettings = canAccess(defaultRoles, currentRoleId, 'fees.setup') || canAccess(defaultRoles, currentRoleId, 'fees.assign');
+  const canManagePaymentSettings = canAccess(defaultRoles, currentRoleId, 'fees.structure');
   const paymentSettingsAcademicYear = activeAcademicYear || academicYear.name || '';
   const summary = summarizeSettings(institute, academicYear, idFormats, moduleDefaults);
   const setupSections = [
@@ -263,9 +263,10 @@ export default function SettingsManagement({
               <ArrowLeft size={15} /> Back
             </button>
           </div>
-          <PaymentSettingsPanel
+          <FeesManagement
             currentUser={currentUser}
             academicYear={paymentSettingsAcademicYear}
+            initialTask="structures"
             selectedCourse={selectedCourse}
             selectedCourseCode={selectedCourseCode}
           />

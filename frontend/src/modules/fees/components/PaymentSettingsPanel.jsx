@@ -92,8 +92,8 @@ export default function PaymentSettingsPanel({
   }, [academicYear]);
 
   const currentRoleId = currentUser?.roleId || 'admin';
-  const canSetup = canAccess(defaultRoles, currentRoleId, 'fees.setup');
-  const canAssign = canAccess(defaultRoles, currentRoleId, 'fees.assign');
+  const canSetup = canAccess(defaultRoles, currentRoleId, 'fees.structure');
+  const canAssign = canAccess(defaultRoles, currentRoleId, 'fees.structure');
   const courseStudents = useMemo(
     () => scopedStudents.length ? scopedStudents : filterStudentsByCourse(students, selectedCourseCode, selectedCourse),
     [scopedStudents, selectedCourse, selectedCourseCode, students]
