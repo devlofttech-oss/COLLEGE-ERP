@@ -1,132 +1,117 @@
 import assert from 'node:assert/strict';
 import {
+  communicationAudiences,
+  communicationChannels,
   filterNotices,
-  filterVisibleNoticesForRole,
+  filterTemplates,
+  formatDisplayDate,
   getNoticeDisplayStatus,
   isExpired,
   isPublished,
-  noticeMatchesCourseScope,
+  labelize,
   summarizeNotices,
+  templateTypes,
   validateNoticeForm,
+  validateTemplateForm,
 } from '../src/modules/notices/noticeUtils.js';
 
 const now = new Date('2026-06-19T10:00:00');
 const notices = [
   {
     id: 'n1',
-    type: 'Digital Notice',
     title: 'Published notice',
-    audience: 'Students',
-    priority: 'Normal',
-    body: 'Body',
+    message: 'Library hours are extended.',
+    audience: 'students',
+    classId: '',
+    className: '',
+    attachmentName: 'library.pdf',
     publishDate: '2026-06-18',
     expiryDate: '2026-06-30',
-    status: 'Published',
-    createdByName: 'Admin',
+    channels: ['app', 'email'],
+    status: 'published',
   },
   {
     id: 'n2',
-    type: 'Circular',
-    title: 'Future circular',
-    audience: 'Faculty',
-    priority: 'Important',
-    body: 'Body',
-    publishDate: '2026-06-25',
-    expiryDate: '2026-06-30',
-    status: 'Published',
-    createdByName: 'Admin',
+    title: 'Class notice',
+    message: 'Class XII seminar.',
+    audience: 'class',
+    classId: 'class-xii-a',
+    className: 'Class XII - A',
+    publishDate: '2026-06-20',
+    expiryDate: '',
+    channels: ['app'],
+    status: 'draft',
   },
   {
     id: 'n3',
-    type: 'Event Announcement',
-    title: 'Old event',
-    audience: 'All',
-    priority: 'Urgent',
-    body: 'Body',
+    title: 'Old notice',
+    message: 'Past circular.',
+    audience: 'parents',
+    classId: '',
     publishDate: '2026-06-01',
     expiryDate: '2026-06-10',
-    status: 'Published',
-    createdByName: 'Admin',
-  },
-  {
-    id: 'n4',
-    type: 'Digital Notice',
-    title: 'Draft notice',
-    audience: 'Parents',
-    priority: 'Normal',
-    body: 'Body',
-    publishDate: '2026-06-20',
-    expiryDate: '',
-    status: 'Draft',
-    createdByName: 'Admin',
+    channels: ['whatsapp'],
+    status: 'published',
   },
 ];
 
-assert.equal(isPublished(notices[0], now), true);
-assert.equal(isPublished(notices[1], now), false);
+const templates = [
+  { id: 't1', name: 'Fee Reminder', type: 'sms', body: 'Please pay fees.', status: 'active' },
+  { id: 't2', name: 'Exam Notice', type: 'email', subject: 'Exam', body: 'Exam starts Monday.', status: 'active' },
+  { id: 't3', name: 'Transport Update', type: 'whatsapp', body: 'Bus route changed.', status: 'inactive' },
+];
+
+assert.equal(communicationAudiences.includes('parents'), true);
+assert.equal(communicationChannels.includes('whatsapp'), true);
+assert.equal(templateTypes.includes('email'), true);
+
+assert.equal(isPublished(notices[0]), true);
+assert.equal(isPublished(notices[1]), false);
 assert.equal(isExpired(notices[2], now), true);
 assert.equal(getNoticeDisplayStatus(notices[0], now), 'Published');
-assert.equal(getNoticeDisplayStatus(notices[1], now), 'Scheduled');
+assert.equal(getNoticeDisplayStatus(notices[1], now), 'Draft');
 assert.equal(getNoticeDisplayStatus(notices[2], now), 'Expired');
-assert.equal(getNoticeDisplayStatus(notices[3], now), 'Draft');
+assert.equal(formatDisplayDate('2026-06-18'), '18 Jun 2026');
+assert.equal(labelize('not-configured'), 'Not Configured');
 
 assert.deepEqual(summarizeNotices(notices, now), {
-  total: 4,
+  total: 3,
   published: 1,
   drafts: 1,
-  scheduled: 1,
   expired: 1,
-  urgent: 1,
+  classTargeted: 1,
 });
 
-assert.equal(filterNotices(notices, { type: 'Circular' }).length, 1);
-assert.equal(filterNotices(notices, { audience: 'Students' }).length, 1);
-assert.equal(filterNotices(notices, { search: 'old' }).length, 1);
-
-const courseScopedNotices = [
-  { ...notices[0], id: 'global', courseCode: '' },
-  { ...notices[0], id: 'bsc', courseCode: 'BSC-NURSING', courseName: 'B.Sc Nursing' },
-  { ...notices[0], id: 'gnm', courseCode: 'GNM', courseName: 'GNM Nursing' },
-];
-assert.deepEqual(
-  courseScopedNotices
-    .filter((item) => noticeMatchesCourseScope(item, 'BSC-NURSING', { courseName: 'B.Sc Nursing' }))
-    .map((item) => item.id),
-  ['global', 'bsc'],
-);
-assert.equal(noticeMatchesCourseScope(courseScopedNotices[2], 'all', null), true);
-assert.deepEqual(
-  filterVisibleNoticesForRole(notices, 'faculty', false, now).map((item) => item.id),
-  [],
-);
-assert.deepEqual(
-  filterVisibleNoticesForRole(notices, 'student', false, now).map((item) => item.id),
-  ['n1'],
-);
-assert.deepEqual(
-  filterVisibleNoticesForRole([
-    { ...notices[0], id: 'all-notice', audience: 'All' },
-    { ...notices[0], id: 'parent-notice', audience: 'Parents' },
-  ], 'parent', false, now).map((item) => item.id),
-  ['parent-notice'],
-);
-assert.equal(filterVisibleNoticesForRole(notices, 'admin', true, now).length, 4);
+assert.deepEqual(filterNotices(notices, { audience: 'students' }).map((notice) => notice.id), ['n1']);
+assert.deepEqual(filterNotices(notices, { status: 'draft' }).map((notice) => notice.id), ['n2']);
+assert.deepEqual(filterNotices(notices, { classId: 'class-xii-a' }).map((notice) => notice.id), ['n2']);
+assert.deepEqual(filterNotices(notices, { search: 'library' }).map((notice) => notice.id), ['n1']);
+assert.deepEqual(filterTemplates(templates, { type: 'email' }).map((template) => template.id), ['t2']);
+assert.deepEqual(filterTemplates(templates, { search: 'bus' }).map((template) => template.id), ['t3']);
 
 assert.equal(validateNoticeForm({}), 'Title is required.');
+assert.equal(validateNoticeForm({ title: 'Notice', message: '', audience: 'all' }), 'Message is required.');
+assert.equal(validateNoticeForm({ title: 'Notice', message: 'Body', audience: 'bad', channels: ['app'] }), 'Audience is required.');
+assert.equal(validateNoticeForm({ title: 'Notice', message: 'Body', audience: 'class', channels: ['app'] }), 'Class is required for class audience.');
+assert.equal(validateNoticeForm({ title: 'Notice', message: 'Body', audience: 'all', channels: ['fax'] }), 'Channels must be app, sms, whatsapp, or email.');
 assert.equal(validateNoticeForm({
   title: 'Notice',
-  type: 'Digital Notice',
-  audience: 'All',
-  body: 'Content',
+  message: 'Body',
+  audience: 'all',
   publishDate: '2026-06-20',
   expiryDate: '2026-06-19',
+  channels: ['app'],
 }), 'Expiry date cannot be before publish date.');
 assert.equal(validateNoticeForm({
   title: 'Notice',
-  type: 'Digital Notice',
-  audience: 'All',
-  body: 'Content',
-  publishDate: '2026-06-20',
+  message: 'Body',
+  audience: 'all',
+  channels: ['app'],
 }), '');
+
+assert.equal(validateTemplateForm({}), 'Template name is required.');
+assert.equal(validateTemplateForm({ name: 'Reminder', type: 'push', body: 'Body' }), 'Template type must be sms, whatsapp, or email.');
+assert.equal(validateTemplateForm({ name: 'Reminder', type: 'sms', body: '' }), 'Template body is required.');
+assert.equal(validateTemplateForm({ name: 'Reminder', type: 'sms', body: 'Body' }), '');
 
 console.log('Notice tests passed.');

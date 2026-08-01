@@ -141,7 +141,7 @@ export const moduleRegistry = [
     group: 'Daily Work',
     icon: MessageSquare,
     status: 'active',
-    permission: 'notices.view',
+    permission: 'communication.view',
   },
   {
     id: 'calendar',

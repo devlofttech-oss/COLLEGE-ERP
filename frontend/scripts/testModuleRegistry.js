@@ -12,6 +12,7 @@ assert.deepEqual(getModuleById('results').permission, ['results.view', 'results.
 assert.equal(getModuleById('fees').permission, 'fees.view');
 assert.equal(getModuleById('fees').label, 'Payment');
 assert.equal(getModuleById('communication').label, 'Communication');
+assert.equal(getModuleById('communication').permission, 'communication.view');
 assert.equal(getModuleById('notice-board').id, 'communication');
 assert.equal(getModuleById('financial-reports').id, 'reports');
 assert.equal(getModuleByPath('/modules/notice-board').id, 'communication');

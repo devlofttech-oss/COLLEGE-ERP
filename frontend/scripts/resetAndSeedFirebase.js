@@ -85,7 +85,7 @@ const allPermissions = [
   'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind', 'fees.viewOwn', 'fees.pay',
   'hostel.view', 'hostel.manage',
   'financialReports.view', 'financialReports.export', 'financialReports.snapshots', 'reports.view',
-  'notices.view', 'notices.create', 'notices.edit', 'notices.archive',
+  'communication.view', 'communication.create', 'communication.send',
   'documents.view', 'documents.upload', 'documents.verify', 'documents.archive',
   'parentPortal.view', 'parentPortal.viewAll', 'settings.view', 'settings.manage',
 ];
@@ -101,7 +101,7 @@ const adminPermissions = [
   'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind', 'fees.viewOwn', 'fees.pay',
   'hostel.view', 'hostel.manage',
   'financialReports.view', 'financialReports.export', 'financialReports.snapshots', 'reports.view',
-  'notices.view', 'notices.create', 'notices.edit', 'notices.archive',
+  'communication.view', 'communication.create', 'communication.send',
   'documents.view', 'documents.upload', 'documents.verify', 'documents.archive',
 ];
 
@@ -113,7 +113,7 @@ const facultyPermissions = [
   'subjectNotes.view', 'subjectNotes.upload', 'subjectNotes.edit',
   'examinations.view', 'examinations.marks',
   'results.view',
-  'notices.view',
+  'communication.view', 'communication.create',
   'documents.view',
   'hostel.view',
 ];
@@ -123,7 +123,7 @@ const parentPermissions = [
   'timetable.viewOwn',
   'examinations.viewOwn',
   'results.viewOwn',
-  'notices.view',
+  'communication.view',
   'documents.view',
   'parentPortal.view',
 ];
@@ -242,7 +242,7 @@ const seed = {
   roles: {
     'super-admin': { id: 'super-admin', name: 'Super Admin', description: 'Full ERP control with college selection.', locked: true, permissions: allPermissions },
     admin: { id: 'admin', name: 'Admin', description: 'Administrative ERP access without new admission creation.', locked: false, permissions: adminPermissions },
-    faculty: { id: 'faculty', name: 'Faculty', description: 'Academic staff access with notice board view only.', locked: false, permissions: facultyPermissions },
+    faculty: { id: 'faculty', name: 'Faculty', description: 'Academic staff access for assigned student and academic workflows.', locked: false, permissions: facultyPermissions },
     parent: { id: 'parent', name: 'Parent', description: 'Parent portal access for academic visibility.', locked: false, permissions: parentPermissions },
   },
   users: {
