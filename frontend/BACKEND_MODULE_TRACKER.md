@@ -14,7 +14,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Academics | `/api/academics` | Built | Backend-backed academic years, courses, classes, sections, subjects, teacher allocations. |
 | Students | `/api/students` | Built | Backend-backed list/search/filter, create/edit, archive/restore, import/export, document upload/metadata with verify/reject, promotion/transfer, ID card data/PDF. |
 | Admissions | `/api/admissions` | Built | Backend-backed enquiries, applications, follow-ups, approval/rejection, conversion to student, archive/restore. |
-| Staff | `/api/staff` | Pending | Existing UI must be rewired to backend staff API. |
+| Staff | `/api/staff` | Built | Backend-backed staff records, departments, staff documents, and staff login creation. |
 | Attendance | `/api/attendance` | Pending | Existing UI must be rewired to backend attendance API. |
 | Fees | `/api/fees` | Pending | Existing UI must be rewired to backend fee APIs. |
 | Timetable | `/api/timetable` | Pending | Existing UI must be rewired to backend timetable APIs. |
