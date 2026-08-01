@@ -6106,6 +6106,118 @@ html{color-scheme:dark}::selection{background:rgba(0,255,136,.18);color:#eafff5}
   }
 }
 
+/* Backend-backed Reports module visual skin */
+.erp-reports-page{
+  color:#071e27;
+  min-height:calc(100vh - 180px);
+  margin:-8px;
+  padding:24px;
+  border-radius:24px;
+  background:linear-gradient(135deg,#dff3ef 0%,#eef9ff 52%,#d8e2f6 100%);
+}
+
+.erp-reports-page h1,
+.erp-reports-page h2,
+.erp-reports-page h3,
+.erp-reports-page h4{
+  background:none!important;
+  -webkit-text-fill-color:#003434!important;
+  color:#003434!important;
+  animation:none!important;
+}
+
+.erp-shell .erp-reports-page .erp-glass-card,
+.erp-shell.light-mode .erp-reports-page .erp-glass-card{
+  background:rgba(255,255,255,.42)!important;
+  border-color:rgba(255,255,255,.38)!important;
+  color:#071e27!important;
+  box-shadow:0 18px 48px rgba(7,30,39,.10)!important;
+}
+
+.erp-shell .erp-reports-page input,
+.erp-shell .erp-reports-page select,
+.erp-shell .erp-reports-page textarea,
+.erp-shell.light-mode .erp-reports-page input,
+.erp-shell.light-mode .erp-reports-page select,
+.erp-shell.light-mode .erp-reports-page textarea{
+  background:rgba(255,255,255,.45)!important;
+  border-color:rgba(255,255,255,.42)!important;
+  color:#071e27!important;
+}
+
+.erp-shell .erp-reports-page table,
+.erp-shell.light-mode .erp-reports-page table{
+  color:#071e27!important;
+  border-spacing:0!important;
+}
+
+.erp-shell .erp-reports-page table thead,
+.erp-shell .erp-reports-page table thead tr,
+.erp-shell .erp-reports-page table thead th,
+.erp-shell.light-mode .erp-reports-page table thead,
+.erp-shell.light-mode .erp-reports-page table thead tr,
+.erp-shell.light-mode .erp-reports-page table thead th{
+  background:#004d4d!important;
+  color:#ffffff!important;
+  border-color:rgba(255,255,255,.18)!important;
+}
+
+.erp-shell .erp-reports-page table tbody tr,
+.erp-shell.light-mode .erp-reports-page table tbody tr{
+  background:transparent!important;
+  color:#071e27!important;
+  box-shadow:none!important;
+}
+
+.erp-shell .erp-reports-page table tbody tr:hover,
+.erp-shell.light-mode .erp-reports-page table tbody tr:hover{
+  background:rgba(255,255,255,.18)!important;
+  transform:none!important;
+}
+
+.erp-shell .erp-reports-page .erp-report-category-card,
+.erp-shell.light-mode .erp-reports-page .erp-report-category-card{
+  background:rgba(255,255,255,.42)!important;
+  border-color:rgba(255,255,255,.38)!important;
+  color:#071e27!important;
+}
+
+.erp-shell .erp-reports-page .erp-report-category-card:hover,
+.erp-shell .erp-reports-page .erp-report-category-card.is-active,
+.erp-shell.light-mode .erp-reports-page .erp-report-category-card:hover,
+.erp-shell.light-mode .erp-reports-page .erp-report-category-card.is-active{
+  background:rgba(255,255,255,.60)!important;
+  border-color:#006a62!important;
+}
+
+.erp-shell .erp-reports-page .erp-report-category-icon,
+.erp-shell.light-mode .erp-reports-page .erp-report-category-icon,
+.erp-shell .erp-reports-page .erp-report-category-pill,
+.erp-shell.light-mode .erp-reports-page .erp-report-category-pill{
+  background:rgba(255,255,255,.48)!important;
+  border-color:rgba(255,255,255,.38)!important;
+  color:#006a62!important;
+}
+
+.erp-shell .erp-reports-page [class*="bg-white/"],
+.erp-shell.light-mode .erp-reports-page [class*="bg-white/"]{
+  background-color:rgba(255,255,255,.48)!important;
+}
+
+.erp-shell .erp-reports-page [class~="bg-white"],
+.erp-shell.light-mode .erp-reports-page [class~="bg-white"]{
+  background-color:#ffffff!important;
+  color:#071e27!important;
+}
+
+@media(max-width:767px){
+  .erp-reports-page{
+    margin:-4px;
+    padding:16px;
+    border-radius:18px;
+  }
+}
+
 /* Backend-backed Students module visual skin */
 .erp-students-page{
   color:#071e27;

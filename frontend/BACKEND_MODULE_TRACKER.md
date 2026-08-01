@@ -22,7 +22,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Results | `/api/results` | Built | Backend-backed grade settings, result processing/listing, publish, lock/unlock, report card/PDF, and history. |
 | Communication | `/api/communication` | Built | Backend-backed notices, send action, delivery status, and message templates. |
 | Settings | `/api/settings` | Built | Backend-backed institution, branding, integrations, and backup settings. |
-| Reports | `/api/reports` | Pending | Existing UI must be rewired to backend reports API. |
+| Reports | `/api/reports` | Built | Backend-backed report registry, named report runner, supported query filters, table results, summaries, and CSV export. |
 | Dashboard | `/api/dashboard` | Built | Backend-backed overview cards, admissions/fees summaries, upcoming exams, latest notices, and recent audit activities. |
 | My Portal | `/api/my` | Pending | Parent/student/teacher self-view routes. |
 
