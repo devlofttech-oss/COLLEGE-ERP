@@ -74,59 +74,92 @@ const schemas = {
 };
 
 const allPermissions = [
-  'students.view', 'students.create', 'students.edit', 'students.archive', 'students.documents', 'students.verifyDocuments', 'students.promote',
-  'staff.view', 'staff.create', 'staff.edit', 'staff.archive', 'staff.leave', 'staff.attendance',
-  'users.view', 'users.manage', 'roles.view', 'roles.manage',
-  'attendance.view', 'academicCurriculum.view', 'academics.view', 'academics.manage', 'attendance.markStudents', 'attendance.markStaff', 'attendance.reports', 'attendance.notifyParents',
+  'dashboard.view',
+  'students.view', 'students.create', 'students.edit', 'students.archive', 'students.export', 'students.import', 'students.promote', 'students.idcard', 'students.viewOwn',
+  'admissions.view', 'admissions.create', 'admissions.edit', 'admissions.approve', 'admissions.convert',
+  'attendance.view', 'attendance.mark', 'attendance.edit', 'attendance.report', 'attendance.viewOwn',
+  'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind', 'fees.viewOwn', 'fees.pay',
+  'academics.view', 'academics.manage',
   'timetable.view', 'timetable.manage', 'timetable.viewOwn',
-  'subjectNotes.view', 'subjectNotes.upload', 'subjectNotes.edit', 'subjectNotes.archive',
   'examinations.view', 'examinations.create', 'examinations.marks', 'examinations.verify', 'examinations.viewOwn',
   'results.view', 'results.process', 'results.publish', 'results.viewOwn',
-  'users.view', 'users.manage', 'roles.view', 'roles.manage',
-  'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind', 'fees.viewOwn', 'fees.pay',
-  'hostel.view', 'hostel.manage',
-  'financialReports.view', 'financialReports.export', 'financialReports.snapshots', 'reports.view',
+  'staff.view', 'staff.create', 'staff.edit', 'staff.archive', 'staff.attendance', 'staff.viewOwn',
   'communication.view', 'communication.create', 'communication.send',
-  'documents.view', 'documents.upload', 'documents.verify', 'documents.archive',
-  'parentPortal.view', 'parentPortal.viewAll', 'settings.view', 'settings.manage',
+  'reports.view', 'reports.export',
+  'settings.view', 'settings.manage',
+  'users.view', 'users.manage', 'roles.view', 'roles.manage',
 ];
 
 const adminPermissions = [
-  'students.view', 'students.create', 'students.edit', 'students.documents',
-  'staff.view', 'staff.create', 'staff.edit', 'staff.archive', 'staff.leave', 'staff.attendance',
-  'attendance.view', 'academicCurriculum.view', 'academics.view', 'academics.manage', 'attendance.markStudents', 'attendance.markStaff', 'attendance.reports', 'attendance.notifyParents',
-  'timetable.view', 'timetable.manage', 'timetable.viewOwn',
-  'subjectNotes.view', 'subjectNotes.upload', 'subjectNotes.edit', 'subjectNotes.archive',
-  'examinations.view', 'examinations.create', 'examinations.marks', 'examinations.verify', 'examinations.viewOwn',
-  'results.view', 'results.process', 'results.publish', 'results.viewOwn',
-  'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind', 'fees.viewOwn', 'fees.pay',
-  'hostel.view', 'hostel.manage',
-  'financialReports.view', 'financialReports.export', 'financialReports.snapshots', 'reports.view',
-  'communication.view', 'communication.create', 'communication.send',
-  'documents.view', 'documents.upload', 'documents.verify', 'documents.archive',
+  ...allPermissions,
 ];
 
-const facultyPermissions = [
+const principalPermissions = [
+  'dashboard.view',
+  'students.view', 'students.edit', 'students.export',
+  'admissions.view', 'admissions.approve',
+  'attendance.view', 'attendance.report',
+  'fees.view', 'fees.report',
+  'academics.view',
+  'timetable.view',
+  'examinations.view',
+  'results.view', 'results.publish',
+  'staff.view', 'staff.edit',
+  'communication.view', 'communication.create',
+  'reports.view', 'reports.export',
+  'settings.view',
+  'users.view', 'roles.view',
+];
+
+const accountantPermissions = [
+  'dashboard.view',
   'students.view',
-  'attendance.view', 'attendance.markStudents', 'attendance.reports', 'reports.view',
-  'academicCurriculum.view',
+  'admissions.view',
+  'fees.view', 'fees.structure', 'fees.collect', 'fees.discount', 'fees.receipt', 'fees.report', 'fees.remind',
+  'reports.view', 'reports.export',
+];
+
+const receptionPermissions = [
+  'dashboard.view',
+  'students.view', 'students.create', 'students.edit',
+  'admissions.view', 'admissions.create', 'admissions.edit', 'admissions.approve', 'admissions.convert',
+  'attendance.view',
+  'fees.view',
+  'communication.view', 'communication.create',
+  'reports.view',
+];
+
+const teacherPermissions = [
+  'dashboard.view',
+  'students.view',
+  'attendance.view', 'attendance.mark', 'attendance.edit',
+  'academics.view',
   'timetable.view', 'timetable.viewOwn',
-  'subjectNotes.view', 'subjectNotes.upload', 'subjectNotes.edit',
   'examinations.view', 'examinations.marks',
   'results.view',
+  'staff.viewOwn',
   'communication.view', 'communication.create',
-  'documents.view',
-  'hostel.view',
+  'reports.view',
 ];
 
 const parentPermissions = [
-  'academicCurriculum.view',
+  'students.viewOwn',
+  'attendance.viewOwn',
+  'fees.viewOwn', 'fees.pay',
   'timetable.viewOwn',
   'examinations.viewOwn',
   'results.viewOwn',
   'communication.view',
-  'documents.view',
-  'parentPortal.view',
+];
+
+const studentPermissions = [
+  'students.viewOwn',
+  'attendance.viewOwn',
+  'fees.viewOwn',
+  'timetable.viewOwn',
+  'examinations.viewOwn',
+  'results.viewOwn',
+  'communication.view',
 ];
 
 function withSemesterFields(record = {}) {
@@ -242,9 +275,13 @@ const seed = {
   },
   roles: {
     'super-admin': { id: 'super-admin', name: 'Super Admin', description: 'Full ERP control with college selection.', locked: true, permissions: allPermissions },
-    admin: { id: 'admin', name: 'Admin', description: 'Administrative ERP access without new admission creation.', locked: false, permissions: adminPermissions },
-    faculty: { id: 'faculty', name: 'Faculty', description: 'Academic staff access for assigned student and academic workflows.', locked: false, permissions: facultyPermissions },
-    parent: { id: 'parent', name: 'Parent', description: 'Parent portal access for academic visibility.', locked: false, permissions: parentPermissions },
+    admin: { id: 'admin', name: 'Admin', description: 'Administrative ERP access for daily operations.', locked: false, permissions: adminPermissions },
+    principal: { id: 'principal', name: 'Principal', description: 'Academic and management oversight.', locked: false, permissions: principalPermissions },
+    accountant: { id: 'accountant', name: 'Accountant', description: 'Fee and payment operations.', locked: false, permissions: accountantPermissions },
+    reception: { id: 'reception', name: 'Reception / Admin Staff', description: 'Admissions and student records.', locked: false, permissions: receptionPermissions },
+    teacher: { id: 'teacher', name: 'Teacher', description: 'Attendance, marks entry, assigned classes.', locked: false, permissions: teacherPermissions },
+    parent: { id: 'parent', name: 'Parent', description: 'Mobile app user own child data.', locked: false, permissions: parentPermissions },
+    student: { id: 'student', name: 'Student', description: 'Mobile app user own data.', locked: false, permissions: studentPermissions },
   },
   users: {
     'seed-super-admin-user': { uid: 'seed-super-admin-user', name: 'Super Admin', email: 'superadmin@college.edu', role: 'super-admin', roleId: 'super-admin', displayId: 'SA-001', collegeIds: ['main-campus'], status: 'active', linkedStudentRecordIds: [], linkedStudentIds: [], createdAtText: '19 Jun 2026' },

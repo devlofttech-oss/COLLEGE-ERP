@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import {
   backendUserRoles,
   canAccess,
-  canAccessFinancialReports,
   defaultRoles,
   filterBackendUsers,
   getRoleById,
@@ -10,6 +9,7 @@ import {
   getUserRole,
   getUserStatus,
   hasPermission,
+  permissionGroups,
   roleLabel,
   summarizeUsers,
   togglePermission,
@@ -29,111 +29,80 @@ import {
   validatePermissionSet,
 } from '../src/modules/roles/roleUtils.js';
 
+const allPermissions = permissionGroups.flatMap((group) => group.permissions.map(([key]) => key));
 const admin = getRoleById(defaultRoles, 'admin');
 const parent = getRoleById(defaultRoles, 'parent');
 const superAdmin = getRoleById(defaultRoles, 'super-admin');
+const principal = getRoleById(defaultRoles, 'principal');
+const accountant = getRoleById(defaultRoles, 'accountant');
+const reception = getRoleById(defaultRoles, 'reception');
+const teacher = getRoleById(defaultRoles, 'teacher');
+const student = getRoleById(defaultRoles, 'student');
 
+assert.deepEqual(defaultRoles.map((role) => role.id), backendUserRoles.map((role) => role.id));
 assert.equal(superAdmin.name, 'Super Admin');
 assert.equal(admin.name, 'Admin');
+assert.deepEqual([...admin.permissions].sort(), [...allPermissions].sort());
+assert.deepEqual([...superAdmin.permissions].sort(), [...allPermissions].sort());
 assert.equal(hasPermission(admin, 'students.view'), true);
-assert.equal(hasPermission(admin, 'students.edit'), true);
-assert.equal(hasPermission(admin, 'students.create'), true);
-assert.equal(hasPermission(admin, 'students.documents'), true);
-assert.equal(hasPermission(admin, 'students.archive'), false);
-assert.equal(hasPermission(admin, 'users.view'), true);
-assert.equal(hasPermission(admin, 'users.manage'), true);
-assert.equal(hasPermission(admin, 'staff.create'), true);
+assert.equal(hasPermission(admin, 'students.archive'), true);
 assert.equal(hasPermission(parent, 'users.manage'), false);
 
+assert.equal(allPermissions.includes('academicCurriculum.view'), false);
+assert.equal(allPermissions.includes('subjectNotes.view'), false);
+assert.equal(allPermissions.includes('hostel.view'), false);
+assert.equal(allPermissions.includes('documents.view'), false);
+assert.equal(allPermissions.includes('financialReports.view'), false);
+assert.equal(allPermissions.includes('parentPortal.view'), false);
+
+assert.equal(canAccess(defaultRoles, 'admin', 'dashboard.view'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'students.import'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'students.idcard'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'attendance.report'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'timetable.manage'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'timetable.viewOwn'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'examinations.create'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'examinations.verify'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'results.publish'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'fees.collect'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'fees.report'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'fees.structure'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'financialReports.export'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'financialReports.snapshots'), true);
-assert.equal(canAccessFinancialReports(defaultRoles, 'admin'), true);
-assert.equal(canAccessFinancialReports(defaultRoles, 'admin', 'financialReports.export'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'reports.view'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'academicCurriculum.view'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'academics.view'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'reports.export'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'academics.manage'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'communication.view'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'communication.create'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'communication.send'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'documents.upload'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'documents.verify'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'subjectNotes.view'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'subjectNotes.upload'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'subjectNotes.edit'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'subjectNotes.archive'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'parentPortal.view'), false);
-assert.equal(canAccess(defaultRoles, 'admin', 'parentPortal.viewAll'), false);
-assert.equal(canAccess(defaultRoles, 'admin', 'settings.view'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'settings.manage'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'users.view'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'users.manage'), true);
-assert.equal(canAccess(defaultRoles, 'admin', 'roles.view'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'roles.manage'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'academicCurriculum.view'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'academics.manage'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'users.view'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'users.manage'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'roles.manage'), true);
-assert.equal(canAccess(defaultRoles, 'super-admin', 'settings.manage'), true);
 
-assert.equal(canAccess(defaultRoles, 'faculty', 'students.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'students.edit'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'academicCurriculum.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'academics.view'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'attendance.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'attendance.mark'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'attendance.report'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'staff.attendance'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'timetable.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'timetable.viewOwn'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'timetable.manage'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'subjectNotes.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'subjectNotes.upload'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'subjectNotes.edit'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'subjectNotes.archive'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'examinations.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'examinations.marks'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'examinations.verify'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'results.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'results.process'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'communication.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'communication.create'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'communication.send'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'documents.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'documents.upload'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'fees.collect'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'financialReports.view'), false);
-assert.equal(canAccessFinancialReports(defaultRoles, 'faculty'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'reports.view'), true);
-assert.equal(canAccess(defaultRoles, 'faculty', 'parentPortal.view'), false);
-assert.equal(canAccess(defaultRoles, 'faculty', 'settings.view'), false);
+assert.equal(canAccess(defaultRoles, 'principal', 'dashboard.view'), true);
+assert.equal(hasPermission(principal, 'students.edit'), true);
+assert.equal(canAccess(defaultRoles, 'principal', 'fees.report'), true);
+assert.equal(canAccess(defaultRoles, 'principal', 'reports.export'), true);
+assert.equal(canAccess(defaultRoles, 'principal', 'settings.manage'), false);
 
-assert.equal(canAccess(defaultRoles, 'parent', 'academicCurriculum.view'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'academics.view'), false);
-assert.equal(canAccess(defaultRoles, 'parent', 'timetable.view'), false);
+assert.equal(hasPermission(accountant, 'fees.collect'), true);
+assert.equal(canAccess(defaultRoles, 'accountant', 'fees.structure'), true);
+assert.equal(canAccess(defaultRoles, 'accountant', 'students.edit'), false);
+
+assert.equal(hasPermission(reception, 'admissions.convert'), true);
+assert.equal(canAccess(defaultRoles, 'reception', 'students.create'), true);
+assert.equal(canAccess(defaultRoles, 'reception', 'fees.collect'), false);
+
+assert.equal(hasPermission(teacher, 'students.view'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'academics.view'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'attendance.mark'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'timetable.viewOwn'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'examinations.marks'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'reports.view'), true);
+assert.equal(canAccess(defaultRoles, 'teacher', 'fees.collect'), false);
+assert.equal(canAccess(defaultRoles, 'teacher', 'settings.view'), false);
+
+assert.equal(hasPermission(parent, 'students.viewOwn'), true);
+assert.equal(canAccess(defaultRoles, 'parent', 'fees.pay'), true);
 assert.equal(canAccess(defaultRoles, 'parent', 'timetable.viewOwn'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'subjectNotes.view'), false);
-assert.equal(canAccess(defaultRoles, 'parent', 'examinations.view'), false);
-assert.equal(canAccess(defaultRoles, 'parent', 'examinations.viewOwn'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'results.viewOwn'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'documents.view'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'documents.upload'), false);
-assert.equal(canAccess(defaultRoles, 'parent', 'parentPortal.view'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'parentPortal.viewAll'), false);
 assert.equal(canAccess(defaultRoles, 'parent', 'communication.view'), true);
-assert.equal(canAccess(defaultRoles, 'parent', 'attendance.view'), false);
-assert.equal(canAccess(defaultRoles, 'parent', 'fees.view'), false);
+assert.equal(canAccess(defaultRoles, 'parent', 'dashboard.view'), false);
 assert.equal(canAccess(defaultRoles, 'parent', 'reports.view'), false);
+
+assert.equal(hasPermission(student, 'students.viewOwn'), true);
+assert.equal(canAccess(defaultRoles, 'student', 'fees.viewOwn'), true);
+assert.equal(canAccess(defaultRoles, 'student', 'fees.pay'), false);
+assert.equal(canAccess(defaultRoles, 'student', 'communication.view'), true);
 
 const withoutUsersManage = togglePermission(admin, 'users.manage');
 assert.equal(withoutUsersManage.includes('users.manage'), false);

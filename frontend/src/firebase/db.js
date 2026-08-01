@@ -636,58 +636,6 @@ export async function createFeeAdjustment(data) {
   return createCollectionDocument('feeAdjustments', data);
 }
 
-export async function getHostelManagementData(academicYear = '') {
-  const yearConstraints = academicYearWhere(academicYear);
-  const [hostelRooms, hostelAllocations, hostelRecords] = await Promise.all([
-    listCollection('hostelRooms', yearConstraints),
-    listCollection('hostelAllocations', yearConstraints),
-    listCollection('hostelRecords', yearConstraints),
-  ]);
-
-  return {
-    hostelRooms: filterByAcademicYear(hostelRooms, academicYear),
-    hostelAllocations: filterByAcademicYear(hostelAllocations, academicYear),
-    hostelRecords: filterByAcademicYear(hostelRecords, academicYear),
-  };
-}
-
-export async function createHostelRoom(data) {
-  return createCollectionDocument('hostelRooms', data);
-}
-
-export async function updateHostelRoom(id, data) {
-  const store = requireWritableDocId(id, 'Hostel room');
-  await updateDoc(doc(store, 'hostelRooms', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function createHostelAllocation(data) {
-  return createCollectionDocument('hostelAllocations', data);
-}
-
-export async function createHostelRecord(data) {
-  return createCollectionDocument('hostelRecords', data);
-}
-
-export async function getFinancialReportsData(academicYear = '') {
-  const yearConstraints = academicYearWhere(academicYear);
-  const [feeStructures, feeAssignments, feeCollections, feeAdjustments, financialReportSnapshots] = await Promise.all([
-    listCollection('feeStructures', yearConstraints),
-    listCollection('feeAssignments', yearConstraints),
-    listCollection('feeCollections', yearConstraints),
-    listCollection('feeAdjustments', yearConstraints),
-    listCollection('financialReportSnapshots', yearConstraints),
-  ]);
-
-  return { feeStructures: filterByAcademicYear(feeStructures, academicYear), feeAssignments: filterByAcademicYear(feeAssignments, academicYear), feeCollections: filterByAcademicYear(feeCollections, academicYear), feeAdjustments: filterByAcademicYear(feeAdjustments, academicYear), financialReportSnapshots: filterByAcademicYear(financialReportSnapshots, academicYear) };
-}
-
-export async function createFinancialReportSnapshot(data) {
-  return createCollectionDocument('financialReportSnapshots', data);
-}
-
 export async function getNoticeBoardData(academicYear = '') {
   const yearConstraints = academicYearWhere(academicYear);
   const [noticeItems] = await Promise.all([
@@ -714,39 +662,6 @@ export async function archiveNoticeItem(id, data = {}) {
   await updateDoc(doc(store, 'noticeItems', id), {
     ...data,
     status: 'Archived',
-    archivedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function getDocumentManagementData(academicYear = '') {
-  const yearConstraints = academicYearWhere(academicYear);
-  const [students, staff, managedDocuments] = await Promise.all([
-    listCollection('students', yearConstraints),
-    listCollection('staffMembers'),
-    listCollection('managedDocuments', yearConstraints),
-  ]);
-
-  return { students: filterByAcademicYear(students, academicYear), staff, managedDocuments: filterByAcademicYear(managedDocuments, academicYear) };
-}
-
-export async function createManagedDocument(data) {
-  return createCollectionDocument('managedDocuments', data);
-}
-
-export async function updateManagedDocument(id, data) {
-  const store = requireWritableDocId(id, 'Managed document');
-  await updateDoc(doc(store, 'managedDocuments', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function archiveManagedDocument(id, data = {}) {
-  const store = requireWritableDocId(id, 'Managed document');
-  await updateDoc(doc(store, 'managedDocuments', id), {
-    ...data,
-    verificationStatus: 'Archived',
     archivedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -840,21 +755,6 @@ export async function getAcademicsData(academicYear = '') {
   return { academicPrograms: filterByAcademicYear(academicPrograms, academicYear), academicSubjects: filterByAcademicYear(academicSubjects, academicYear), academicBatches: filterByAcademicYear(academicBatches, academicYear), academicCalendarEvents: filterByAcademicYear(academicCalendarEvents, academicYear) };
 }
 
-export async function getSubjectNotesData(academicYear = '') {
-  const yearConstraints = academicYearWhere(academicYear);
-  const [academicSubjects, staff, subjectNotes] = await Promise.all([
-    listCollection('academicSubjects', yearConstraints),
-    listCollection('staffMembers'),
-    listCollectionOptional('subjectNotes', yearConstraints),
-  ]);
-
-  return {
-    academicSubjects: filterByAcademicYear(academicSubjects, academicYear),
-    staff,
-    subjectNotes: filterByAcademicYear(subjectNotes, academicYear),
-  };
-}
-
 export async function createAcademicProgram(data) {
   return createCollectionDocument('academicPrograms', data);
 }
@@ -865,40 +765,6 @@ export async function createAcademicSubject(data) {
 
 export async function createAcademicBatch(data) {
   return createCollectionDocument('academicBatches', data);
-}
-
-export async function createAcademicCalendarEvent(data) {
-  return createCollectionDocument('academicCalendarEvents', data);
-}
-
-export async function updateAcademicCalendarEvent(id, data) {
-  const store = requireWritableDocId(id, 'Academic calendar event');
-  await updateDoc(doc(store, 'academicCalendarEvents', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function createSubjectNote(data) {
-  return createCollectionDocument('subjectNotes', data);
-}
-
-export async function updateSubjectNote(id, data) {
-  const store = requireWritableDocId(id, 'Subject note');
-  await updateDoc(doc(store, 'subjectNotes', id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-export async function archiveSubjectNote(id, data = {}) {
-  const store = requireWritableDocId(id, 'Subject note');
-  await updateDoc(doc(store, 'subjectNotes', id), {
-    ...data,
-    status: 'Archived',
-    archivedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
 }
 
 export async function restoreTimetableEntry(id, data = {}) {

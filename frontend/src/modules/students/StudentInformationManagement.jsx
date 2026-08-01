@@ -61,21 +61,17 @@ import { calculateAssignmentPaymentLedger, formatCurrency, formatManualDueItems,
 
 const AcademicsManagement = lazy(() => import('../academics/AcademicsManagement'));
 const AttendanceManagement = lazy(() => import('../attendance/AttendanceManagement'));
-const CurriculumManagement = lazy(() => import('../curriculum/CurriculumManagement'));
 const DashboardManagement = lazy(() => import('../dashboard/DashboardManagement'));
-const DocumentManagement = lazy(() => import('../documents/DocumentManagement'));
 const ExaminationResultManagement = lazy(() => import('../exams/ExaminationResultManagement'));
 const FacultyStaffManagement = lazy(() => import('../facultyStaff/FacultyStaffManagement'));
 const FeesManagement = lazy(() => import('../fees/FeesManagement'));
 const FilesManagement = lazy(() => import('../files/FilesManagement'));
-const HostelManagement = lazy(() => import('../hostel/HostelManagement'));
 const NoticeBoardManagement = lazy(() => import('../notices/NoticeBoardManagement'));
 const MyPortal = lazy(() => import('../myPortal/MyPortal'));
 const ReportsManagement = lazy(() => import('../reports/ReportsManagement'));
 const ResultsManagement = lazy(() => import('../results/ResultsManagement'));
 const RolesManagement = lazy(() => import('../roles/RolesManagement'));
 const SettingsManagement = lazy(() => import('../settings/SettingsManagement'));
-const SubjectNotesManagement = lazy(() => import('../subjectNotes/SubjectNotesManagement'));
 const StudentsManagement = lazy(() => import('./StudentsManagement'));
 const TimetableManagement = lazy(() => import('../timetable/TimetableManagement'));
 const UserRoleManagement = lazy(() => import('../userRoles/UserRoleManagement'));
@@ -548,47 +544,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
     navigateToModule('students');
   };
 
-  const openOwnerDocuments = useCallback((owner) => {
-    navigateToModule('document-management', {
-      state: { documentOwner: owner },
-    });
-  }, [navigateToModule]);
-
-  const buildStudentContext = useCallback((student) => ({
-    id: student.id,
-    studentRecordId: student.id,
-    studentId: student.studentId,
-    name: student.name,
-    courseCode: student.courseCode,
-    courseName: student.courseName || student.program,
-  }), []);
-
-  const openStudentModule = useCallback((moduleId, student, extraState = {}) => {
-    const studentContext = buildStudentContext(student);
-    if (student.courseCode && student.courseCode !== selectedCourseCode) {
-      setSelectedCourseCode(student.courseCode);
-    }
-    navigateToModule(moduleId, {
-      state: {
-        ...extraState,
-        studentContext,
-      },
-    });
-  }, [buildStudentContext, navigateToModule, selectedCourseCode]);
-
-  const openStudentDocuments = useCallback((student) => {
-    const studentContext = buildStudentContext(student);
-    openStudentModule('document-management', student, {
-      documentOwner: {
-        ownerId: student.studentId,
-        ownerName: student.name,
-        ownerRecordId: student.id,
-        ownerType: 'Student',
-        studentContext,
-      },
-    });
-  }, [buildStudentContext, openStudentModule]);
-
   const saveStudent = async (form) => {
     if (!canCreateAdmission) {
       toast.error('You do not have permission to create new admissions.');
@@ -948,7 +903,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     student={selectedStudent}
                     transfers={selectedTransfers}
                     onBack={goBackOneStudentStep}
-                    onOpenDocuments={openStudentDocuments}
                   />
                 ) : (
                 <>
@@ -1057,12 +1011,9 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     selectedCourse={selectedCourse}
                     selectedCourseCode={effectiveSelectedCourseCode}
                     scopedStudents={courseStudents}
-                    onOpenDocuments={openOwnerDocuments}
                   />
                 ) : activePage === 'academics' ? (
                   <AcademicsManagement currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} />
-                ) : activePage === 'calendar' ? (
-                  <CurriculumManagement currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} />
                 ) : activePage === 'attendance' ? (
                   <AttendanceManagement
                     key={`attendance-${location.state?.attendanceSubmenu || 'home'}`}
@@ -1077,13 +1028,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
                   />
                 ) : activePage === 'timetable' ? (
                   <TimetableManagement currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} scopedStudents={courseStudents} />
-                ) : activePage === 'subject-notes' ? (
-                  <SubjectNotesManagement
-                    currentUser={user}
-                    academicYear={academicYear}
-                    selectedCourse={selectedCourse}
-                    selectedCourseCode={effectiveSelectedCourseCode}
-                  />
                 ) : activePage === 'examination-results' ? (
                   <ExaminationResultManagement
                     key={`exams-${location.state?.examTask || 'home'}-${location.state?.examBranch || ''}`}
@@ -1114,8 +1058,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     selectedCourseCode={effectiveSelectedCourseCode}
                     scopedStudents={moduleScopedStudents}
                   />
-                ) : activePage === 'hostel-management' ? (
-                  <HostelManagement currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} scopedStudents={moduleScopedStudents} />
                 ) : activePage === 'communication' ? (
                   <NoticeBoardManagement
                     key={`communication-${location.state?.communicationTask || 'home'}`}
@@ -1124,15 +1066,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     initialTask={location.state?.communicationTask}
                     selectedCourse={selectedCourse}
                     selectedCourseCode={effectiveSelectedCourseCode}
-                  />
-                ) : activePage === 'document-management' ? (
-                  <DocumentManagement
-                    currentUser={user}
-                    academicYear={academicYear}
-                    selectedCourse={selectedCourse}
-                    selectedCourseCode={effectiveSelectedCourseCode}
-                    scopedStudents={moduleScopedStudents}
-                    ownerFilter={location.state?.documentOwner}
                   />
                 ) : activePage === 'files' ? (
                   <FilesManagement currentUser={user} />
@@ -1218,7 +1151,6 @@ function StudentDetailPage({
   onBack,
   onDeleteHealthRecord,
   onEdit,
-  onOpenDocuments,
   onSaveHealthRecord,
   promotions = [],
   results = [],
@@ -1697,7 +1629,6 @@ function StudentDetailPage({
         canEdit={canEdit}
         onApprove={onApprove}
         onEdit={onEdit}
-        onOpenDocuments={() => onOpenDocuments?.(student)}
         onSummaryTabSelect={handleSummaryTabSelect}
         showApprove={canShowApproval}
         showExtendedDetails={showAllDetails}

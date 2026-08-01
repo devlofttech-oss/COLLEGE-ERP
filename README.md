@@ -227,11 +227,11 @@ Confirmed technical direction:
 - Circular management.
 - Event announcements.
 
-#### Document Management
+#### Documents In Students, Staff, And Files
 
-- Student documents.
-- Staff documents.
-- Academic records archive.
+- Student documents in Students.
+- Staff documents in Faculty & Staff.
+- Object storage in Files.
 
 ### 3. Finance Management
 
@@ -241,19 +241,18 @@ Confirmed technical direction:
 - Fee collection.
 - Due tracking.
 
-#### Financial Reports
+#### Reports
 
 - Collection reports.
 - Outstanding reports.
 - Fee analytics.
 - Financial summaries.
 
-### 4. Parent Portal
+### 4. My Portal
 
-- Student attendance monitoring.
-- Academic performance tracking.
-- Fee status monitoring.
-- Communication access.
+- Parent/student self-service.
+- Teacher self-service.
+- Attendance, timetable, fees, exams, results, notices, and downloads.
 
 ## Explicitly Not Required
 
@@ -289,17 +288,17 @@ The following items are excluded from the scope for now:
 8. Fees Management.
    - Can be built without online payment or receipts, focused on fee setup, manual collection records, and dues.
 
-9. Financial Reports.
-   - Should follow Fees Management because it needs fee and due data.
+9. Reports.
+   - Should follow core modules because reports need student, admission, fee, and staff data.
 
 10. Notice Board & Announcements.
     - Useful operationally, but independent enough to build after core academic and finance flows.
 
-11. Document Management.
-    - Should consolidate student, staff, and academic documents after those domains exist.
+11. Files and document workflows.
+    - File storage is handled in Files; student and staff document records stay inside their own modules.
 
-12. Parent Portal.
-    - Should come later because it depends on attendance, performance, fees, and published academic data.
+12. My Portal.
+    - Should come later because it depends on attendance, fees, timetable, examinations, results, communication, and linked user data.
 
 ## Open Questions
 
@@ -427,41 +426,30 @@ Role permissions:
 - `fees.adjust`
 - `fees.reports`
 
-## Financial Reports Status
+## Reports Status
 
 Implemented workflows:
 
-- Collection reports with date, class, and payment-mode filters.
-- Outstanding reports with overdue and due-soon aging.
-- Class-wise fee analytics with collection rate.
-- Financial summaries for assigned, collected, adjusted, outstanding, overdue, and due-soon amounts.
-- Saved financial report summary snapshots.
-- Permission-aware controls for viewing, exporting, and saving summaries.
-- Demo fallback data when Firebase is not configured.
+- Backend report registry.
+- Named report runner.
+- Supported query filters.
+- Table results and summaries.
+- CSV export.
 
 Current structure:
 
-- `src/modules/financialReports/FinancialReports.jsx`
-- `src/modules/financialReports/financialReportUtils.js`
-- `src/modules/financialReports/demoFinancialReports.js`
-- `src/modules/financialReports/components/AnalyticsPanel.jsx`
-- `src/modules/financialReports/components/CollectionReportTable.jsx`
-- `src/modules/financialReports/components/OutstandingReportTable.jsx`
-- `src/modules/financialReports/components/ReportFilters.jsx`
+- `frontend/src/modules/reports/ReportsManagement.jsx`
+- `frontend/src/modules/reports/reportUtils.js`
+- `frontend/src/api/reports.js`
 
-Firebase collections:
+Backend routes:
 
-- `feeStructures`
-- `feeAssignments`
-- `feeCollections`
-- `feeAdjustments`
-- `financialReportSnapshots`
+- `/api/reports`
 
 Role permissions:
 
-- `financialReports.view`
-- `financialReports.export`
-- `financialReports.snapshots`
+- `reports.view`
+- `reports.export`
 
 ## Notice Board & Announcements Status
 
@@ -498,99 +486,40 @@ Firebase collections:
 
 Role permissions:
 
-- `notices.view`
-- `notices.create`
-- `notices.edit`
-- `notices.archive`
+- `communication.view`
+- `communication.create`
+- `communication.send`
 
-## Document Management Status
-
-Implemented workflows:
-
-- Student document management.
-- Staff document management.
-- Academic records archive.
-- Firebase Storage-backed uploads for managed documents.
-- Metadata-only document records when a file is not selected or Storage is unavailable.
-- Document verification and rejection workflow.
-- Document archive workflow.
-- Filters by owner type, category, status, and search text.
-- Preview panel with file metadata and verification details.
-- Permission-aware controls for viewing, uploading, verifying, and archiving.
-- Demo fallback data when Firebase is not configured.
-
-Current structure:
-
-- `src/modules/documents/DocumentManagement.jsx`
-- `src/modules/documents/documentUtils.js`
-- `src/modules/documents/demoDocuments.js`
-- `src/modules/documents/components/DocumentArchivePanel.jsx`
-- `src/modules/documents/components/DocumentPreviewPanel.jsx`
-- `src/modules/documents/components/DocumentTable.jsx`
-- `src/modules/documents/components/DocumentUploadModal.jsx`
-
-Firebase collections:
-
-- `managedDocuments`
-- `students`
-- `staffMembers`
-
-Firebase Storage paths:
-
-- `managed-documents/{ownerType}/{ownerId}/{fileName}`
-
-Role permissions:
-
-- `documents.view`
-- `documents.upload`
-- `documents.verify`
-- `documents.archive`
-
-## Parent Portal Status
+## Files And Portal Consolidation Status
 
 Implemented workflows:
 
-- Linked student overview for parent accounts.
-- Student attendance monitoring.
-- Academic performance tracking from marks and generated results.
-- Fee status monitoring from fee assignments.
-- Published parent/student notice visibility.
-- Verified student document visibility.
-- Read-only parent-facing dashboard with role-aware access.
-- Demo fallback data when Firebase is not configured.
-
-Excluded for now:
-
-- Parent communication system.
-- SMS integration.
-- Email notifications.
+- Legacy Document Management route is folded to Files.
+- Student document workflows live in Students.
+- Staff document workflows live in Faculty & Staff.
+- Backend object storage upload/download/resolve/delete lives in Files.
+- Legacy Parent Portal route is folded to My Portal.
+- My Portal uses backend `/api/my` self-service routes for linked profile, attendance, fees, timetable, exams, results, notices, downloads, teacher classes, and teaching timetable.
 
 Current structure:
 
-- `src/modules/parentPortal/ParentPortal.jsx`
-- `src/modules/parentPortal/parentPortalUtils.js`
-- `src/modules/parentPortal/demoParentPortal.js`
-- `src/modules/parentPortal/components/AttendanceCard.jsx`
-- `src/modules/parentPortal/components/FeeStatusCard.jsx`
-- `src/modules/parentPortal/components/ParentDocumentsPanel.jsx`
-- `src/modules/parentPortal/components/ParentNoticePanel.jsx`
-- `src/modules/parentPortal/components/PerformanceCard.jsx`
-- `src/modules/parentPortal/components/StudentSwitcher.jsx`
+- `frontend/src/modules/files/FilesManagement.jsx`
+- `frontend/src/modules/students/StudentsManagement.jsx`
+- `frontend/src/modules/facultyStaff/FacultyStaffManagement.jsx`
+- `frontend/src/modules/myPortal/MyPortal.jsx`
 
-Firebase collections read:
+Backend routes:
 
-- `students`
-- `studentAttendanceRecords`
-- `marksEntries`
-- `studentResults`
-- `feeAssignments`
-- `noticeItems`
-- `managedDocuments`
-- `parentPortalLinks`
+- `/api/files`
+- `/api/students/:id/documents`
+- `/api/staff/:id/documents`
+- `/api/my`
 
-Role permissions:
+Legacy handling:
 
-- `parentPortal.view`
+- `/modules/document-management` redirects to `/modules/files`.
+- `/modules/parent-portal` redirects to `/modules/my-portal`.
+- Curriculum, Subject Notes, and Hostel are removed from registry and routing because no matching backend module exists.
 
 ## Module Consolidation Status
 
@@ -605,10 +534,10 @@ Implemented improvements:
 
 Current module status:
 
-- Completed real modules: Students, Faculty & Staff, Attendance, Timetable, Exams & Results, Users & Roles, Notice Board, Documents, Fees, Financial Reports, Parent Portal.
-- Completed final modules: Academics, Settings.
-- Demo modules left: none.
-- Excluded modules/features: Communication Module, online payment support, receipt generation.
+- Backend-backed modules built: 19/19.
+- Active frontend modules: Dashboard, Students, Admissions, Faculty & Staff, Attendance, Timetable, Exams, Results, Communication, Files, Fees, Reports, Academics, Users, Roles, My Portal, Settings.
+- Removed frontend-only modules: Curriculum, Subject Notes, Hostel.
+- Folded legacy routes: Document Management to Files, Financial Reports to Reports, Parent Portal to My Portal.
 
 ## Academics Status
 

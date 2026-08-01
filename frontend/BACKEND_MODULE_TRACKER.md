@@ -28,11 +28,13 @@ Current backend module coverage: 19/19 built, 0 remaining.
 | Dashboard | `/api/dashboard` | Built | Backend-backed overview cards, admissions/fees summaries, upcoming exams, latest notices, and recent audit activities. |
 | My Portal | `/api/my` | Built | Backend-backed parent/student linked profile, attendance, fees, timetable, exams, results, notices, downloads, teacher classes, and teaching timetable self-view routes. |
 
-Non-backend frontend modules to remove or fold into backend-backed modules:
+Legacy frontend-only module cleanup:
 
-| Current frontend module | Current route | Backend match |
+| Legacy frontend module | Former route | Current handling |
 | --- | --- | --- |
-| Curriculum | `/modules/calendar` | No dedicated backend module. |
-| Subject Notes | `/modules/subject-notes` | No dedicated backend module. |
-| Hostel | `/modules/hostel-management` | No backend module. |
-| Document Management | `/modules/document-management` | Legacy Firebase document records. Backend Files now covers `/api/files`; document records still need folding into student/staff document endpoints if kept. |
+| Curriculum | `/modules/calendar` | Removed from registry and routing because there is no backend module. |
+| Subject Notes | `/modules/subject-notes` | Removed from registry and routing because there is no backend module. File storage still supports the backend `subject-notes` folder through Files. |
+| Hostel | `/modules/hostel-management` | Removed from registry and routing because there is no backend module. |
+| Document Management | `/modules/document-management` | Folded to Files for old links; student/staff document workflows remain inside Students and Staff. |
+| Financial Reports | `/modules/financial-reports` | Folded to backend Reports. |
+| Parent Portal | `/modules/parent-portal` | Folded to backend My Portal. |

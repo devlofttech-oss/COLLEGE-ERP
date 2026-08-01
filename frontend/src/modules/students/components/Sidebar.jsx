@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
   BookOpenCheck,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  FileCheck2,
   GraduationCap,
   Menu,
   Moon,
@@ -16,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { getEnabledModules, sortModulesByDisplayOrder } from '../../moduleRegistry';
-import { canAccess, canAccessFinancialReports, defaultRoles } from '../../userRoles/rolePermissions';
+import { canAccess, defaultRoles } from '../../userRoles/rolePermissions';
 import devloftLogo from '../../../../assets/logo.png';
 
 export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = false, currentUser, onNavigate, onThemeToggle, onToggleCollapse, themeMode = 'dark' }) {
@@ -28,7 +26,7 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
   const navItems = useMemo(() => {
     const canShowHiddenModule = (module) => {
       if (module.id === 'dashboard') return isAdmin || isSuperAdmin;
-      if (module.id === 'my-portal') return ['parent', 'student', 'teacher', 'faculty'].includes(currentRoleId);
+      if (module.id === 'my-portal') return ['parent', 'student', 'teacher'].includes(currentRoleId);
       return isSuperAdmin;
     };
     return sortModulesByDisplayOrder(getEnabledModules()
@@ -99,14 +97,6 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
         enabled: canAccess(defaultRoles, currentRoleId, 'attendance.report') || canAccess(defaultRoles, currentRoleId, 'attendance.view'),
       },
       {
-        id: 'documents',
-        label: 'Documents',
-        icon: <FileCheck2 size={16} />,
-        moduleId: 'reports',
-        state: { reportCategory: 'documents' },
-        enabled: canAccess(defaultRoles, currentRoleId, 'documents.view') || canAccess(defaultRoles, currentRoleId, 'students.documents'),
-      },
-      {
         id: 'exams',
         label: 'Exams',
         icon: <BookOpenCheck size={16} />,
@@ -122,7 +112,7 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
         icon: <Wallet size={16} />,
         moduleId: 'reports',
         state: { reportCategory: 'financial' },
-        enabled: canAccessFinancialReports(defaultRoles, currentRoleId),
+        enabled: canAccess(defaultRoles, currentRoleId, 'reports.view'),
       },
     ],
   }), [currentRoleId]);
