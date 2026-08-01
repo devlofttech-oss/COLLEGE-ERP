@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings,
+  ShieldCheck,
   TrendingUp,
   UserPlus,
   Users,
@@ -33,6 +34,10 @@ export const moduleDisplayOrder = [
   'document-management',
   'fees',
   'reports',
+  'academics',
+  'user-roles',
+  'roles',
+  'parent-portal',
   'settings',
 ];
 
@@ -206,6 +211,16 @@ export const moduleRegistry = [
     icon: Users,
     status: 'active',
     permission: 'users.view',
+    hideFromSidebar: true,
+  },
+  {
+    id: 'roles',
+    label: 'Roles',
+    path: '/modules/roles',
+    group: 'Admin Setup',
+    icon: ShieldCheck,
+    status: 'active',
+    permission: 'roles.view',
     hideFromSidebar: true,
   },
   {

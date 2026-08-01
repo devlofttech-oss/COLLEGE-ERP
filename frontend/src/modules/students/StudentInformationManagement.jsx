@@ -72,6 +72,7 @@ const NoticeBoardManagement = lazy(() => import('../notices/NoticeBoardManagemen
 const ParentPortal = lazy(() => import('../parentPortal/ParentPortal'));
 const ReportsManagement = lazy(() => import('../reports/ReportsManagement'));
 const ResultsManagement = lazy(() => import('../results/ResultsManagement'));
+const RolesManagement = lazy(() => import('../roles/RolesManagement'));
 const SettingsManagement = lazy(() => import('../settings/SettingsManagement'));
 const SubjectNotesManagement = lazy(() => import('../subjectNotes/SubjectNotesManagement'));
 const StudentsManagement = lazy(() => import('./StudentsManagement'));
@@ -1133,6 +1134,8 @@ export default function StudentInformationManagement({ user, onLogout }) {
                   <ParentPortal currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} />
                 ) : activePage === 'user-roles' ? (
                   <UserRoleManagement currentUser={user} />
+                ) : activePage === 'roles' ? (
+                  <RolesManagement currentUser={user} />
                 ) : activePage === 'settings' ? (
                   <SettingsManagement
                     currentUser={user}

@@ -16,6 +16,18 @@ import {
   validateUserForm,
   validateUserUpdate,
 } from '../src/modules/userRoles/rolePermissions.js';
+import {
+  countDraftGroupPermissions,
+  filterRoles,
+  groupPermissions,
+  hasRoleOverride,
+  permissionAction,
+  permissionLabel,
+  samePermissionSet,
+  summarizeRoles,
+  togglePermission as toggleRolePermission,
+  validatePermissionSet,
+} from '../src/modules/roles/roleUtils.js';
 
 const admin = getRoleById(defaultRoles, 'admin');
 const parent = getRoleById(defaultRoles, 'parent');
@@ -66,10 +78,12 @@ assert.equal(canAccess(defaultRoles, 'admin', 'settings.manage'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'users.view'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'users.manage'), true);
 assert.equal(canAccess(defaultRoles, 'admin', 'roles.view'), true);
+assert.equal(canAccess(defaultRoles, 'admin', 'roles.manage'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'academicCurriculum.view'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'academics.manage'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'users.view'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'users.manage'), true);
+assert.equal(canAccess(defaultRoles, 'super-admin', 'roles.manage'), true);
 assert.equal(canAccess(defaultRoles, 'super-admin', 'settings.manage'), true);
 
 assert.equal(canAccess(defaultRoles, 'faculty', 'students.view'), true);
@@ -174,5 +188,43 @@ assert.equal(validateUserForm({ name: 'Admin', email: 'admin@college.edu', passw
 assert.equal(validateUserUpdate({ name: 'Admin', role: 'admin', status: 'active' }), '');
 assert.equal(validateUserUpdate({ name: 'Admin', role: '', status: 'active' }), 'Role is required.');
 assert.equal(validateUserUpdate({ name: 'Admin', role: 'bad', status: 'active' }), 'A valid role is required.');
+
+const roleCatalog = {
+  groups: {
+    dashboard: ['dashboard.view'],
+    roles: ['roles.view', 'roles.manage'],
+  },
+  all: ['dashboard.view', 'roles.view', 'roles.manage'],
+};
+const roleRows = [
+  {
+    id: 'admin',
+    label: 'Institution Admin',
+    description: 'Full access',
+    permissions: ['dashboard.view', 'roles.view'],
+    defaultPermissions: ['dashboard.view', 'roles.view', 'roles.manage'],
+  },
+  {
+    id: 'parent',
+    label: 'Parent',
+    description: 'Own child data',
+    permissions: [],
+    defaultPermissions: [],
+  },
+];
+
+assert.equal(permissionLabel('roles.manage'), 'Roles Manage');
+assert.equal(permissionAction('roles.manage'), 'Manage');
+assert.deepEqual(groupPermissions(roleCatalog).map((group) => group.id), ['dashboard', 'roles']);
+assert.equal(countDraftGroupPermissions(['roles.view'], roleCatalog.groups.roles), 1);
+assert.equal(hasRoleOverride(roleRows[0]), true);
+assert.equal(hasRoleOverride(roleRows[1]), false);
+assert.equal(samePermissionSet(['roles.view', 'dashboard.view'], ['dashboard.view', 'roles.view']), true);
+assert.deepEqual(toggleRolePermission(['roles.view'], 'roles.manage'), ['roles.manage', 'roles.view']);
+assert.deepEqual(toggleRolePermission(['roles.manage', 'roles.view'], 'roles.manage'), ['roles.view']);
+assert.deepEqual(filterRoles(roleRows, 'child').map((role) => role.id), ['parent']);
+assert.deepEqual(summarizeRoles(roleRows, roleCatalog), { roles: 2, customized: 1, defaults: 1, permissions: 3, groups: 2 });
+assert.equal(validatePermissionSet(['roles.view'], roleCatalog), '');
+assert.equal(validatePermissionSet(['bad.permission'], roleCatalog), 'Unknown permissions: bad.permission');
 
 console.log('User role tests passed.');

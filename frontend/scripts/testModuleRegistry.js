@@ -14,6 +14,8 @@ assert.equal(getModuleById('fees').label, 'Payment');
 assert.equal(getModuleById('communication').label, 'Communication');
 assert.equal(getModuleById('communication').permission, 'communication.view');
 assert.equal(getModuleById('user-roles').label, 'Users');
+assert.equal(getModuleById('roles').label, 'Roles');
+assert.equal(getModuleById('roles').permission, 'roles.view');
 assert.equal(getModuleById('notice-board').id, 'communication');
 assert.equal(getModuleById('financial-reports').id, 'reports');
 assert.equal(getModuleByPath('/modules/notice-board').id, 'communication');
@@ -70,6 +72,7 @@ assert.deepEqual(visibleSidebarIds('super-admin'), [
   'reports',
   'academics',
   'user-roles',
+  'roles',
   'parent-portal',
 ]);
 
@@ -97,6 +100,7 @@ assert.deepEqual(superAdminVisible, [
   'reports',
   'academics',
   'user-roles',
+  'roles',
   'parent-portal',
   'settings',
 ]);
@@ -138,6 +142,7 @@ assert.deepEqual(adminVisible, [
   'reports',
   'academics',
   'user-roles',
+  'roles',
   'settings',
 ]);
 
