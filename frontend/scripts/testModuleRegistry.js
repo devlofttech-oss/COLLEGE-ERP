@@ -11,6 +11,8 @@ assert.deepEqual(getModuleById('examination-results').permission, ['examinations
 assert.deepEqual(getModuleById('results').permission, ['results.view', 'results.viewOwn']);
 assert.equal(getModuleById('fees').permission, 'fees.view');
 assert.equal(getModuleById('fees').label, 'Payment');
+assert.equal(getModuleById('files').path, '/modules/files');
+assert.equal(getModuleById('files').permission, undefined);
 assert.equal(getModuleById('communication').label, 'Communication');
 assert.equal(getModuleById('communication').permission, 'communication.view');
 assert.equal(getModuleById('user-roles').label, 'Users');
@@ -41,11 +43,13 @@ assert.deepEqual(getModuleById('my-portal').permission, [
 ]);
 assert.equal(getModuleById('missing-module'), null);
 
-const modulesWithoutPermission = moduleRegistry.filter((module) => !module.permission);
-assert.deepEqual(modulesWithoutPermission, []);
+const modulesWithoutPermission = moduleRegistry.filter((module) => !module.permission).map((module) => module.id);
+assert.deepEqual(modulesWithoutPermission, ['files']);
+
+const canViewModule = (roleId, module) => !module.permission || canAccess(defaultRoles, roleId, module.permission);
 
 const visibleSidebarIds = (roleId) => sortModulesByDisplayOrder(enabled
-  .filter((module) => canAccess(defaultRoles, roleId, module.permission))
+  .filter((module) => canViewModule(roleId, module))
   .filter((module) => !module.footer)
   .filter((module) => !module.hideFromSidebar || (module.id === 'dashboard' && ['admin', 'super-admin'].includes(roleId)) || (module.id === 'my-portal' && ['parent', 'student', 'teacher', 'faculty'].includes(roleId)) || (!['dashboard', 'my-portal'].includes(module.id) && roleId === 'super-admin')))
   .map((module) => module.id);
@@ -65,6 +69,7 @@ assert.deepEqual(adminSidebarVisible, [
   'calendar',
   'hostel-management',
   'document-management',
+  'files',
   'fees',
   'reports',
 ]);
@@ -82,6 +87,7 @@ assert.deepEqual(visibleSidebarIds('super-admin'), [
   'calendar',
   'hostel-management',
   'document-management',
+  'files',
   'fees',
   'reports',
   'academics',
@@ -93,7 +99,7 @@ const footerVisible = enabled.filter((module) => module.footer).map((module) => 
 assert.deepEqual(footerVisible, ['settings']);
 
 const superAdminVisible = enabled
-  .filter((module) => canAccess(defaultRoles, 'super-admin', module.permission))
+  .filter((module) => canViewModule('super-admin', module))
   .map((module) => module.id);
 assert.deepEqual(superAdminVisible, [
   'dashboard',
@@ -109,6 +115,7 @@ assert.deepEqual(superAdminVisible, [
   'calendar',
   'hostel-management',
   'document-management',
+  'files',
   'fees',
   'reports',
   'academics',
@@ -118,19 +125,21 @@ assert.deepEqual(superAdminVisible, [
   'settings',
 ]);
 
-const parentVisible = enabled.filter((module) => canAccess(defaultRoles, 'parent', module.permission)).map((module) => module.id);
-assert.deepEqual(parentVisible, ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'my-portal']);
-assert.deepEqual(visibleSidebarIds('parent'), ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'my-portal']);
+const parentVisible = enabled.filter((module) => canViewModule('parent', module)).map((module) => module.id);
+assert.deepEqual(parentVisible, ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'files', 'my-portal']);
+assert.deepEqual(visibleSidebarIds('parent'), ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'files', 'my-portal']);
 
-const studentVisible = enabled.filter((module) => canAccess(defaultRoles, 'student', module.permission)).map((module) => module.id);
-assert.deepEqual(studentVisible, ['timetable', 'examination-results', 'results', 'communication', 'my-portal']);
-assert.deepEqual(visibleSidebarIds('student'), ['timetable', 'examination-results', 'results', 'communication', 'my-portal']);
+const studentVisible = enabled.filter((module) => canViewModule('student', module)).map((module) => module.id);
+assert.deepEqual(studentVisible, ['timetable', 'examination-results', 'results', 'communication', 'files', 'my-portal']);
+assert.deepEqual(visibleSidebarIds('student'), ['timetable', 'examination-results', 'results', 'communication', 'files', 'my-portal']);
 
-const teacherVisible = enabled.filter((module) => canAccess(defaultRoles, 'teacher', module.permission)).map((module) => module.id);
+const teacherVisible = enabled.filter((module) => canViewModule('teacher', module)).map((module) => module.id);
+assert.equal(teacherVisible.includes('files'), true);
 assert.equal(teacherVisible.includes('my-portal'), true);
+assert.equal(visibleSidebarIds('teacher').includes('files'), true);
 assert.equal(visibleSidebarIds('teacher').includes('my-portal'), true);
 
-const facultyVisible = enabled.filter((module) => canAccess(defaultRoles, 'faculty', module.permission)).map((module) => module.id);
+const facultyVisible = enabled.filter((module) => canViewModule('faculty', module)).map((module) => module.id);
 assert.equal(facultyVisible.includes('students'), true);
 assert.equal(facultyVisible.includes('calendar'), true);
 assert.equal(facultyVisible.includes('academics'), false);
@@ -140,12 +149,13 @@ assert.equal(facultyVisible.includes('examination-results'), true);
 assert.equal(facultyVisible.includes('results'), true);
 assert.equal(facultyVisible.includes('communication'), true);
 assert.equal(facultyVisible.includes('document-management'), true);
+assert.equal(facultyVisible.includes('files'), true);
 assert.equal(facultyVisible.includes('fees'), false);
 assert.equal(facultyVisible.includes('reports'), true);
 assert.equal(facultyVisible.includes('my-portal'), true);
 assert.equal(visibleSidebarIds('faculty').includes('my-portal'), true);
 
-const adminVisible = enabled.filter((module) => canAccess(defaultRoles, 'admin', module.permission)).map((module) => module.id);
+const adminVisible = enabled.filter((module) => canViewModule('admin', module)).map((module) => module.id);
 assert.deepEqual(adminVisible, [
   'dashboard',
   'students',
@@ -160,6 +170,7 @@ assert.deepEqual(adminVisible, [
   'calendar',
   'hostel-management',
   'document-management',
+  'files',
   'fees',
   'reports',
   'academics',

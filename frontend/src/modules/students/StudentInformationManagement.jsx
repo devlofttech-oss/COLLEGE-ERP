@@ -67,6 +67,7 @@ const DocumentManagement = lazy(() => import('../documents/DocumentManagement'))
 const ExaminationResultManagement = lazy(() => import('../exams/ExaminationResultManagement'));
 const FacultyStaffManagement = lazy(() => import('../facultyStaff/FacultyStaffManagement'));
 const FeesManagement = lazy(() => import('../fees/FeesManagement'));
+const FilesManagement = lazy(() => import('../files/FilesManagement'));
 const HostelManagement = lazy(() => import('../hostel/HostelManagement'));
 const NoticeBoardManagement = lazy(() => import('../notices/NoticeBoardManagement'));
 const MyPortal = lazy(() => import('../myPortal/MyPortal'));
@@ -1133,6 +1134,8 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     scopedStudents={moduleScopedStudents}
                     ownerFilter={location.state?.documentOwner}
                   />
+                ) : activePage === 'files' ? (
+                  <FilesManagement currentUser={user} />
                 ) : activePage === 'my-portal' ? (
                   <MyPortal currentUser={user} academicYear={academicYear} />
                 ) : activePage === 'user-roles' ? (

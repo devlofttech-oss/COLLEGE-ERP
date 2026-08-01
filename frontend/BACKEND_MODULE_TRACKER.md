@@ -10,7 +10,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Auth | `/api/auth` | Built | Backend login, session restore, logout, password reset. |
 | Users | `/api/users` | Built | Backend-backed user list/detail, create, update, role change, student linking, archive, and restore. |
 | Roles | `/api/roles` | Built | Backend-backed role list, permission catalog, permission override save, and reset to defaults. |
-| Files | `/api/files` | Pending | Presigned upload/download/resolve/delete utility. Used by student document upload, but no standalone Files frontend yet. |
+| Files | `/api/files` | Built | Backend-backed presign upload, direct PUT upload, presign download, resolve URL, and delete object by key. |
 | Academics | `/api/academics` | Built | Backend-backed academic years, courses, classes, sections, subjects, teacher allocations. |
 | Students | `/api/students` | Built | Backend-backed list/search/filter, create/edit, archive/restore, import/export, document upload/metadata with verify/reject, promotion/transfer, ID card data/PDF. |
 | Admissions | `/api/admissions` | Built | Backend-backed enquiries, applications, follow-ups, approval/rejection, conversion to student, archive/restore. |
@@ -33,4 +33,4 @@ Non-backend frontend modules to remove or fold into backend-backed modules:
 | Curriculum | `/modules/calendar` | No dedicated backend module. |
 | Subject Notes | `/modules/subject-notes` | No dedicated backend module. |
 | Hostel | `/modules/hostel-management` | No backend module. |
-| Document Management | `/modules/document-management` | Must be replaced or folded into `/api/files` plus student/staff document endpoints. |
+| Document Management | `/modules/document-management` | Legacy Firebase document records. Backend Files now covers `/api/files`; document records still need folding into student/staff document endpoints if kept. |
