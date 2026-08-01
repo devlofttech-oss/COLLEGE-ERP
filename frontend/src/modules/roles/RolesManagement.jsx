@@ -331,7 +331,13 @@ export default function RolesManagement({ currentUser }) {
   );
 
   useEffect(() => {
-    setDraftPermissions(sortPermissions(selectedRole?.permissions || []));
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setDraftPermissions(sortPermissions(selectedRole?.permissions || []));
+    });
+    return () => {
+      active = false;
+    };
   }, [selectedRole]);
 
   const visibleRoles = useMemo(() => filterRoles(roles, search), [roles, search]);

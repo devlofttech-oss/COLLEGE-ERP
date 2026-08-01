@@ -69,7 +69,7 @@ const FacultyStaffManagement = lazy(() => import('../facultyStaff/FacultyStaffMa
 const FeesManagement = lazy(() => import('../fees/FeesManagement'));
 const HostelManagement = lazy(() => import('../hostel/HostelManagement'));
 const NoticeBoardManagement = lazy(() => import('../notices/NoticeBoardManagement'));
-const ParentPortal = lazy(() => import('../parentPortal/ParentPortal'));
+const MyPortal = lazy(() => import('../myPortal/MyPortal'));
 const ReportsManagement = lazy(() => import('../reports/ReportsManagement'));
 const ResultsManagement = lazy(() => import('../results/ResultsManagement'));
 const RolesManagement = lazy(() => import('../roles/RolesManagement'));
@@ -291,11 +291,14 @@ export default function StudentInformationManagement({ user, onLogout }) {
   const canEditStudents = canAccess(defaultRoles, currentRoleId, 'students.edit');
   const canArchiveStudents = canAccess(defaultRoles, currentRoleId, 'students.archive');
   const canViewReportsModule = canAccess(defaultRoles, currentRoleId, 'reports.view');
+  const isSelfPortalRole = ['parent', 'student', 'teacher', 'faculty'].includes(currentRoleId);
   const accessibleModules = useMemo(() => getEnabledModules()
     .filter((module) => !module.permission || canAccess(defaultRoles, currentRoleId, module.permission)), [currentRoleId]);
   const canOpenActiveModule = activePage === 'reports'
     ? canViewReportsModule
-    : !activeModule?.permission || canAccess(defaultRoles, currentRoleId, activeModule.permission);
+    : activePage === 'my-portal'
+      ? isSelfPortalRole && (!activeModule?.permission || canAccess(defaultRoles, currentRoleId, activeModule.permission))
+      : !activeModule?.permission || canAccess(defaultRoles, currentRoleId, activeModule.permission);
   const activeSubmenuId = activePage === 'reports'
     ? location.state?.reportCategory || ''
     : activePage === 'attendance'
@@ -344,12 +347,12 @@ export default function StudentInformationManagement({ user, onLogout }) {
       ? canViewReportsModule
       : accessibleModules.some((module) => module.id === activePage);
     if (!isActivePageAllowed) {
-      const nextPage = currentRoleId === 'parent' && accessibleModules.some((module) => module.id === 'parent-portal')
-        ? 'parent-portal'
+      const nextPage = isSelfPortalRole && accessibleModules.some((module) => module.id === 'my-portal')
+        ? 'my-portal'
         : accessibleModules[0]?.id || 'dashboard';
       queueMicrotask(() => navigateToModule(nextPage, { replace: true }));
     }
-  }, [accessibleModules, activePage, canViewReportsModule, currentRoleId, navigateToModule]);
+  }, [accessibleModules, activePage, canViewReportsModule, currentRoleId, isSelfPortalRole, navigateToModule]);
 
   useEffect(() => {
     const loadShellSettings = async () => {
@@ -1130,8 +1133,8 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     scopedStudents={moduleScopedStudents}
                     ownerFilter={location.state?.documentOwner}
                   />
-                ) : activePage === 'parent-portal' ? (
-                  <ParentPortal currentUser={user} academicYear={academicYear} selectedCourse={selectedCourse} selectedCourseCode={effectiveSelectedCourseCode} />
+                ) : activePage === 'my-portal' ? (
+                  <MyPortal currentUser={user} academicYear={academicYear} />
                 ) : activePage === 'user-roles' ? (
                   <UserRoleManagement currentUser={user} />
                 ) : activePage === 'roles' ? (

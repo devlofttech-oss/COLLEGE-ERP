@@ -28,7 +28,7 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
   const navItems = useMemo(() => {
     const canShowHiddenModule = (module) => {
       if (module.id === 'dashboard') return isAdmin || isSuperAdmin;
-      if (module.id === 'parent-portal') return currentRoleId === 'parent';
+      if (module.id === 'my-portal') return ['parent', 'student', 'teacher', 'faculty'].includes(currentRoleId);
       return isSuperAdmin;
     };
     return sortModulesByDisplayOrder(getEnabledModules()

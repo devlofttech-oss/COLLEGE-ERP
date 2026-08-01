@@ -13,6 +13,7 @@ import {
   Settings,
   ShieldCheck,
   TrendingUp,
+  UserRound,
   UserPlus,
   Users,
   Wallet,
@@ -37,18 +38,20 @@ export const moduleDisplayOrder = [
   'academics',
   'user-roles',
   'roles',
-  'parent-portal',
+  'my-portal',
   'settings',
 ];
 
 const moduleIdAliases = {
   'notice-board': 'communication',
   'financial-reports': 'reports',
+  'parent-portal': 'my-portal',
 };
 
 const modulePathAliases = {
   '/modules/notice-board': '/modules/communication',
   '/modules/financial-reports': '/modules/reports',
+  '/modules/parent-portal': '/modules/my-portal',
 };
 
 const displayOrder = moduleDisplayOrder.reduce((map, id, index) => {
@@ -224,13 +227,24 @@ export const moduleRegistry = [
     hideFromSidebar: true,
   },
   {
-    id: 'parent-portal',
-    label: 'Parent Portal',
-    path: '/modules/parent-portal',
-    group: 'Parent Portal',
-    icon: Users,
+    id: 'my-portal',
+    label: 'My Portal',
+    path: '/modules/my-portal',
+    group: 'My Portal',
+    icon: UserRound,
     status: 'active',
-    permission: 'parentPortal.view',
+    permission: [
+      'students.viewOwn',
+      'attendance.viewOwn',
+      'fees.viewOwn',
+      'timetable.viewOwn',
+      'examinations.viewOwn',
+      'results.viewOwn',
+      'communication.view',
+      'attendance.mark',
+      'timetable.view',
+      'examinations.marks',
+    ],
     hideFromSidebar: true,
   },
   {

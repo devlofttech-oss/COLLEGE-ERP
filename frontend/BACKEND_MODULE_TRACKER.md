@@ -24,7 +24,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Settings | `/api/settings` | Built | Backend-backed institution, branding, integrations, and backup settings. |
 | Reports | `/api/reports` | Built | Backend-backed report registry, named report runner, supported query filters, table results, summaries, and CSV export. |
 | Dashboard | `/api/dashboard` | Built | Backend-backed overview cards, admissions/fees summaries, upcoming exams, latest notices, and recent audit activities. |
-| My Portal | `/api/my` | Pending | Parent/student/teacher self-view routes. |
+| My Portal | `/api/my` | Built | Backend-backed parent/student linked profile, attendance, fees, timetable, exams, results, notices, downloads, teacher classes, and teaching timetable self-view routes. |
 
 Non-backend frontend modules to remove or fold into backend-backed modules:
 
