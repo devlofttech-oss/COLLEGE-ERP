@@ -8,6 +8,7 @@ assert.equal(getModuleById('dashboard').label, 'Dashboard');
 assert.equal(getModuleById('students').permission, 'students.view');
 assert.deepEqual(getModuleById('timetable').permission, ['timetable.view', 'timetable.viewOwn']);
 assert.deepEqual(getModuleById('examination-results').permission, ['examinations.view', 'examinations.viewOwn']);
+assert.deepEqual(getModuleById('results').permission, ['results.view', 'results.viewOwn']);
 assert.equal(getModuleById('fees').permission, 'fees.view');
 assert.equal(getModuleById('fees').label, 'Payment');
 assert.equal(getModuleById('communication').label, 'Communication');
@@ -41,6 +42,7 @@ assert.deepEqual(adminSidebarVisible, [
   'timetable',
   'subject-notes',
   'examination-results',
+  'results',
   'communication',
   'calendar',
   'hostel-management',
@@ -57,6 +59,7 @@ assert.deepEqual(visibleSidebarIds('super-admin'), [
   'timetable',
   'subject-notes',
   'examination-results',
+  'results',
   'communication',
   'calendar',
   'hostel-management',
@@ -83,6 +86,7 @@ assert.deepEqual(superAdminVisible, [
   'timetable',
   'subject-notes',
   'examination-results',
+  'results',
   'communication',
   'calendar',
   'hostel-management',
@@ -96,8 +100,8 @@ assert.deepEqual(superAdminVisible, [
 ]);
 
 const parentVisible = enabled.filter((module) => canAccess(defaultRoles, 'parent', module.permission)).map((module) => module.id);
-assert.deepEqual(parentVisible, ['timetable', 'examination-results', 'communication', 'calendar', 'document-management', 'parent-portal']);
-assert.deepEqual(visibleSidebarIds('parent'), ['timetable', 'examination-results', 'communication', 'calendar', 'document-management', 'parent-portal']);
+assert.deepEqual(parentVisible, ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'parent-portal']);
+assert.deepEqual(visibleSidebarIds('parent'), ['timetable', 'examination-results', 'results', 'communication', 'calendar', 'document-management', 'parent-portal']);
 
 const facultyVisible = enabled.filter((module) => canAccess(defaultRoles, 'faculty', module.permission)).map((module) => module.id);
 assert.equal(facultyVisible.includes('students'), true);
@@ -106,6 +110,7 @@ assert.equal(facultyVisible.includes('academics'), false);
 assert.equal(facultyVisible.includes('attendance'), true);
 assert.equal(facultyVisible.includes('subject-notes'), true);
 assert.equal(facultyVisible.includes('examination-results'), true);
+assert.equal(facultyVisible.includes('results'), true);
 assert.equal(facultyVisible.includes('communication'), true);
 assert.equal(facultyVisible.includes('document-management'), true);
 assert.equal(facultyVisible.includes('fees'), false);
@@ -122,6 +127,7 @@ assert.deepEqual(adminVisible, [
   'timetable',
   'subject-notes',
   'examination-results',
+  'results',
   'communication',
   'calendar',
   'hostel-management',

@@ -19,7 +19,7 @@ Stitch is visual reference only. Frontend functionality must match backend modul
 | Fees | `/api/fees` | Built | Backend-backed fee heads, structures, assignments, collections, receipts, dues, reminders, and online payment hook. |
 | Timetable | `/api/timetable` | Built | Backend-backed periods, class timetable, teacher timetable, entry create/update with conflict override, and archive actions. |
 | Examinations | `/api/examinations` | Built | Backend-backed exams, schedules, marks entry, verification, and unlock actions. |
-| Results | `/api/results` | Pending | Existing UI must be rewired to backend result/report-card APIs. |
+| Results | `/api/results` | Built | Backend-backed grade settings, result processing/listing, publish, lock/unlock, report card/PDF, and history. |
 | Communication | `/api/communication` | Pending | Existing UI must be rewired to backend notices/templates APIs. |
 | Settings | `/api/settings` | Pending | Existing UI must be rewired to backend settings API. |
 | Reports | `/api/reports` | Pending | Existing UI must be rewired to backend reports API. |

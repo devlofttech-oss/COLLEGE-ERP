@@ -1,4 +1,5 @@
 import {
+  BadgeCheck,
   Bell,
   BarChart3,
   BookOpen,
@@ -25,6 +26,7 @@ export const moduleDisplayOrder = [
   'timetable',
   'subject-notes',
   'examination-results',
+  'results',
   'communication',
   'calendar',
   'hostel-management',
@@ -122,6 +124,15 @@ export const moduleRegistry = [
     icon: TrendingUp,
     status: 'active',
     permission: ['examinations.view', 'examinations.viewOwn'],
+  },
+  {
+    id: 'results',
+    label: 'Results',
+    path: '/modules/results',
+    group: 'Daily Work',
+    icon: BadgeCheck,
+    status: 'active',
+    permission: ['results.view', 'results.viewOwn'],
   },
   {
     id: 'communication',

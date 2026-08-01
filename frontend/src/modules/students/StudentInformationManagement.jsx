@@ -71,6 +71,7 @@ const HostelManagement = lazy(() => import('../hostel/HostelManagement'));
 const NoticeBoardManagement = lazy(() => import('../notices/NoticeBoardManagement'));
 const ParentPortal = lazy(() => import('../parentPortal/ParentPortal'));
 const ReportsManagement = lazy(() => import('../reports/ReportsManagement'));
+const ResultsManagement = lazy(() => import('../results/ResultsManagement'));
 const SettingsManagement = lazy(() => import('../settings/SettingsManagement'));
 const SubjectNotesManagement = lazy(() => import('../subjectNotes/SubjectNotesManagement'));
 const StudentsManagement = lazy(() => import('./StudentsManagement'));
@@ -1085,6 +1086,14 @@ export default function StudentInformationManagement({ user, onLogout }) {
                     academicYear={academicYear}
                     initialBranch={location.state?.examBranch}
                     initialTask={location.state?.examTask}
+                    selectedCourse={selectedCourse}
+                    selectedCourseCode={effectiveSelectedCourseCode}
+                    scopedStudents={moduleScopedStudents}
+                  />
+                ) : activePage === 'results' ? (
+                  <ResultsManagement
+                    currentUser={user}
+                    academicYear={academicYear}
                     selectedCourse={selectedCourse}
                     selectedCourseCode={effectiveSelectedCourseCode}
                     scopedStudents={moduleScopedStudents}
