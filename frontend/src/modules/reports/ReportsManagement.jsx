@@ -305,7 +305,9 @@ export default function ReportsManagement({
       label: 'Exams',
       description: 'Marks and results',
       icon: <BookOpen size={18} />,
-      enabled: canAccess(defaultRoles, currentRoleId, 'exams.view') || canAccess(defaultRoles, currentRoleId, 'exams.results'),
+      enabled:
+        canAccess(defaultRoles, currentRoleId, ['examinations.view', 'examinations.viewOwn']) ||
+        canAccess(defaultRoles, currentRoleId, ['results.view', 'results.viewOwn']),
       content: <ExamReportsPanel marksEntries={marksEntries} studentResults={studentResults} />,
     },
     {

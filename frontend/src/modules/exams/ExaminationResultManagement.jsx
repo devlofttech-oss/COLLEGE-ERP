@@ -1,707 +1,1123 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, ClipboardList, FileText, GraduationCap, Plus, Search } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Archive,
+  BadgeCheck,
+  BookOpenCheck,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Edit3,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+  Unlock,
+  X,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { listAcademicResource } from '../../api/academics';
+import {
+  archiveExam,
+  archiveExamSchedule,
+  createExam,
   createExamSchedule,
-  createInternalAssessment,
-  createMarksEntry,
-  createReportCard,
-  createStudentResult,
-  getExaminationResultData,
+  enterMarks,
+  listExamSchedules,
+  listExams,
+  listMarks,
+  unlockMarks,
+  updateExam,
   updateExamSchedule,
-  updateMarksEntry,
-} from '../../firebase/db';
-import { isFirebaseConfigured } from '../../firebase/config';
-import { canAccess, defaultRoles } from '../userRoles/rolePermissions';
-import { getClassOptions } from '../timetable/timetableUtils';
-import { calculateGrade, calculatePercentage, calculateResultStatus, formatDisplayDate, summarizeStudentMarks, validateExamSchedule, validateMarksEntry } from './examUtils';
-import ExamScheduleModal from './components/ExamScheduleModal';
-import ExamScheduleTable from './components/ExamScheduleTable';
-import MarksEntryModal from './components/MarksEntryModal';
-import ResultsPanel from './components/ResultsPanel';
-import { filterByCourse, filterStudentScopedRecords, filterStudentsByCourse } from '../shared/courseFilters';
+  verifyMarks,
+} from '../../api/examinations';
+import { listStudents } from '../../api/students';
+import { validateBackendExam, validateBackendMarks, validateBackendSchedule } from './examUtils';
 
-function AssessmentModal({ schedules, onClose, onSave }) {
-  const [form, setForm] = useState({
-    examScheduleId: '',
-    title: '',
-    maxMarks: '',
-    status: 'Active',
-  });
-  const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+const ADMIN_ROLES = new Set(['super-admin', 'admin']);
+const EXAM_TYPES = ['Internal', 'Final', 'Unit Test', 'Mid Term', 'Practical', 'Other'];
+const STATUS_OPTIONS = ['active', 'inactive', 'completed'];
+const TABS = [
+  { id: 'exams', label: 'Exams', icon: BookOpenCheck },
+  { id: 'schedules', label: 'Schedules', icon: CalendarDays },
+  { id: 'marks', label: 'Marks', icon: ClipboardList },
+];
 
-  const submit = (event) => {
-    event.preventDefault();
-    onSave(form);
-  };
+function hasPermission(user, permission) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return ADMIN_ROLES.has(user?.roleId) || permissions.includes(permission);
+}
 
+function cx(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
+
+function compactPayload(payload) {
+  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+}
+
+function activeItems(items = []) {
+  return items.filter((item) => !item.archived && String(item.status || 'active').toLowerCase() !== 'inactive');
+}
+
+function valueOrDash(value) {
+  return value === undefined || value === null || value === '' ? '-' : value;
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  if (typeof value === 'string') {
+    const parsed = new Date(String(value).includes('T') ? value : `${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+  }
+  if (typeof value === 'number') return new Date(value).toLocaleDateString();
+  if (value?._seconds) return new Date(value._seconds * 1000).toLocaleDateString();
+  if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString();
+  return String(value);
+}
+
+function statusClasses(value) {
+  const normalized = String(value || 'active').toLowerCase();
+  if (normalized === 'completed' || normalized === 'verified') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === 'inactive' || normalized === 'archived') return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (normalized === 'locked') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+}
+
+function routeTab(initialTask = '', initialBranch = '') {
+  const requested = [initialTask, initialBranch].find((item) => TABS.some((tab) => tab.id === item));
+  if (requested) return requested;
+  if (['create-schedule', 'review-schedules', 'schedule-exams'].includes(initialBranch || initialTask)) return 'schedules';
+  if (['enter-marks', 'review-marks', 'verify-marks'].includes(initialBranch || initialTask)) return 'marks';
+  return 'exams';
+}
+
+function classLabel(klass = {}) {
+  return [klass.name, klass.courseName].filter(Boolean).join(' - ') || klass.id;
+}
+
+function subjectLabel(subject = {}) {
+  return [subject.name, subject.code].filter(Boolean).join(' - ') || subject.id;
+}
+
+function examLabel(exam = {}) {
+  return [exam.name, exam.examType].filter(Boolean).join(' - ') || exam.id;
+}
+
+function scheduleLabel(schedule = {}) {
+  return [
+    schedule.examName,
+    schedule.className,
+    schedule.subjectName,
+    formatDate(schedule.examDate),
+  ].filter((item) => item && item !== '-').join(' | ') || schedule.id;
+}
+
+function comboKey(record = {}) {
+  return [record.examId || '', record.classId || '', record.subjectId || ''].join('|');
+}
+
+async function optionalLoad(loader, fallback) {
+  try {
+    return await loader();
+  } catch (error) {
+    console.warn('Optional examination support data did not load.', error);
+    return fallback;
+  }
+}
+
+function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitle, title }) {
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <form onSubmit={submit} className="w-full max-w-xl bg-white rounded-xl shadow-2xl border border-slate-200">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
+      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl', maxWidth)}>
+        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Create Assessment</h2>
-            <p className="text-sm text-slate-500">Create an assessment from a live exam schedule.</p>
+            <p className="text-[11px] font-bold uppercase text-[#006a62]">Examinations</p>
+            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-[#3f4848]">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full hover:bg-slate-100 text-slate-500">x</button>
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+            <X size={17} />
+          </button>
         </div>
-        <div className="p-6 grid sm:grid-cols-2 gap-4">
-          <label className="sm:col-span-2">
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Exam Schedule</span>
-            <select value={form.examScheduleId} onChange={(event) => update('examScheduleId', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" autoFocus>
-              <option value="">Select schedule</option>
-              {schedules.map((schedule) => (
-                <option key={schedule.id} value={schedule.id}>{schedule.examName} - {schedule.subject}</option>
-              ))}
-            </select>
-          </label>
-          <label className="sm:col-span-2">
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Assessment Title</span>
-            <input value={form.title} onChange={(event) => update('title', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-          </label>
-          <label>
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Max Marks</span>
-            <input type="number" min="1" value={form.maxMarks} onChange={(event) => update('maxMarks', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" />
-          </label>
-          <label>
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Status</span>
-            <select value={form.status} onChange={(event) => update('status', event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm">
-              {['Active', 'Draft', 'Archived'].map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </label>
-        </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">Cancel</button>
-          <button type="submit" className="h-10 px-5 rounded-lg bg-[#33373e] text-white font-semibold text-sm">Save Assessment</button>
-        </div>
-      </form>
+        {children}
+        {footer}
+      </div>
     </div>
   );
 }
 
-function ResultNameModal({ onClose, onSave }) {
-  const [resultName, setResultName] = useState('');
+function SummaryCard({ icon, label, loading, value }) {
+  return (
+    <div className="erp-glass-card rounded-2xl p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        {icon}
+      </div>
+      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+    </div>
+  );
+}
+
+function EmptyState({ message }) {
+  return (
+    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+      {message}
+    </div>
+  );
+}
+
+function ExamModal({ academicYear, initialRecord, onClose, onSave, saving }) {
+  const isEdit = Boolean(initialRecord?.id);
+  const [form, setForm] = useState(() => ({
+    name: initialRecord?.name || '',
+    examType: initialRecord?.examType || EXAM_TYPES[0],
+    startDate: initialRecord?.startDate || '',
+    endDate: initialRecord?.endDate || '',
+    academicYear: initialRecord?.academicYear || academicYear || '',
+    status: initialRecord?.status || 'active',
+  }));
+  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event) => {
     event.preventDefault();
-    onSave(resultName);
+    const payload = compactPayload({
+      name: form.name.trim(),
+      examType: form.examType,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      academicYear: form.academicYear.trim() || undefined,
+      status: form.status || undefined,
+    });
+    const validationMessage = validateBackendExam(payload);
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+    onSave(payload);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <form onSubmit={submit} className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Generate Results</h2>
-            <p className="text-sm text-slate-500">Name this result set before saving it to live data.</p>
+    <form onSubmit={submit}>
+      <ModalFrame
+        title={isEdit ? 'Edit Exam' : 'Create Exam'}
+        subtitle={isEdit ? initialRecord.name : 'Name, type, dates, year, and status.'}
+        onClose={onClose}
+        maxWidth="max-w-2xl"
+        footer={(
+          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save
+            </button>
           </div>
-          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full hover:bg-slate-100 text-slate-500">x</button>
-        </div>
-        <div className="p-6">
+        )}
+      >
+        <div className="grid gap-4 p-6 sm:grid-cols-2">
+          <label className="sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Name *</span>
+            <input value={form.name} onChange={(event) => update('name', event.target.value)} className={inputClass} autoFocus />
+          </label>
           <label>
-            <span className="block text-xs font-semibold text-slate-500 mb-1.5">Result Name</span>
-            <input value={resultName} onChange={(event) => setResultName(event.target.value)} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm" autoFocus />
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam Type *</span>
+            <select value={form.examType} onChange={(event) => update('examType', event.target.value)} className={inputClass}>
+              {EXAM_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Start Date *</span>
+            <input type="date" value={form.startDate} onChange={(event) => update('startDate', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">End Date *</span>
+            <input type="date" value={form.endDate} onChange={(event) => update('endDate', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
+              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
           </label>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="h-10 px-5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm">Cancel</button>
-          <button type="submit" className="h-10 px-5 rounded-lg bg-[#33373e] text-white font-semibold text-sm">Generate</button>
+      </ModalFrame>
+    </form>
+  );
+}
+
+function ScheduleModal({ academicYear, classes, exams, initialRecord, onClose, onSave, saving, subjects }) {
+  const isEdit = Boolean(initialRecord?.id);
+  const initialClassId = initialRecord?.classId || classes[0]?.id || '';
+  const initialSubjectOptions = subjects.filter((subject) => !initialClassId || subject.classId === initialClassId || !subject.classId);
+  const [form, setForm] = useState(() => ({
+    examId: initialRecord?.examId || exams[0]?.id || '',
+    classId: initialClassId,
+    subjectId: initialRecord?.subjectId || initialSubjectOptions[0]?.id || '',
+    examDate: initialRecord?.examDate || '',
+    startTime: initialRecord?.startTime || '',
+    maxMarks: initialRecord?.maxMarks ?? '',
+    passingMarks: initialRecord?.passingMarks ?? '',
+    room: initialRecord?.room || '',
+    status: initialRecord?.status || 'active',
+  }));
+  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const classSubjects = subjects.filter((subject) => !form.classId || subject.classId === form.classId || !subject.classId);
+  const selectedExam = exams.find((exam) => exam.id === form.examId);
+  const selectedClass = classes.find((klass) => klass.id === form.classId);
+  const selectedSubject = subjects.find((subject) => subject.id === form.subjectId);
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+
+  const updateClass = (classId) => {
+    const nextSubjects = subjects.filter((subject) => !classId || subject.classId === classId || !subject.classId);
+    setForm((current) => ({
+      ...current,
+      classId,
+      subjectId: nextSubjects.some((subject) => subject.id === current.subjectId) ? current.subjectId : nextSubjects[0]?.id || '',
+    }));
+  };
+
+  const submit = (event) => {
+    event.preventDefault();
+    const basePayload = {
+      examDate: form.examDate || undefined,
+      startTime: form.startTime || undefined,
+      maxMarks: form.maxMarks === '' ? undefined : Number(form.maxMarks),
+      passingMarks: form.passingMarks === '' ? undefined : Number(form.passingMarks),
+      room: form.room.trim() || undefined,
+      status: form.status || undefined,
+    };
+    const payload = compactPayload(isEdit ? basePayload : {
+      ...basePayload,
+      examId: form.examId,
+      classId: form.classId,
+      className: selectedClass ? classLabel(selectedClass) : undefined,
+      subjectId: form.subjectId,
+      subjectName: selectedSubject ? subjectLabel(selectedSubject) : undefined,
+    });
+    const validationMessage = validateBackendSchedule({ ...payload, examId: form.examId, classId: form.classId, subjectId: form.subjectId });
+    if (validationMessage) {
+      toast.error(validationMessage);
+      return;
+    }
+    onSave(payload);
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <ModalFrame
+        title={isEdit ? 'Edit Schedule' : 'New Schedule'}
+        subtitle={isEdit ? scheduleLabel(initialRecord) : academicYear || selectedExam?.academicYear || ''}
+        onClose={onClose}
+        footer={(
+          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save
+            </button>
+          </div>
+        )}
+      >
+        <div className="grid max-h-[64vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+          <label className="sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam *</span>
+            <select value={form.examId} onChange={(event) => update('examId', event.target.value)} disabled={isEdit} className={inputClass}>
+              <option value="">Select exam</option>
+              {exams.map((exam) => <option key={exam.id} value={exam.id}>{examLabel(exam)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
+            <select value={form.classId} onChange={(event) => updateClass(event.target.value)} disabled={isEdit} className={inputClass}>
+              <option value="">Select class</option>
+              {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Subject *</span>
+            <select value={form.subjectId} onChange={(event) => update('subjectId', event.target.value)} disabled={isEdit} className={inputClass}>
+              <option value="">Select subject</option>
+              {classSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subjectLabel(subject)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam Date</span>
+            <input type="date" value={form.examDate} onChange={(event) => update('examDate', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Start Time</span>
+            <input type="time" value={form.startTime} onChange={(event) => update('startTime', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Max Marks *</span>
+            <input type="number" min="1" value={form.maxMarks} onChange={(event) => update('maxMarks', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Passing Marks</span>
+            <input type="number" min="0" value={form.passingMarks} onChange={(event) => update('passingMarks', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Room</span>
+            <input value={form.room} onChange={(event) => update('room', event.target.value)} className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
+              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </label>
         </div>
-      </form>
+      </ModalFrame>
+    </form>
+  );
+}
+
+function ExamsTable({ canCreate, exams, loading, onArchive, onEdit }) {
+  return (
+    <section className="erp-glass-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
+        <h2 className="text-sm font-bold text-[#003434]">Exam Records</h2>
+        <span className="text-xs font-bold uppercase text-[#3f4848]">{exams.length} listed</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-sm">
+          <thead className="bg-[#004d4d] text-left text-white">
+            <tr>
+              <th className="px-5 py-3">Exam</th>
+              <th className="px-5 py-3">Type</th>
+              <th className="px-5 py-3">Academic Year</th>
+              <th className="px-5 py-3">Dates</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading exams...</td></tr>}
+            {!loading && exams.map((exam) => (
+              <tr key={exam.id}>
+                <td className="px-5 py-4 font-bold text-[#071e27]">{exam.name}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{exam.examType}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(exam.academicYear)}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{formatDate(exam.startDate)} - {formatDate(exam.endDate)}</td>
+                <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(exam.status))}>{exam.status || 'active'}</span></td>
+                <td className="px-5 py-4">
+                  {canCreate && (
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => onEdit(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>
+                      <button type="button" onClick={() => onArchive(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!loading && !exams.length && <tr><td colSpan="6" className="px-5 py-12"><EmptyState message="No exams found." /></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function SchedulesTable({ canCreate, loading, onArchive, onEdit, schedules }) {
+  return (
+    <section className="erp-glass-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
+        <h2 className="text-sm font-bold text-[#003434]">Exam Schedules</h2>
+        <span className="text-xs font-bold uppercase text-[#3f4848]">{schedules.length} listed</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[920px] text-sm">
+          <thead className="bg-[#004d4d] text-left text-white">
+            <tr>
+              <th className="px-5 py-3">Exam</th>
+              <th className="px-5 py-3">Class</th>
+              <th className="px-5 py-3">Subject</th>
+              <th className="px-5 py-3">Date & Time</th>
+              <th className="px-5 py-3">Marks</th>
+              <th className="px-5 py-3">Room</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan="8" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading schedules...</td></tr>}
+            {!loading && schedules.map((schedule) => (
+              <tr key={schedule.id}>
+                <td className="px-5 py-4 font-bold text-[#071e27]">{valueOrDash(schedule.examName)}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.className)}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.subjectName)}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{formatDate(schedule.examDate)} {schedule.startTime ? `at ${schedule.startTime}` : ''}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.maxMarks)} / {valueOrDash(schedule.passingMarks)}</td>
+                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.room)}</td>
+                <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(schedule.status))}>{schedule.status || 'active'}</span></td>
+                <td className="px-5 py-4">
+                  {canCreate && (
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => onEdit(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>
+                      <button type="button" onClick={() => onArchive(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!loading && !schedules.length && <tr><td colSpan="8" className="px-5 py-12"><EmptyState message="No schedules found." /></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function MarksPanel({
+  canEnterMarks,
+  canVerify,
+  classes,
+  currentMarks,
+  drafts,
+  exams,
+  loading,
+  maxMarks,
+  onSave,
+  onSelectSchedule,
+  onSetMaxMarks,
+  onUnlock,
+  onUpdateDraft,
+  onVerify,
+  schedules,
+  selectedClassId,
+  selectedExamId,
+  selectedScheduleId,
+  selectedSubjectId,
+  setSelectedClassId,
+  setSelectedExamId,
+  setSelectedSubjectId,
+  students,
+  subjects,
+  saving,
+}) {
+  const classSubjects = subjects.filter((subject) => !selectedClassId || subject.classId === selectedClassId || !subject.classId);
+  const hasCurrentSelection = Boolean(selectedExamId && selectedClassId && selectedSubjectId);
+  const allLocked = currentMarks.length > 0 && currentMarks.every((mark) => mark.locked || mark.verified);
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+      <section className="erp-glass-card rounded-2xl p-5">
+        <h2 className="text-sm font-bold text-[#003434]">Marks Selection</h2>
+        <div className="mt-4 grid gap-4">
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Schedule</span>
+            <select value={selectedScheduleId} onChange={(event) => onSelectSchedule(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+              <option value="">Manual selection</option>
+              {schedules.map((schedule) => <option key={schedule.id} value={schedule.id}>{scheduleLabel(schedule)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam *</span>
+            <select value={selectedExamId} onChange={(event) => setSelectedExamId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+              <option value="">Select exam</option>
+              {exams.map((exam) => <option key={exam.id} value={exam.id}>{examLabel(exam)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
+            <select value={selectedClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+              <option value="">Select class</option>
+              {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Subject *</span>
+            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+              <option value="">Select subject</option>
+              {classSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subjectLabel(subject)}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Max Marks</span>
+            <input type="number" min="1" value={maxMarks} onChange={(event) => onSetMaxMarks(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={onVerify} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+              <Lock size={14} /> Verify
+            </button>
+            <button type="button" onClick={onUnlock} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+              <Unlock size={14} /> Unlock
+            </button>
+          </div>
+          <div className="rounded-xl bg-white/40 p-4 text-sm text-[#3f4848]">
+            <div className="flex items-center justify-between">
+              <span className="font-bold">Entered</span>
+              <span>{currentMarks.length}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="font-bold">Locked</span>
+              <span>{allLocked ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-[#003434]">Marks Entry</h2>
+            <p className="mt-1 text-xs font-semibold text-[#3f4848]">{students.length} students</p>
+          </div>
+          {canEnterMarks && (
+            <button type="button" onClick={onSave} disabled={!hasCurrentSelection || !students.length || saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-4 text-xs font-bold text-white">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Marks
+            </button>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead className="bg-[#004d4d] text-left text-white">
+              <tr>
+                <th className="px-5 py-3">Student</th>
+                <th className="px-5 py-3">Marks</th>
+                <th className="px-5 py-3">Absent</th>
+                <th className="px-5 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading marks...</td></tr>}
+              {!loading && students.map((student) => {
+                const draft = drafts[student.id] || {};
+                const disabled = !canEnterMarks || draft.locked || draft.verified;
+                return (
+                  <tr key={student.id}>
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-[#071e27]">{student.name}</p>
+                      <p className="text-xs text-[#3f4848]">{student.admissionNumber || student.rollNumber || student.id}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <input
+                        type="number"
+                        min="0"
+                        max={maxMarks || undefined}
+                        value={draft.marksObtained ?? ''}
+                        onChange={(event) => onUpdateDraft(student.id, 'marksObtained', event.target.value)}
+                        disabled={disabled || draft.absent}
+                        className="h-10 w-28 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27]"
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <label className="inline-flex items-center gap-2 text-xs font-bold text-[#3f4848]">
+                        <input type="checkbox" checked={Boolean(draft.absent)} onChange={(event) => onUpdateDraft(student.id, 'absent', event.target.checked)} disabled={disabled} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+                        Absent
+                      </label>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(draft.verified || draft.locked ? 'locked' : 'active'))}>
+                        {draft.verified || draft.locked ? 'Locked' : 'Editable'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {!loading && !students.length && <tr><td colSpan="4" className="px-5 py-12"><EmptyState message="No students found for this class." /></td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
 
 export default function ExaminationResultManagement({
-  currentUser,
   academicYear = '',
+  currentUser,
   initialBranch = '',
   initialTask = '',
   scopedStudents = [],
   selectedCourse = null,
   selectedCourseCode = 'all',
 }) {
-  const [students, setStudents] = useState([]);
-  const [staff, setStaff] = useState([]);
+  const [activeTab, setActiveTab] = useState(routeTab(initialTask, initialBranch));
+  const [exams, setExams] = useState([]);
   const [schedules, setSchedules] = useState([]);
-  const [, setAssessments] = useState([]);
   const [marks, setMarks] = useState([]);
-  const [results, setResults] = useState([]);
-  const [reportCards, setReportCards] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [students, setStudents] = useState([]);
   const [search, setSearch] = useState('');
-  const [loadError, setLoadError] = useState('');
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showMarksModal, setShowMarksModal] = useState(false);
-  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState(null);
-  const [activeExamTask, setActiveExamTask] = useState(initialTask || '');
-  const [activeExamBranch, setActiveExamBranch] = useState(initialBranch || '');
+  const [selectedExamId, setSelectedExamId] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
+  const [marksMaxMarks, setMarksMaxMarks] = useState('');
+  const [markDraftOverrides, setMarkDraftOverrides] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [examModalRecord, setExamModalRecord] = useState(undefined);
+  const [scheduleModalRecord, setScheduleModalRecord] = useState(undefined);
 
-  useEffect(() => {
-    const loadExams = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        return;
-      }
-      try {
-        const data = await getExaminationResultData(academicYear);
-        setStudents(data.students.filter((student) => student.status !== 'Archived'));
-        setStaff(data.staff.filter((member) => member.staffType === 'Faculty' && member.status !== 'Archived'));
-        setSchedules(data.examSchedules);
-        setAssessments(data.assessments);
-        setMarks(data.marks);
-        setResults(data.results);
-        setReportCards(data.reportCards);
-        setLoadError('');
-      } catch (error) {
-        console.warn('Unable to load live exam data.', error);
-        setLoadError('Unable to load live exam records.');
-      }
-    };
-    loadExams();
-  }, [academicYear]);
+  const canView = hasPermission(currentUser, 'examinations.view') || hasPermission(currentUser, 'examinations.viewOwn');
+  const canCreate = hasPermission(currentUser, 'examinations.create');
+  const canEnterMarks = hasPermission(currentUser, 'examinations.marks');
+  const canVerify = hasPermission(currentUser, 'examinations.verify');
+  const effectiveAcademicYear = academicYear || selectedCourse?.academicYear || '';
+  const effectiveCourseId = selectedCourse?.id || (selectedCourseCode !== 'all' ? selectedCourseCode : '');
 
-  useEffect(() => {
-    const currentState = window.history.state || {};
-    window.history.replaceState({
-      ...currentState,
-      examFlow: currentState.examFlow || { task: initialTask || '', branch: initialBranch || '' },
-    }, '');
-
-    const handleHistoryBack = (event) => {
-      const flow = event.state?.examFlow;
-      setShowScheduleModal(false);
-      setShowMarksModal(false);
-      setShowAssessmentModal(false);
-      setShowResultModal(false);
-      setEditingSchedule(null);
-      if (!flow) {
-        setActiveExamTask('');
-        setActiveExamBranch('');
-        setSelectedScheduleId('');
-        return;
-      }
-      setActiveExamTask(flow.task || '');
-      setActiveExamBranch(flow.branch || '');
-      setSelectedScheduleId('');
-      setSearch('');
-    };
-
-    window.addEventListener('popstate', handleHistoryBack);
-    return () => window.removeEventListener('popstate', handleHistoryBack);
-  }, [initialBranch, initialTask]);
-
-  const currentRoleId = currentUser?.roleId || 'admin';
-  const canSchedule = canAccess(defaultRoles, currentRoleId, 'exams.schedule');
-  const canAssess = canAccess(defaultRoles, currentRoleId, 'exams.assessments');
-  const canEnterMarks = canAccess(defaultRoles, currentRoleId, 'exams.marks');
-  const canGenerateResults = canAccess(defaultRoles, currentRoleId, 'exams.results');
-  const canGenerateReportCards = canAccess(defaultRoles, currentRoleId, 'exams.reportCards');
-
-  const courseStudents = scopedStudents.length ? scopedStudents : filterStudentsByCourse(students, selectedCourseCode, selectedCourse);
-  const courseSchedules = filterByCourse(schedules, selectedCourseCode, selectedCourse);
-  const courseScheduleIds = new Set(courseSchedules.map((item) => item.id).filter(Boolean));
-  const courseMarks = filterStudentScopedRecords(marks, courseStudents, selectedCourseCode, selectedCourse)
-    .filter((item) => selectedCourseCode === 'all' || !item.examScheduleId || courseScheduleIds.has(item.examScheduleId));
-  const courseResults = filterStudentScopedRecords(results, courseStudents, selectedCourseCode, selectedCourse);
-  const courseReportCards = filterStudentScopedRecords(reportCards, courseStudents, selectedCourseCode, selectedCourse);
-  const classOptions = getClassOptions(courseStudents);
-  const faculty = staff.filter((member) => member.staffType === 'Faculty');
-  const filteredSchedules = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return courseSchedules;
-    return courseSchedules.filter((schedule) =>
-      [schedule.examName, schedule.classKey, schedule.subject, schedule.facultyName]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(term))
-    );
-  }, [courseSchedules, search]);
-
-  const selectedSchedule = selectedScheduleId ? courseSchedules.find((schedule) => schedule.id === selectedScheduleId) || null : null;
-  const selectedScheduleMarks = selectedSchedule
-    ? courseMarks.filter((mark) => mark.examScheduleId === selectedSchedule.id)
-    : [];
-  const marksCompletion = courseSchedules.length && courseStudents.length
-    ? Math.round((courseMarks.length / Math.max(1, courseSchedules.length * courseStudents.length)) * 100)
-    : 0;
-  const resultDistribution = [
-    { label: 'Pass', value: courseResults.filter((item) => item.status === 'Pass').length, color: '#22c55e' },
-    { label: 'Needs Improvement', value: courseResults.filter((item) => item.status === 'Needs Improvement').length, color: '#ef4444' },
-    { label: 'Pending', value: Math.max(0, courseStudents.length - courseResults.length), color: '#f59e0b' },
-  ];
-  const maxResultValue = Math.max(...resultDistribution.map((item) => item.value), 1);
-
-  const openExamTask = (taskId) => {
-    setActiveExamTask(taskId);
-    setActiveExamBranch('');
-    setSelectedScheduleId('');
-    setSearch('');
-    window.history.pushState({ ...(window.history.state || {}), examFlow: { task: taskId, branch: '' } }, '');
-  };
-
-  const openExamBranch = (branch) => {
-    setActiveExamBranch(branch.id);
-    setSelectedScheduleId('');
-    setSearch('');
-    window.history.pushState({ ...(window.history.state || {}), examFlow: { task: activeExamTask, branch: branch.id } }, '');
-    if (branch.openSchedule) setShowScheduleModal(true);
-    if (branch.openMarks) setShowMarksModal(true);
-  };
-
-  const goBackOneExamStep = () => {
-    const flow = window.history.state?.examFlow;
-    if (flow?.branch || flow?.task) {
-      window.history.back();
-      return;
-    }
-    if (activeExamBranch) {
-      setActiveExamBranch('');
-      setSelectedScheduleId('');
-      return;
-    }
-    setActiveExamTask('');
-  };
-
-  const examTaskOptions = [
-    {
-      id: 'schedules',
-      title: 'Exam Schedules',
-      description: 'Create and review exam schedules.',
-      icon: <ClipboardList size={22} />,
-      meta: [`${courseSchedules.length} schedules`, canSchedule ? 'Schedule enabled' : 'View only'],
-    },
-    {
-      id: 'marks',
-      title: 'Marks Entry',
-      description: 'Enter and review student marks.',
-      icon: <GraduationCap size={22} />,
-      meta: [`${courseMarks.length} entries`, canEnterMarks ? 'Entry enabled' : 'View only'],
-    },
-    {
-      id: 'results',
-      title: 'Results & Cards',
-      description: 'Generate results and report cards.',
-      icon: <FileText size={22} />,
-      meta: [`${courseResults.length} results`, `${courseReportCards.length} cards`],
-    },
-  ];
-
-  const examBranchOptions = {
-    schedules: [
-      { id: 'create-schedule', title: 'Create Schedule', description: 'Open a new exam schedule form.', icon: <Plus size={20} />, disabled: !canSchedule, openSchedule: true },
-      { id: 'review-schedules', title: 'Review Schedules', description: 'Select an exam schedule to view or edit.', icon: <ClipboardList size={20} /> },
-    ],
-    marks: [
-      { id: 'enter-marks', title: 'Enter Marks', description: 'Open marks entry, or select a schedule first.', icon: <GraduationCap size={20} />, disabled: !canEnterMarks, openMarks: true },
-      { id: 'review-marks', title: 'Review Marks', description: 'Select a schedule to review entered marks.', icon: <Search size={20} /> },
-      { id: 'internal-assessment', title: 'Internal Assessment', description: 'Create an internal assessment from an exam schedule.', icon: <FileText size={20} />, disabled: !canAssess },
-    ],
-    results: [
-      { id: 'generate-results', title: 'Generate Results', description: 'Generate combined student results.', icon: <FileText size={20} />, disabled: !canGenerateResults },
-      { id: 'report-cards', title: 'Report Cards', description: 'Generate and review report cards.', icon: <FileText size={20} />, disabled: !canGenerateReportCards },
-    ],
-  };
-
-  const activeTask = examTaskOptions.find((task) => task.id === activeExamTask);
-  const activeBranches = examBranchOptions[activeExamTask] || [];
-  const activeBranch = activeBranches.find((branch) => branch.id === activeExamBranch);
-  const buildSchedulePayload = (form) => {
-    const facultyMember = faculty.find((item) => item.id === form.facultyId);
-    return {
-      ...form,
-      examName: form.examName.trim(),
-      subject: form.subject.trim(),
-      maxMarks: Number(form.maxMarks),
-      durationMinutes: Number(form.durationMinutes || 0),
-      roomNo: form.roomNo?.trim() || '',
-      facultyName: facultyMember?.name || '',
-      status: form.status || 'Scheduled',
-    };
-  };
-
-  const saveSchedule = async (form) => {
-    if (!canSchedule && !editingSchedule) {
-      toast.error('You do not have permission to schedule exams.');
-      return;
-    }
-    const validationMessage = validateExamSchedule(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-    const payload = buildSchedulePayload(form);
-    if (editingSchedule) {
-      const updates = { ...payload, updatedAtText: formatDisplayDate() };
-      try {
-        await updateExamSchedule(editingSchedule.id, updates);
-        setSchedules((prev) => prev.map((item) => item.id === editingSchedule.id ? { ...item, ...updates } : item));
-        toast.success('Exam schedule updated');
-      } catch (error) {
-        console.error('Unable to update live exam schedule.', error);
-        toast.error('Exam schedule was not saved to live data.');
-      } finally {
-        setEditingSchedule(null);
-      }
-      return;
-    }
-    const createPayload = { ...payload, academicYear, createdAtText: formatDisplayDate() };
+  const loadExaminations = useCallback(async () => {
+    if (!canView) return;
+    setLoading(true);
     try {
-      const id = await createExamSchedule(createPayload);
-      if (!id) throw new Error('Live exam schedule was not created.');
-      setSchedules((prev) => [{ id, ...createPayload }, ...prev]);
-      toast.success('Exam scheduled');
+      const [nextExams, nextSchedules, nextMarks] = await Promise.all([
+        listExams({ academicYear: effectiveAcademicYear }),
+        listExamSchedules(),
+        listMarks(),
+      ]);
+      const classParams = { academicYear: effectiveAcademicYear, courseId: effectiveCourseId, status: 'active' };
+      const subjectParams = { academicYear: effectiveAcademicYear, courseId: effectiveCourseId, status: 'active' };
+      const [nextClasses, nextSubjects, nextStudents] = await Promise.all([
+        optionalLoad(() => listAcademicResource('classes', classParams), []),
+        optionalLoad(() => listAcademicResource('subjects', subjectParams), []),
+        scopedStudents.length
+          ? Promise.resolve({ students: scopedStudents, count: scopedStudents.length })
+          : optionalLoad(() => listStudents({ academicYear: effectiveAcademicYear, courseId: effectiveCourseId, status: 'active' }), { students: [], count: 0 }),
+      ]);
+      setExams(nextExams);
+      setSchedules(nextSchedules);
+      setMarks(nextMarks);
+      setClasses(activeItems(nextClasses));
+      setSubjects(activeItems(nextSubjects));
+      setStudents(activeItems(nextStudents.students || []));
+      setLoadError('');
     } catch (error) {
-      console.error('Unable to create live exam schedule.', error);
-      toast.error('Exam schedule was not saved to live data.');
+      console.error('Unable to load backend examination data.', error);
+      setLoadError(error?.message || 'Unable to load examinations from the backend.');
     } finally {
-      setShowScheduleModal(false);
+      setLoading(false);
     }
-  };
+  }, [canView, effectiveAcademicYear, effectiveCourseId, scopedStudents]);
 
-  const createAssessment = async (form) => {
-    if (!canAssess) {
-      toast.error('You do not have permission to manage assessments.');
-      return;
-    }
-    const base = courseSchedules.find((schedule) => schedule.id === form.examScheduleId);
-    if (!base) {
-      toast.error('Select a live exam schedule first.');
-      return;
-    }
-    const maxMarks = Number(form.maxMarks || 0);
-    if (!form.title?.trim()) {
-      toast.error('Assessment title is required.');
-      return;
-    }
-    if (maxMarks < 1) {
-      toast.error('Max marks must be at least 1.');
-      return;
-    }
-    const payload = {
-      examScheduleId: base.id,
-      title: form.title.trim(),
-      classKey: base.classKey,
-      subject: base.subject,
-      maxMarks,
-      status: form.status || 'Active',
-      academicYear,
-      createdAtText: formatDisplayDate(),
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) loadExaminations();
+    });
+    return () => {
+      active = false;
     };
+  }, [loadExaminations]);
+
+  const effectiveExamId = useMemo(() => (
+    selectedExamId && exams.some((exam) => exam.id === selectedExamId) ? selectedExamId : exams[0]?.id || ''
+  ), [exams, selectedExamId]);
+  const effectiveClassId = useMemo(() => (
+    selectedClassId && classes.some((klass) => klass.id === selectedClassId) ? selectedClassId : classes[0]?.id || ''
+  ), [classes, selectedClassId]);
+  const classSubjects = useMemo(() => subjects.filter((subject) => !effectiveClassId || subject.classId === effectiveClassId || !subject.classId), [effectiveClassId, subjects]);
+  const effectiveSubjectId = useMemo(() => (
+    selectedSubjectId && classSubjects.some((subject) => subject.id === selectedSubjectId) ? selectedSubjectId : classSubjects[0]?.id || ''
+  ), [classSubjects, selectedSubjectId]);
+  const selectedClass = useMemo(() => classes.find((klass) => klass.id === effectiveClassId) || null, [classes, effectiveClassId]);
+  const selectedSubject = useMemo(() => subjects.find((subject) => subject.id === effectiveSubjectId) || null, [subjects, effectiveSubjectId]);
+  const visibleClassIds = useMemo(() => new Set(classes.map((klass) => klass.id)), [classes]);
+
+  const enrichedSchedules = useMemo(() => schedules.map((schedule) => {
+    const exam = exams.find((item) => item.id === schedule.examId);
+    const klass = classes.find((item) => item.id === schedule.classId);
+    const subject = subjects.find((item) => item.id === schedule.subjectId);
+    return {
+      ...schedule,
+      examName: schedule.examName || exam?.name || schedule.examId,
+      className: schedule.className || (klass ? classLabel(klass) : schedule.classId),
+      subjectName: schedule.subjectName || (subject ? subjectLabel(subject) : schedule.subjectId),
+    };
+  }), [classes, exams, schedules, subjects]);
+
+  const visibleSchedules = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return enrichedSchedules
+      .filter((schedule) => !effectiveCourseId || visibleClassIds.has(schedule.classId))
+      .filter((schedule) => !needle || [
+        schedule.examName,
+        schedule.className,
+        schedule.subjectName,
+        schedule.room,
+        schedule.status,
+      ].some((value) => String(value || '').toLowerCase().includes(needle)));
+  }, [effectiveCourseId, enrichedSchedules, search, visibleClassIds]);
+
+  const visibleExams = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return exams.filter((exam) => !needle || [
+      exam.name,
+      exam.examType,
+      exam.academicYear,
+      exam.status,
+    ].some((value) => String(value || '').toLowerCase().includes(needle)));
+  }, [exams, search]);
+
+  const matchingSchedule = useMemo(() => visibleSchedules.find((schedule) =>
+    schedule.examId === effectiveExamId &&
+    schedule.classId === effectiveClassId &&
+    schedule.subjectId === effectiveSubjectId
+  ) || null, [effectiveClassId, effectiveExamId, effectiveSubjectId, visibleSchedules]);
+
+  const effectiveMarksMaxMarks = marksMaxMarks !== '' ? marksMaxMarks : matchingSchedule?.maxMarks ?? '';
+
+  const currentMarks = useMemo(() => marks.filter((mark) =>
+    mark.examId === effectiveExamId &&
+    mark.classId === effectiveClassId &&
+    mark.subjectId === effectiveSubjectId
+  ), [effectiveClassId, effectiveExamId, effectiveSubjectId, marks]);
+
+  const classStudents = useMemo(() => students.filter((student) => {
+    if (!effectiveClassId) return true;
+    return student.classId === effectiveClassId || (selectedClass?.name && student.className === selectedClass.name);
+  }), [effectiveClassId, selectedClass, students]);
+
+  const activeMarkSetKey = comboKey({ examId: effectiveExamId, classId: effectiveClassId, subjectId: effectiveSubjectId });
+  const markDrafts = useMemo(() => {
+    const marksByStudent = new Map(currentMarks.map((mark) => [mark.studentId, mark]));
+    return Object.fromEntries(classStudents.map((student) => {
+      const mark = marksByStudent.get(student.id) || {};
+      const override = markDraftOverrides[`${activeMarkSetKey}|${student.id}`] || {};
+      return [student.id, {
+        marksObtained: mark.marksObtained ?? '',
+        absent: Boolean(mark.absent),
+        verified: Boolean(mark.verified),
+        locked: Boolean(mark.locked),
+        ...override,
+      }];
+    }));
+  }, [activeMarkSetKey, classStudents, currentMarks, markDraftOverrides]);
+
+  const verifiedGroups = useMemo(() => new Set(marks.filter((mark) => mark.verified).map(comboKey)).size, [marks]);
+  const marksEntered = useMemo(() => marks.filter((mark) => mark.absent || mark.marksObtained !== null && mark.marksObtained !== undefined && mark.marksObtained !== '').length, [marks]);
+
+  const updateDraft = (studentId, key, value) => {
+    const draftKey = `${activeMarkSetKey}|${studentId}`;
+    setMarkDraftOverrides((current) => ({
+      ...current,
+      [draftKey]: {
+        ...(current[draftKey] || {}),
+        [key]: value,
+        ...(key === 'absent' && value ? { marksObtained: '' } : {}),
+      },
+    }));
+  };
+
+  const chooseExam = (examId) => {
+    setSelectedExamId(examId);
+    setSelectedScheduleId('');
+    setMarksMaxMarks('');
+  };
+
+  const chooseClass = (classId) => {
+    setSelectedClassId(classId);
+    setSelectedSubjectId('');
+    setSelectedScheduleId('');
+    setMarksMaxMarks('');
+  };
+
+  const chooseSubject = (subjectId) => {
+    setSelectedSubjectId(subjectId);
+    setSelectedScheduleId('');
+    setMarksMaxMarks('');
+  };
+
+  const selectSchedule = (scheduleId) => {
+    setSelectedScheduleId(scheduleId);
+    const schedule = visibleSchedules.find((item) => item.id === scheduleId);
+    if (!schedule) {
+      setMarksMaxMarks('');
+      return;
+    }
+    setSelectedExamId(schedule.examId || '');
+    setSelectedClassId(schedule.classId || '');
+    setSelectedSubjectId(schedule.subjectId || '');
+    setMarksMaxMarks(schedule.maxMarks ?? '');
+  };
+
+  const saveExamRecord = async (payload) => {
+    if (!canCreate) {
+      toast.error('You do not have permission to create exams.');
+      return;
+    }
+    const isEdit = Boolean(examModalRecord?.id);
+    setSaving('exam');
     try {
-      const id = await createInternalAssessment(payload);
-      if (!id) throw new Error('Live assessment was not created.');
-      setAssessments((prev) => [{ id, ...payload }, ...prev]);
-      toast.success('Assessment created');
-      setShowAssessmentModal(false);
+      await (isEdit ? updateExam(examModalRecord.id, payload) : createExam(payload));
+      setExamModalRecord(undefined);
+      toast.success(isEdit ? 'Exam updated' : 'Exam created');
+      await loadExaminations();
     } catch (error) {
-      console.error('Unable to create live assessment.', error);
-      toast.error('Assessment was not saved to live data.');
+      toast.error(error?.message || 'Exam was not saved.');
+    } finally {
+      setSaving('');
     }
   };
 
-  const saveMarks = async (form) => {
+  const saveScheduleRecord = async (payload) => {
+    if (!canCreate) {
+      toast.error('You do not have permission to create schedules.');
+      return;
+    }
+    const isEdit = Boolean(scheduleModalRecord?.id);
+    setSaving('schedule');
+    try {
+      await (isEdit ? updateExamSchedule(scheduleModalRecord.id, payload) : createExamSchedule(payload));
+      setScheduleModalRecord(undefined);
+      toast.success(isEdit ? 'Schedule updated' : 'Schedule created');
+      await loadExaminations();
+    } catch (error) {
+      toast.error(error?.message || 'Schedule was not saved.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const archiveExamRecord = async (exam) => {
+    if (!canCreate) {
+      toast.error('You do not have permission to archive exams.');
+      return;
+    }
+    if (!window.confirm(`Archive ${exam.name}?`)) return;
+    setSaving(`exam-${exam.id}`);
+    try {
+      await archiveExam(exam.id);
+      toast.success('Exam archived');
+      await loadExaminations();
+    } catch (error) {
+      toast.error(error?.message || 'Exam was not archived.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const archiveScheduleRecord = async (schedule) => {
+    if (!canCreate) {
+      toast.error('You do not have permission to archive schedules.');
+      return;
+    }
+    if (!window.confirm(`Archive ${scheduleLabel(schedule)}?`)) return;
+    setSaving(`schedule-${schedule.id}`);
+    try {
+      await archiveExamSchedule(schedule.id);
+      toast.success('Schedule archived');
+      await loadExaminations();
+    } catch (error) {
+      toast.error(error?.message || 'Schedule was not archived.');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const saveMarks = async () => {
     if (!canEnterMarks) {
       toast.error('You do not have permission to enter marks.');
       return;
     }
-    const schedule = courseSchedules.find((item) => item.id === form.examScheduleId);
-    const student = courseStudents.find((item) => item.id === form.studentRecordId);
-    const validationMessage = validateMarksEntry({ ...form, maxMarks: schedule?.maxMarks || form.maxMarks });
+    const payload = {
+      examId: effectiveExamId,
+      subjectId: effectiveSubjectId,
+      subjectName: selectedSubject ? subjectLabel(selectedSubject) : undefined,
+      classId: effectiveClassId,
+      maxMarks: effectiveMarksMaxMarks === '' ? undefined : Number(effectiveMarksMaxMarks),
+      entries: classStudents
+        .map((student) => {
+          const draft = markDrafts[student.id] || {};
+          return {
+            studentId: student.id,
+            studentName: student.name || null,
+            marksObtained: draft.absent || draft.marksObtained === '' ? null : Number(draft.marksObtained),
+            absent: Boolean(draft.absent),
+          };
+        })
+        .filter((entry) => entry.absent || entry.marksObtained !== null),
+    };
+    const validationMessage = validateBackendMarks(payload);
     if (validationMessage) {
       toast.error(validationMessage);
       return;
     }
-    const percentage = calculatePercentage(form.marksObtained, schedule.maxMarks);
-    const payload = {
-      examScheduleId: schedule.id,
-      studentRecordId: student.id,
-      studentId: student.studentId,
-      studentName: student.name,
-      classKey: schedule.classKey,
-      subject: schedule.subject,
-      academicYear,
-      marksObtained: Number(form.marksObtained),
-      maxMarks: Number(schedule.maxMarks),
-      percentage,
-      grade: calculateGrade(percentage),
-      status: 'Entered',
-      enteredAtText: formatDisplayDate(),
-    };
-    const existing = courseMarks.find((item) => item.examScheduleId === payload.examScheduleId && item.studentRecordId === payload.studentRecordId);
+    setSaving('marks');
     try {
-      if (existing) {
-        await updateMarksEntry(existing.id, payload);
-        setMarks((prev) => prev.map((item) => item.id === existing.id ? { ...item, ...payload } : item));
-      } else {
-        const id = await createMarksEntry(payload);
-        if (!id) throw new Error('Live marks entry was not created.');
-        setMarks((prev) => [{ id, ...payload }, ...prev]);
-      }
+      await enterMarks(payload);
       toast.success('Marks saved');
+      setMarkDraftOverrides((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith(`${activeMarkSetKey}|`))));
+      await loadExaminations();
     } catch (error) {
-      console.error('Unable to save live marks.', error);
-      toast.error('Marks were not saved to live data.');
+      toast.error(error?.message || 'Marks were not saved.');
     } finally {
-      setShowMarksModal(false);
+      setSaving('');
     }
   };
 
-  const generateResults = async (resultName) => {
-    if (!canGenerateResults) {
-      toast.error('You do not have permission to generate results.');
+  const verifyCurrentMarks = async () => {
+    if (!canVerify) {
+      toast.error('You do not have permission to verify marks.');
       return;
     }
-    const examName = resultName.trim();
-    if (!examName) {
-      toast.error('Result name is required.');
-      return;
-    }
-    const generated = courseStudents.map((student) => {
-      const studentMarks = courseMarks.filter((item) => item.studentRecordId === student.id);
-      const summary = summarizeStudentMarks(studentMarks);
-      return {
-        studentRecordId: student.id,
-        studentId: student.studentId,
-        studentName: student.name,
-        classKey: `${student.className} - ${student.section}`,
-        examName,
-        academicYear,
-        ...summary,
-        status: calculateResultStatus(summary.percentage),
-        generatedAtText: formatDisplayDate(),
-      };
-    }).filter((item) => item.totalMax > 0);
-    if (!generated.length) {
-      toast.error('No marks are available for generating results.');
-      return;
-    }
+    setSaving('verify');
     try {
-      const ids = await Promise.all(generated.map((item) => createStudentResult(item)));
-      if (ids.some((id) => !id)) throw new Error('One or more live results were not created.');
-      setResults((prev) => [...generated.map((item, index) => ({ id: ids[index], ...item })), ...prev]);
-      toast.success('Results generated');
-      setShowResultModal(false);
+      await verifyMarks({ examId: effectiveExamId, subjectId: effectiveSubjectId, classId: effectiveClassId });
+      toast.success('Marks verified');
+      await loadExaminations();
     } catch (error) {
-      console.error('Unable to generate live results.', error);
-      toast.error('Results were not saved to live data.');
+      toast.error(error?.message || 'Marks were not verified.');
+    } finally {
+      setSaving('');
     }
   };
 
-  const generateReportCards = async () => {
-    if (!canGenerateReportCards) {
-      toast.error('You do not have permission to generate report cards.');
+  const unlockCurrentMarks = async () => {
+    if (!canVerify) {
+      toast.error('You do not have permission to unlock marks.');
       return;
     }
-    const cards = courseResults.map((result) => ({
-      studentRecordId: result.studentRecordId,
-      studentId: result.studentId,
-      examName: result.examName,
-      academicYear,
-      status: 'Generated',
-      generatedAtText: formatDisplayDate(),
-    }));
+    setSaving('unlock');
     try {
-      const ids = await Promise.all(cards.map((item) => createReportCard(item)));
-      if (ids.some((id) => !id)) throw new Error('One or more live report cards were not created.');
-      setReportCards((prev) => [...cards.map((item, index) => ({ id: ids[index], ...item })), ...prev]);
-      toast.success('Report cards generated');
+      await unlockMarks({ examId: effectiveExamId, subjectId: effectiveSubjectId, classId: effectiveClassId });
+      toast.success('Marks unlocked');
+      await loadExaminations();
     } catch (error) {
-      console.error('Unable to generate live report cards.', error);
-      toast.error('Report cards were not saved to live data.');
+      toast.error(error?.message || 'Marks were not unlocked.');
+    } finally {
+      setSaving('');
     }
   };
+
+  if (!canView) {
+    return (
+      <div className="erp-exams-page">
+        <EmptyState message="You do not have permission to view examinations." />
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+    <div className="erp-exams-page">
+      <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="text-sm font-bold text-slate-500 mb-2">Academics / <span className="text-[#f39a5f]">Examination & Result Management</span></div>
-          <h1 className="text-2xl font-bold text-slate-900">Examination & Result Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Exam scheduling, internal assessment, marks entry, grade calculation, results, and report cards.</p>
-          {!isFirebaseConfigured && <p className="text-xs text-rose-600 mt-2">Live Firebase data is not configured.</p>}
-          {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
+          <p className="text-[11px] font-bold uppercase text-[#006a62]">Academic Office</p>
+          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Examinations Management</h1>
+          <p className="mt-2 text-sm font-semibold text-[#3f4848]">{effectiveAcademicYear || 'All academic years'}</p>
+          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
         </div>
-      </div>
-
-      {!activeExamTask ? (
-      <>
-      <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-5 mb-5">
-        <section className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h2 className="font-bold text-slate-900">Exam Readiness</h2>
-            <span className="rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-bold text-slate-600">{marksCompletion}% marks entered</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={16} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-full border border-white/40 bg-white/45 pl-10 pr-4 text-sm font-semibold text-[#071e27] outline-none sm:w-72" placeholder="Search exams" />
           </div>
-          <div className="grid sm:grid-cols-4 gap-3 text-sm">
-            {[
-              ['Schedules', courseSchedules.length],
-              ['Marks Entries', courseMarks.length],
-              ['Results', courseResults.length],
-              ['Report Cards', courseReportCards.length],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-[#f5f5f6] p-3">
-                <div className="text-xs text-slate-500">{label}</div>
-                <div className="mt-1 text-2xl font-extrabold text-slate-900">{value}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 space-y-3">
-            {resultDistribution.map((item) => (
-              <div key={item.label}>
-                <div className="flex justify-between text-sm"><span>{item.label}</span><b>{item.value}</b></div>
-                <div className="mt-1 h-2 rounded-full bg-[#f5f5f6] overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${Math.max(4, (item.value / maxResultValue) * 100)}%`, background: item.color }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <h2 className="font-bold text-slate-900 mb-4">Exam Desk Workflow</h2>
-          <div className="space-y-3 text-sm">
-            {['Schedule exams', 'Prepare halls and invigilation', 'Enter subject marks', 'Generate results and report cards'].map((label, index) => (
-              <div key={label} className="flex items-center gap-3 rounded-lg bg-[#f5f5f6] p-3">
-                <span className="h-7 w-7 rounded-full bg-white flex items-center justify-center font-bold text-[#fb8d49]">{index + 1}</span>
-                <span className="font-semibold text-slate-700">{label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-      <div className="grid md:grid-cols-3 gap-4">
-        {examTaskOptions.map((task) => (
-          <button key={task.id} onClick={() => openExamTask(task.id)} className="group min-h-40 text-left rounded-lg border border-slate-100 bg-white p-5 shadow-sm hover:-translate-y-1 transition-all">
-            <div className="flex items-start justify-between gap-4">
-              <div className="h-12 w-12 rounded-lg bg-[#f5f5f6] text-[#34363d] flex items-center justify-center">{task.icon}</div>
-              <ArrowRight size={18} className="text-slate-400 group-hover:text-[#fb8d49]" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 mt-5">{task.title}</h2>
-            <p className="text-sm text-slate-500 mt-2">{task.description}</p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {task.meta.map((item) => (
-                <span key={item} className="rounded-full bg-[#f5f5f6] px-3 py-1 text-xs font-semibold text-slate-600">{item}</span>
-              ))}
-            </div>
+          <button type="button" onClick={loadExaminations} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d]">
+            <RefreshCcw size={16} /> Refresh
           </button>
-        ))}
-      </div>
-      </>
-      ) : !activeExamBranch ? (
-      <>
-      <div className="erp-back-row my-5">
-        <button onClick={goBackOneExamStep} className="erp-back-button h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-sm flex items-center gap-2">
-          <ArrowLeft size={15} /> Back
-        </button>
-      </div>
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5 rounded-lg bg-[#f5f5f6] p-4">
-        <div>
-          <div className="text-xs font-bold text-slate-500">Exams / <span className="text-[#fb8d49]">{activeTask?.title}</span></div>
-          <h2 className="text-lg font-bold text-slate-900 mt-1">Choose next step</h2>
-        </div>
-      </div>
-      <div className="grid md:grid-cols-2 gap-4">
-        {activeBranches.map((branch) => (
-          <button
-            key={branch.id}
-            onClick={() => openExamBranch(branch)}
-            disabled={branch.disabled}
-            className="group min-h-36 text-left rounded-lg border border-slate-100 bg-white p-5 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="h-11 w-11 rounded-lg bg-[#f5f5f6] text-[#34363d] flex items-center justify-center">{branch.icon}</div>
-              <ArrowRight size={17} className="text-slate-400 group-hover:text-[#fb8d49]" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 mt-4">{branch.title}</h3>
-            <p className="text-sm text-slate-500 mt-2">{branch.disabled ? 'Not available right now.' : branch.description}</p>
-          </button>
-        ))}
-      </div>
-      </>
-      ) : (
-      <>
-      <div className="erp-back-row my-5">
-        <button onClick={goBackOneExamStep} className="erp-back-button h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-sm flex items-center gap-2">
-          <ArrowLeft size={15} /> Back
-        </button>
-      </div>
-      <div className="erp-branch-focus flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 rounded-lg bg-[#f5f5f6] p-5 border border-slate-100">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="erp-branch-icon h-16 w-16 rounded-lg bg-white text-[#fb8d49] flex items-center justify-center shrink-0">{activeBranch?.icon}</div>
-          <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold text-slate-900">{activeBranch?.title}</h2>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {activeExamBranch === 'create-schedule' && canSchedule && (
-            <button onClick={() => setShowScheduleModal(true)} className="h-10 px-4 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm flex items-center gap-2"><Plus size={16} /> Open Form</button>
+          {canCreate && (
+            <button type="button" onClick={() => (activeTab === 'schedules' ? setScheduleModalRecord(null) : setExamModalRecord(null))} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white">
+              <Plus size={16} /> {activeTab === 'schedules' ? 'New Schedule' : 'Create Exam'}
+            </button>
           )}
         </div>
       </div>
 
-      {['generate-results', 'report-cards', 'internal-assessment'].includes(activeExamBranch) ? (
-        <div className="max-w-3xl">
-          <ResultsPanel marks={courseMarks} results={courseResults} reportCards={courseReportCards} />
-          <div className="grid sm:grid-cols-2 gap-3 mt-5">
-            {activeExamBranch === 'internal-assessment' && (
-              <button onClick={() => setShowAssessmentModal(true)} disabled={!canAssess} className="h-11 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Create Assessment</button>
-            )}
-            {activeExamBranch === 'generate-results' && (
-              <button onClick={() => setShowResultModal(true)} disabled={!canGenerateResults} className="h-11 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Generate Results</button>
-            )}
-            {activeExamBranch === 'report-cards' && (
-              <button onClick={generateReportCards} disabled={!canGenerateReportCards} className="h-11 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Generate Report Cards</button>
-            )}
-          </div>
-        </div>
-      ) : (
-      <div className="flex flex-col xl:flex-row gap-5">
-        <div className="xl:w-[68%] min-w-0">
-          <div className="relative mb-4">
-            <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search exams, classes, subjects, faculty..." className="w-full h-11 rounded-lg bg-[#f0f0f2] border-0 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-orange-100" />
-          </div>
-          <ExamScheduleTable schedules={filteredSchedules} canEdit={canSchedule} showActions={false} selectedId={selectedScheduleId} onSelect={setSelectedScheduleId} onEdit={setEditingSchedule} />
-        </div>
-        <aside className="xl:w-[32%] erp-sticky-inspector">
-          {selectedSchedule ? (
-            <div className="erp-selected-detail bg-white border border-slate-100 rounded-lg p-5 shadow-sm">
-              <h3 className="font-bold text-slate-900">{selectedSchedule.examName}</h3>
-              <p className="text-xs text-slate-500 mt-1">{selectedSchedule.classKey} | {selectedSchedule.subject}</p>
-              <div className="grid grid-cols-2 gap-3 text-sm mt-5">
-                <div className="rounded-lg bg-[#f5f5f6] p-3"><div className="text-xs text-slate-500">Date</div><b>{selectedSchedule.examDate}</b></div>
-                <div className="rounded-lg bg-[#f5f5f6] p-3"><div className="text-xs text-slate-500">Max Marks</div><b>{selectedSchedule.maxMarks}</b></div>
-                <div className="rounded-lg bg-[#f5f5f6] p-3"><div className="text-xs text-slate-500">Faculty</div><b>{selectedSchedule.facultyName || '-'}</b></div>
-                <div className="rounded-lg bg-[#f5f5f6] p-3"><div className="text-xs text-slate-500">Marks</div><b>{selectedScheduleMarks.length}</b></div>
-              </div>
-              {activeExamBranch === 'review-schedules' && (
-                <button onClick={() => setEditingSchedule(selectedSchedule)} disabled={!canSchedule} className="mt-5 w-full h-10 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Edit Schedule</button>
-              )}
-              {activeExamBranch === 'review-marks' && (
-                <button onClick={() => setShowMarksModal(true)} disabled={!canEnterMarks} className="mt-5 w-full h-10 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Enter Marks</button>
-              )}
-              {activeExamBranch === 'enter-marks' && (
-                <button onClick={() => setShowMarksModal(true)} disabled={!canEnterMarks} className="mt-5 w-full h-10 rounded-full bg-[#fb9a5b] text-white font-semibold text-sm disabled:bg-slate-300">Open Marks Entry</button>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm text-sm text-slate-600 min-h-72 flex flex-col items-center justify-center text-center">
-              <div className="h-14 w-14 rounded-lg bg-[#f5f5f6] text-[#fb8d49] flex items-center justify-center mb-4">{activeBranch?.icon}</div>
-              <h3 className="font-bold text-slate-900 mb-2">Exam Details</h3>
-              <p>{filteredSchedules.length ? 'Click an exam schedule row to view details and available actions.' : 'No matching exam schedules found.'}</p>
-            </div>
-          )}
-        </aside>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard icon={<BookOpenCheck size={20} className="text-[#006a62]" />} label="Exams" loading={loading} value={exams.length} />
+        <SummaryCard icon={<CalendarDays size={20} className="text-[#006a62]" />} label="Schedules" loading={loading} value={visibleSchedules.length} />
+        <SummaryCard icon={<ClipboardList size={20} className="text-[#006a62]" />} label="Marks Entries" loading={loading} value={marksEntered} />
+        <SummaryCard icon={<ShieldCheck size={20} className="text-[#006a62]" />} label="Verified Sets" loading={loading} value={verifiedGroups} />
       </div>
-      )}
-      </>
+
+      <div className="my-5 flex flex-wrap gap-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cx(
+                'inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition',
+                activeTab === tab.id ? 'bg-[#004d4d] text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-white/45 text-[#004d4d]'
+              )}
+            >
+              <Icon size={16} /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === 'exams' && (
+        <ExamsTable
+          canCreate={canCreate}
+          exams={visibleExams}
+          loading={loading}
+          onArchive={archiveExamRecord}
+          onEdit={setExamModalRecord}
+        />
       )}
 
-      {showScheduleModal && <ExamScheduleModal classOptions={classOptions} faculty={faculty} onClose={() => setShowScheduleModal(false)} onSave={saveSchedule} />}
-      {editingSchedule && <ExamScheduleModal mode="edit" initialSchedule={editingSchedule} classOptions={classOptions} faculty={faculty} onClose={() => setEditingSchedule(null)} onSave={saveSchedule} />}
-      {showMarksModal && <MarksEntryModal schedules={courseSchedules} students={courseStudents} onClose={() => setShowMarksModal(false)} onSave={saveMarks} />}
-      {showAssessmentModal && <AssessmentModal schedules={courseSchedules} onClose={() => setShowAssessmentModal(false)} onSave={createAssessment} />}
-      {showResultModal && <ResultNameModal onClose={() => setShowResultModal(false)} onSave={generateResults} />}
+      {activeTab === 'schedules' && (
+        <SchedulesTable
+          canCreate={canCreate}
+          loading={loading}
+          onArchive={archiveScheduleRecord}
+          onEdit={setScheduleModalRecord}
+          schedules={visibleSchedules}
+        />
+      )}
+
+      {activeTab === 'marks' && (
+        <MarksPanel
+          canEnterMarks={canEnterMarks}
+          canVerify={canVerify}
+          classes={classes}
+          currentMarks={currentMarks}
+          drafts={markDrafts}
+          exams={exams}
+          loading={loading}
+          maxMarks={effectiveMarksMaxMarks}
+          onSave={saveMarks}
+          onSelectSchedule={selectSchedule}
+          onSetMaxMarks={setMarksMaxMarks}
+          onUnlock={unlockCurrentMarks}
+          onUpdateDraft={updateDraft}
+          onVerify={verifyCurrentMarks}
+          schedules={visibleSchedules}
+          selectedClassId={effectiveClassId}
+          selectedExamId={effectiveExamId}
+          selectedScheduleId={selectedScheduleId}
+          selectedSubjectId={effectiveSubjectId}
+          setSelectedClassId={chooseClass}
+          setSelectedExamId={chooseExam}
+          setSelectedSubjectId={chooseSubject}
+          students={classStudents}
+          subjects={subjects}
+          saving={Boolean(saving)}
+        />
+      )}
+
+      {examModalRecord !== undefined && (
+        <ExamModal
+          academicYear={effectiveAcademicYear}
+          initialRecord={examModalRecord}
+          onClose={() => setExamModalRecord(undefined)}
+          onSave={saveExamRecord}
+          saving={saving === 'exam'}
+        />
+      )}
+
+      {scheduleModalRecord !== undefined && (
+        <ScheduleModal
+          academicYear={effectiveAcademicYear}
+          classes={classes}
+          exams={exams}
+          initialRecord={scheduleModalRecord}
+          onClose={() => setScheduleModalRecord(undefined)}
+          onSave={saveScheduleRecord}
+          saving={saving === 'schedule'}
+          subjects={subjects}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,9 @@ import {
   calculatePercentage,
   calculateResultStatus,
   summarizeStudentMarks,
+  validateBackendExam,
+  validateBackendMarks,
+  validateBackendSchedule,
   validateExamSchedule,
   validateMarksEntry,
 } from '../src/modules/exams/examUtils.js';
@@ -45,5 +48,38 @@ assert.equal(validateMarksEntry({
   marksObtained: 101,
   maxMarks: 100,
 }), 'Marks cannot exceed max marks.');
+
+assert.equal(validateBackendExam({}), 'Exam name is required.');
+assert.equal(validateBackendExam({
+  name: 'Mid Term',
+  examType: 'Mid Term',
+  startDate: '2026-06-25',
+  endDate: '2026-06-28',
+}), '');
+
+assert.equal(validateBackendSchedule({}), 'Exam is required.');
+assert.equal(validateBackendSchedule({
+  examId: 'exam-1',
+  classId: 'class-1',
+  subjectId: 'subject-1',
+  maxMarks: 100,
+  passingMarks: 101,
+}), 'Passing marks cannot exceed max marks.');
+
+assert.equal(validateBackendMarks({ examId: 'exam-1', classId: 'class-1', subjectId: 'subject-1', entries: [] }), 'At least one marks entry is required.');
+assert.equal(validateBackendMarks({
+  examId: 'exam-1',
+  classId: 'class-1',
+  subjectId: 'subject-1',
+  maxMarks: 100,
+  entries: [{ studentId: 'student-1', marksObtained: 101, absent: false }],
+}), 'Marks cannot exceed max marks.');
+assert.equal(validateBackendMarks({
+  examId: 'exam-1',
+  classId: 'class-1',
+  subjectId: 'subject-1',
+  maxMarks: 100,
+  entries: [{ studentId: 'student-1', marksObtained: null, absent: true }],
+}), '');
 
 console.log('Exam tests passed.');

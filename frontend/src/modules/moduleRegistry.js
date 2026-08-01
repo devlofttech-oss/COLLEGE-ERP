@@ -121,7 +121,7 @@ export const moduleRegistry = [
     group: 'Daily Work',
     icon: TrendingUp,
     status: 'active',
-    permission: 'exams.view',
+    permission: ['examinations.view', 'examinations.viewOwn'],
   },
   {
     id: 'communication',

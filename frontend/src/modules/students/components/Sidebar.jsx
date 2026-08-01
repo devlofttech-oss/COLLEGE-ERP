@@ -112,7 +112,9 @@ export default function Sidebar({ activePage, activeSubmenuId = '', collapsed = 
         icon: <BookOpenCheck size={16} />,
         moduleId: 'reports',
         state: { reportCategory: 'exams' },
-        enabled: canAccess(defaultRoles, currentRoleId, 'exams.view') || canAccess(defaultRoles, currentRoleId, 'exams.results'),
+        enabled:
+          canAccess(defaultRoles, currentRoleId, ['examinations.view', 'examinations.viewOwn']) ||
+          canAccess(defaultRoles, currentRoleId, ['results.view', 'results.viewOwn']),
       },
       {
         id: 'financial',

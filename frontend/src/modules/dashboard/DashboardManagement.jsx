@@ -122,7 +122,7 @@ export default function DashboardManagement({ academicYear = '', currentUser, on
   const canViewFees = canAccess(defaultRoles, currentRoleId, 'fees.view');
   const canViewDocuments = canAccess(defaultRoles, currentRoleId, 'documents.view');
   const canVerifyDocuments = canAccess(defaultRoles, currentRoleId, 'documents.verify');
-  const canViewExams = canAccess(defaultRoles, currentRoleId, 'exams.view');
+  const canViewExams = canAccess(defaultRoles, currentRoleId, ['examinations.view', 'examinations.viewOwn']);
   const canViewFinancialReports = canAccessFinancialReports(defaultRoles, currentRoleId);
   const {
     students = [],
