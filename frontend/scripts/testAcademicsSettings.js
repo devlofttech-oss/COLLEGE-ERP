@@ -9,12 +9,22 @@ import {
   validateSubject,
 } from '../src/modules/academics/academicUtils.js';
 import {
-  buildNextId,
+  countConfiguredSecrets,
+  formatDisplayDate,
   summarizeSettings,
-  validateAcademicYearSettings,
-  validateInstituteSettings,
+  toDateTimeInputValue,
+  validateBackupSettings,
+  validateBrandingSettings,
+  validateInstitutionSettings,
+  validateIntegrationsSettings,
 } from '../src/modules/settings/settingsUtils.js';
-import { normalizeInstituteSettings } from '../src/modules/settings/settingsModel.js';
+import {
+  normalizeBackupSettings,
+  normalizeBrandingSettings,
+  normalizeInstituteSettings,
+  normalizeInstitutionSettings,
+  normalizeIntegrationSettings,
+} from '../src/modules/settings/settingsModel.js';
 
 assert.equal(buildClassKey({ className: 'Class XII', section: 'A' }), 'Class XII - A');
 assert.deepEqual(summarizeAcademics([{}], [{}, {}], [{}], [{ status: 'Published' }, { status: 'Draft' }]), {
@@ -33,23 +43,40 @@ assert.equal(validateBatch({ className: 'Class XII', section: 'A', programName: 
 assert.equal(validateCalendarEvent({}), 'Event title is required.');
 assert.equal(validateCalendarEvent({ title: 'Orientation', eventDate: '2026-06-01', eventType: 'Academic' }), '');
 
-assert.equal(buildNextId('ADM-{year}-{number}', 7), 'ADM-2026-00007');
 assert.deepEqual(
-  summarizeSettings({ name: 'College', email: 'admin@college.edu' }, { name: '2026-2027' }, { student: 'STU-{number}' }, { a: true, b: false }),
+  summarizeSettings(
+    { name: 'College', email: 'admin@college.edu', academicYear: '2026-2027' },
+    { primaryColor: '#004d4d' },
+    { smsProvider: 'twilio', emailApiKeySet: true },
+    { schedule: 'weekly', retentionDays: 14 },
+  ),
   {
-    instituteConfigured: true,
+    institutionConfigured: true,
     academicYear: '2026-2027',
-    idFormats: 1,
-    enabledDefaults: 1,
+    brandingConfigured: true,
+    providersConfigured: 1,
+    secretsConfigured: 1,
+    backupSchedule: 'weekly',
+    retentionDays: 14,
   }
 );
-assert.equal(normalizeInstituteSettings({ name: 'DB College', code: 'DBC' }).name, 'DB College');
-assert.equal(normalizeInstituteSettings({ name: 'DB College', code: 'DBC' }).instituteId, 'DBC');
-assert.equal(validateInstituteSettings({}), 'Institute name is required.');
-assert.equal(validateInstituteSettings({ name: 'College', email: 'bad', phone: '123' }), 'Valid institute email is required.');
-assert.equal(validateInstituteSettings({ name: 'College', email: 'admin@college.edu', phone: '123' }), '');
-assert.equal(validateAcademicYearSettings({}), 'Academic year name is required.');
-assert.equal(validateAcademicYearSettings({ name: '2026', startsOn: '2026-06-01', endsOn: '2026-05-01' }), 'End date cannot be before start date.');
-assert.equal(validateAcademicYearSettings({ name: '2026', startsOn: '2026-06-01', endsOn: '2027-03-31' }), '');
+assert.equal(formatDisplayDate('2026-06-01'), '01 Jun 2026');
+assert.equal(toDateTimeInputValue('2026-06-01T10:30:00.000Z').length, 16);
+assert.equal(countConfiguredSecrets({ smsApiKeySet: true, emailApiKeySet: false, paymentKeySecretSet: true }), 2);
+assert.equal(normalizeInstitutionSettings({ name: 'DB College', registrationNumber: 'DBC' }).name, 'DB College');
+assert.equal(normalizeInstituteSettings({ name: 'DB College', registrationNumber: 'DBC' }).instituteId, 'DBC');
+assert.equal(normalizeBrandingSettings({}).primaryColor, '#004d4d');
+assert.equal(normalizeIntegrationSettings({ smsProvider: 'twilio' }).smsProvider, 'twilio');
+assert.equal(normalizeBackupSettings({}).schedule, 'daily');
+assert.equal(validateInstitutionSettings({}), 'Institution name is required.');
+assert.equal(validateInstitutionSettings({ name: 'College', email: 'bad' }), 'Valid institution email is required.');
+assert.equal(validateInstitutionSettings({ name: 'College', email: 'admin@college.edu' }), '');
+assert.equal(validateBrandingSettings({ primaryColor: 'teal' }), 'Primary color must be a hex value.');
+assert.equal(validateBrandingSettings({ primaryColor: '#004d4d', secondaryColor: '#66d9cc' }), '');
+assert.equal(validateIntegrationsSettings({ emailFrom: 'bad' }), 'Valid sender email is required.');
+assert.equal(validateIntegrationsSettings({ emailFrom: 'admin@college.edu' }), '');
+assert.equal(validateBackupSettings({}), 'Backup schedule is required.');
+assert.equal(validateBackupSettings({ schedule: 'daily', retentionDays: -1 }), 'Retention days cannot be negative.');
+assert.equal(validateBackupSettings({ schedule: 'daily', retentionDays: 7 }), '');
 
 console.log('Academics and settings tests passed.');

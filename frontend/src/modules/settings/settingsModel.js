@@ -1,54 +1,107 @@
-export function normalizeInstituteSettings(institute = {}) {
+export const emptyInstitutionSettings = {
+  name: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  academicYear: '',
+  affiliation: '',
+  registrationNumber: '',
+};
+
+export const emptyBrandingSettings = {
+  logoKey: '',
+  logoUrl: '',
+  primaryColor: '#004d4d',
+  secondaryColor: '#66d9cc',
+  theme: '',
+  receiptHeader: '',
+  reportCardTemplate: '',
+  idCardTemplate: '',
+};
+
+export const emptyIntegrationSettings = {
+  smsSenderId: '',
+  smsProvider: '',
+  whatsappProvider: '',
+  emailProvider: '',
+  emailFrom: '',
+  paymentProvider: '',
+  storageProvider: '',
+};
+
+export const secretIntegrationFields = [
+  'smsApiKey',
+  'whatsappApiKey',
+  'emailApiKey',
+  'paymentKeyId',
+  'paymentKeySecret',
+  'fcmServerKey',
+];
+
+export const emptyBackupSettings = {
+  schedule: 'daily',
+  retentionDays: 7,
+  externalTarget: '',
+  lastBackupAt: '',
+};
+
+function normalizeTimestamp(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (value?._seconds) return new Date(value._seconds * 1000).toISOString();
+  if (value?.seconds) return new Date(value.seconds * 1000).toISOString();
+  return String(value);
+}
+
+export function normalizeInstitutionSettings(institution = {}) {
   return {
-    ...emptyInstituteSettings,
-    ...institute,
-    name: institute.name || '',
-    instituteId: institute.instituteId || institute.code || '',
-    code: institute.code || institute.instituteId || '',
+    ...emptyInstitutionSettings,
+    ...institution,
+    name: institution.name || '',
+    email: institution.email || '',
+    phone: institution.phone || '',
+    address: institution.address || '',
+    academicYear: institution.academicYear || '',
+    registrationNumber: institution.registrationNumber || '',
   };
 }
 
-const emptyInstituteSettings = {
-  id: 'institute',
-  name: '',
-  instituteId: '',
-  code: '',
-  logoUrl: '',
-  logoFileName: '',
-  email: '',
-  phone: '',
-  address: '',
-  city: '',
-  status: '',
-  updatedAtText: '',
-};
+export function normalizeInstituteSettings(institution = {}) {
+  const normalized = normalizeInstitutionSettings(institution);
+  return {
+    ...normalized,
+    instituteId: institution.instituteId || institution.code || normalized.registrationNumber || '',
+    code: institution.code || institution.instituteId || normalized.registrationNumber || '',
+    city: institution.city || '',
+    logoUrl: institution.logoUrl || '',
+    logoFileName: institution.logoFileName || '',
+    status: institution.status || '',
+    updatedAtText: institution.updatedAtText || '',
+  };
+}
 
-export const emptyAcademicYearSettings = {
-  id: 'academic-year',
-  name: '',
-  startsOn: '',
-  endsOn: '',
-  status: '',
-  updatedAtText: '',
-};
+export function normalizeBrandingSettings(branding = {}) {
+  return {
+    ...emptyBrandingSettings,
+    ...branding,
+    primaryColor: branding.primaryColor || emptyBrandingSettings.primaryColor,
+    secondaryColor: branding.secondaryColor || emptyBrandingSettings.secondaryColor,
+  };
+}
 
-export const emptyIdFormatSettings = {
-  id: 'id-formats',
-  student: '',
-  admission: '',
-  employee: '',
-  receipt: '',
-  updatedAtText: '',
-};
+export function normalizeIntegrationSettings(integrations = {}) {
+  return {
+    ...emptyIntegrationSettings,
+    ...integrations,
+  };
+}
 
-export const emptyModuleDefaultSettings = {
-  id: 'module-defaults',
-  studentAdmissions: false,
-  staffLeave: false,
-  timetablePublishing: false,
-  parentPortal: false,
-  onlinePayments: false,
-  receiptGeneration: false,
-  communicationModule: false,
-  updatedAtText: '',
-};
+export function normalizeBackupSettings(backup = {}) {
+  return {
+    ...emptyBackupSettings,
+    ...backup,
+    retentionDays: backup.retentionDays ?? emptyBackupSettings.retentionDays,
+    lastBackupAt: normalizeTimestamp(backup.lastBackupAt),
+  };
+}
