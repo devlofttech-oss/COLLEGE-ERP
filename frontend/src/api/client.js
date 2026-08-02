@@ -32,7 +32,13 @@ export async function apiRequest(path, options = {}) {
   const data = contentType.includes('application/json') ? await response.json().catch(() => null) : await response.text();
 
   if (!response.ok) {
-    const message = data?.message || data?.error || response.statusText || 'Request failed.';
+    const nestedError = data?.error;
+    const message =
+      data?.message ||
+      nestedError?.message ||
+      (typeof nestedError === 'string' ? nestedError : '') ||
+      response.statusText ||
+      'Request failed.';
     throw new ApiClientError(message, { status: response.status, data });
   }
 
