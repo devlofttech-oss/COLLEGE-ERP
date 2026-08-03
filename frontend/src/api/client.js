@@ -1,6 +1,25 @@
-const DEFAULT_API_BASE_URL = import.meta.env.DEV ? 'http://localhost:4000/api' : '/api';
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, '');
+const isBrowser = typeof window !== 'undefined';
+const isLocalBrowser = isBrowser && LOCAL_HOSTNAMES.has(window.location.hostname);
+const DEFAULT_API_BASE_URL = isLocalBrowser ? 'http://localhost:4000/api' : '/api';
+
+function shouldIgnoreConfiguredBaseUrl(value) {
+  if (!value || !isBrowser || isLocalBrowser) return false;
+  try {
+    const url = new URL(value, window.location.origin);
+    return LOCAL_HOSTNAMES.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+const effectiveApiBaseUrl = shouldIgnoreConfiguredBaseUrl(configuredApiBaseUrl)
+  ? DEFAULT_API_BASE_URL
+  : configuredApiBaseUrl || DEFAULT_API_BASE_URL;
+
+export const API_BASE_URL = effectiveApiBaseUrl.replace(/\/$/, '');
 
 export class ApiClientError extends Error {
   constructor(message, { status, data } = {}) {
