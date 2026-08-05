@@ -1,7 +1,7 @@
 // Academics: the academic structure everything else references — academic years,
 // courses, classes, sections, subjects and teacher allocation (Spec §7.6).
 
-import { repo } from '../../utils/firestore.js';
+import { repo, institutionCollection } from '../../utils/firestore.js';
 import { pick, requireFields, oneOf, toBool } from '../../utils/validate.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { db } from '../../config/firebase.js';
@@ -111,8 +111,9 @@ export async function setCurrentAcademicYear(id, actor) {
   const year = await repos.academicYears.getByIdOrFail(id);
   const all = await repos.academicYears.list({ includeArchived: true });
   const batch = db.batch();
+  const col = institutionCollection('academicYears');
   for (const y of all) {
-    batch.update(db.collection('academicYears').doc(y.id), { isCurrent: y.id === id });
+    batch.update(col.doc(y.id), { isCurrent: y.id === id });
   }
   await batch.commit();
   return { ...year, isCurrent: true };

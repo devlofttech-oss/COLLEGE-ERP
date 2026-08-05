@@ -1,9 +1,11 @@
-// Role + permission resolution. Defaults come from config/permissions.js; admins
-// can override a role's permission set at runtime, stored per-role in the
-// `rolePermissions` collection (doc id === role id). Overrides fully replace the
+// Role + permission resolution. Defaults come from config/permissions.js; each
+// institution can override a role's permission set at runtime, stored per-tenant
+// in `institutions/{id}/rolePermissions/{role}`. Overrides fully replace the
 // default set for that role when present.
+//
+// institutionId is passed EXPLICITLY (not via ALS) because resolvePermissions
+// runs during auth, before the request's institution context is established.
 
-import { db } from '../../config/firebase.js';
 import {
   ROLE_LIST,
   ALL_PERMISSIONS,
@@ -11,20 +13,21 @@ import {
   defaultPermissionsForRole,
   isValidRole,
 } from '../../config/permissions.js';
+import { institutionCollectionFor } from '../../utils/firestore.js';
 import { ApiError } from '../../utils/ApiError.js';
 
 const OVERRIDE_COLLECTION = 'rolePermissions';
 
-async function getOverride(role) {
-  if (!db) return null;
-  const doc = await db.collection(OVERRIDE_COLLECTION).doc(role).get();
+async function getOverride(role, institutionId) {
+  if (!institutionId) return null; // super-admin / no tenant → defaults only
+  const doc = await institutionCollectionFor(institutionId, OVERRIDE_COLLECTION).doc(role).get();
   return doc.exists ? doc.data() : null;
 }
 
-// The effective permission list for a role (override if present, else default).
-export async function resolvePermissionsForRole(role) {
+// The effective permission list for a role in a given institution.
+export async function resolvePermissionsForRole(role, institutionId = null) {
   if (!role || !isValidRole(role)) return [];
-  const override = await getOverride(role);
+  const override = await getOverride(role, institutionId);
   if (override?.permissions && Array.isArray(override.permissions)) {
     return override.permissions;
   }
@@ -32,11 +35,11 @@ export async function resolvePermissionsForRole(role) {
 }
 
 // All roles with their effective permissions + the default (for the UI editor).
-export async function listRolesWithPermissions() {
+export async function listRolesWithPermissions(institutionId = null) {
   return Promise.all(
     ROLE_LIST.map(async (role) => ({
       ...role,
-      permissions: await resolvePermissionsForRole(role.id),
+      permissions: await resolvePermissionsForRole(role.id, institutionId),
       defaultPermissions: defaultPermissionsForRole(role.id),
     })),
   );
@@ -46,9 +49,9 @@ export function getPermissionCatalog() {
   return { groups: PERMISSIONS, all: ALL_PERMISSIONS };
 }
 
-// Persist a permission-set override for a role (super-admin / admin only).
-export async function setRolePermissions(role, permissions, actor) {
-  if (!db) throw new ApiError(503, 'Firestore is not configured.');
+// Persist a permission-set override for a role in an institution.
+export async function setRolePermissions(role, permissions, actor, institutionId) {
+  if (!institutionId) throw ApiError.badRequest('An institution must be selected to edit role permissions.');
   if (!isValidRole(role)) throw ApiError.badRequest(`Unknown role: ${role}`);
   if (!Array.isArray(permissions)) throw ApiError.badRequest('permissions must be an array.');
 
@@ -57,19 +60,19 @@ export async function setRolePermissions(role, permissions, actor) {
     throw ApiError.badRequest(`Unknown permissions: ${invalid.join(', ')}`);
   }
 
-  await db.collection(OVERRIDE_COLLECTION).doc(role).set({
+  await institutionCollectionFor(institutionId, OVERRIDE_COLLECTION).doc(role).set({
     role,
     permissions,
     updatedBy: actor?.uid || null,
     updatedAt: new Date().toISOString(),
   });
-  return resolvePermissionsForRole(role);
+  return resolvePermissionsForRole(role, institutionId);
 }
 
-// Reset a role to its default permission set.
-export async function resetRolePermissions(role) {
-  if (!db) throw new ApiError(503, 'Firestore is not configured.');
+// Reset a role to its default permission set (remove the override).
+export async function resetRolePermissions(role, institutionId) {
+  if (!institutionId) throw ApiError.badRequest('An institution must be selected.');
   if (!isValidRole(role)) throw ApiError.badRequest(`Unknown role: ${role}`);
-  await db.collection(OVERRIDE_COLLECTION).doc(role).delete();
+  await institutionCollectionFor(institutionId, OVERRIDE_COLLECTION).doc(role).delete();
   return defaultPermissionsForRole(role);
 }

@@ -3,7 +3,7 @@
 // card data + history. Report-card PDF rendering is handled by the PDF service.
 
 import { db } from '../../config/firebase.js';
-import { repo } from '../../utils/firestore.js';
+import { repo, institutionCollection } from '../../utils/firestore.js';
 import { requireFields, pick } from '../../utils/validate.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordAudit } from '../../services/audit.service.js';
@@ -78,7 +78,7 @@ export async function processResults(body, actor) {
 
   // Upsert one result doc per student per exam.
   const batch = db.batch();
-  const col = db.collection('results');
+  const col = institutionCollection('results');
   for (const r of rows) {
     batch.set(col.doc(`${examId}_${r.studentId}`), {
       examId, classId, academicYear: academicYear || null,
@@ -107,7 +107,7 @@ export async function publishResults(body, actor) {
   const list = await results.list({ where: [['examId', '==', body.examId], ['classId', '==', body.classId]] });
   if (!list.length) throw ApiError.badRequest('No processed results to publish. Process results first.');
   const batch = db.batch();
-  for (const r of list) batch.update(db.collection('results').doc(r.id), { published: true, locked: true, publishedAt: new Date().toISOString() });
+  for (const r of list) batch.update(institutionCollection('results').doc(r.id), { published: true, locked: true, publishedAt: new Date().toISOString() });
   await batch.commit();
   recordAudit({ action: 'results.publish', entity: 'result', actor, meta: { ...body, count: list.length } });
   return { ...body, published: list.length };
@@ -118,7 +118,7 @@ export async function setLock(body, locked, actor) {
   if (!db) throw new ApiError(503, 'Firestore is not configured.');
   const list = await results.list({ where: [['examId', '==', body.examId], ['classId', '==', body.classId]] });
   const batch = db.batch();
-  for (const r of list) batch.update(db.collection('results').doc(r.id), { locked, ...(locked ? {} : { published: false }) });
+  for (const r of list) batch.update(institutionCollection('results').doc(r.id), { locked, ...(locked ? {} : { published: false }) });
   await batch.commit();
   return { ...body, locked, count: list.length };
 }

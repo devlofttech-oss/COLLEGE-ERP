@@ -36,8 +36,26 @@ import { settingsRouter } from './modules/settings/settings.routes.js';
 import { reportsRouter } from './modules/reports/reports.routes.js';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
 import { portalRouter } from './modules/portal/portal.routes.js';
+import { institutionsRouter } from './modules/institutions/institutions.routes.js';
+import { placementsRouter } from './modules/placements/placements.routes.js';
+import { requireAuth } from './middleware/auth.js';
+import { asyncHandler } from './utils/asyncHandler.js';
+
+// Current tenant's config — the contract the frontend uses to build its sidebar,
+// gate routes, and apply branding. requireAuth has already loaded req.institution.
+apiRouter.get('/institution/config', requireAuth, asyncHandler(async (req, res) => {
+  const inst = req.institution || null;
+  res.json({
+    institutionId: req.institutionId || null,
+    name: inst?.name || null,
+    enabledModules: inst?.enabledModules || [],
+    featureFlags: inst?.featureFlags || {},
+    branding: inst?.branding || {},
+  });
+}));
 
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/institutions', institutionsRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/roles', rolesRouter);
 apiRouter.use('/files', filesRouter);
@@ -55,3 +73,4 @@ apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/reports', reportsRouter);
 apiRouter.use('/dashboard', dashboardRouter);
 apiRouter.use('/my', portalRouter);
+apiRouter.use('/placements', placementsRouter);

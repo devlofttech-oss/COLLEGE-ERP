@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './examinations.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const examinationsRouter = Router();
-examinationsRouter.use(requireAuth);
+examinationsRouter.use(requireAuth, requireModule('examinations'));
 
 const VIEW = requirePermission('examinations.view', 'examinations.viewOwn');
 const CREATE = requirePermission('examinations.create');

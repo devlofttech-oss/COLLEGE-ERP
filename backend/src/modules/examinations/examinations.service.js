@@ -2,7 +2,7 @@
 // marks, marks entry, and verification that locks marks before result processing.
 
 import { db, admin } from '../../config/firebase.js';
-import { repo } from '../../utils/firestore.js';
+import { repo, institutionCollection } from '../../utils/firestore.js';
 import { pick, requireFields, oneOf } from '../../utils/validate.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordAudit } from '../../services/audit.service.js';
@@ -54,7 +54,7 @@ export async function enterMarks(body, actor) {
   if (existingVerified.length) throw ApiError.conflict('Marks are verified/locked for this exam-subject-class. Unlock before editing.');
 
   const batch = db.batch();
-  const col = db.collection('marks');
+  const col = institutionCollection('marks');
   for (const e of entries) {
     if (!e.studentId) throw ApiError.badRequest('Each entry needs a studentId.');
     batch.set(col.doc(`${examId}_${subjectId}_${e.studentId}`), {
@@ -86,7 +86,7 @@ export async function verifyMarks(body, actor) {
   const list = await listMarks(body);
   if (!list.length) throw ApiError.badRequest('No marks found to verify for this selection.');
   const batch = db.batch();
-  for (const m of list) batch.update(db.collection('marks').doc(m.id), { verified: true, locked: true, verifiedBy: actor?.uid || null, verifiedAt: admin.firestore.FieldValue.serverTimestamp() });
+  for (const m of list) batch.update(institutionCollection('marks').doc(m.id), { verified: true, locked: true, verifiedBy: actor?.uid || null, verifiedAt: admin.firestore.FieldValue.serverTimestamp() });
   await batch.commit();
   recordAudit({ action: 'examinations.verifyMarks', entity: 'marks', actor, meta: { ...body, count: list.length } });
   return { ...body, verified: list.length };
@@ -97,7 +97,7 @@ export async function unlockMarks(body, actor) {
   if (!db) throw new ApiError(503, 'Firestore is not configured.');
   const list = await listMarks(body);
   const batch = db.batch();
-  for (const m of list) batch.update(db.collection('marks').doc(m.id), { verified: false, locked: false });
+  for (const m of list) batch.update(institutionCollection('marks').doc(m.id), { verified: false, locked: false });
   await batch.commit();
   recordAudit({ action: 'examinations.unlockMarks', entity: 'marks', actor, meta: body });
   return { ...body, unlocked: list.length };

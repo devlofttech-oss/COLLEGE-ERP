@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './communication.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const communicationRouter = Router();
-communicationRouter.use(requireAuth);
+communicationRouter.use(requireAuth, requireModule('communication'));
 
 const VIEW = requirePermission('communication.view');
 const CREATE = requirePermission('communication.create');

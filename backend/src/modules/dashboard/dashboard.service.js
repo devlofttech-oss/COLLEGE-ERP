@@ -3,7 +3,7 @@
 // scale these should move to maintained counters — noted in PROGRESS.md.
 
 import { db } from '../../config/firebase.js';
-import { repo } from '../../utils/firestore.js';
+import { repo, institutionCollection, institutionCollectionFor } from '../../utils/firestore.js';
 import { ApiError } from '../../utils/ApiError.js';
 
 const students = repo('students');
@@ -88,6 +88,33 @@ export async function overview() {
 
 export async function recentActivities(limit = 20) {
   if (!db) throw new ApiError(503, 'Firestore is not configured.');
-  const snap = await db.collection('auditLogs').orderBy('at', 'desc').limit(Number(limit) || 20).get();
+  const snap = await institutionCollection('auditLogs').orderBy('at', 'desc').limit(Number(limit) || 20).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Cross-tenant overview for the Devloft super-admin: totals per institution.
+// Iterates the institutions registry (Devloft-scale = few colleges) rather than a
+// collectionGroup query, so it needs no extra indexes.
+export async function platformOverview() {
+  if (!db) throw new ApiError(503, 'Firestore is not configured.');
+  const instSnap = await db.collection('institutions').get();
+  const perInstitution = await Promise.all(
+    instSnap.docs.map(async (doc) => {
+      const id = doc.id;
+      const inst = doc.data();
+      const [students, staffCount] = await Promise.all([
+        institutionCollectionFor(id, 'students').where('archived', '==', false).count().get().catch(() => null),
+        institutionCollectionFor(id, 'staffMembers').where('archived', '==', false).count().get().catch(() => null),
+      ]);
+      return {
+        institutionId: id,
+        name: inst.name || null,
+        status: inst.status || null,
+        enabledModules: inst.enabledModules || [],
+        students: students ? students.data().count : null,
+        staff: staffCount ? staffCount.data().count : null,
+      };
+    }),
+  );
+  return { institutions: perInstitution.length, perInstitution };
 }

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as ctrl from './students.controller.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { idCardData } from './students.service.js';
@@ -8,7 +9,7 @@ import { generateIdCard } from '../../services/pdf.service.js';
 import { getInstitution } from '../settings/settings.service.js';
 
 export const studentsRouter = Router();
-studentsRouter.use(requireAuth);
+studentsRouter.use(requireAuth, requireModule('students'));
 
 const VIEW = requirePermission('students.view');
 const CREATE = requirePermission('students.create');

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './reports.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const reportsRouter = Router();
-reportsRouter.use(requireAuth);
+reportsRouter.use(requireAuth, requireModule('reports'));
 
 const VIEW = requirePermission('reports.view');
 const EXPORT = requirePermission('reports.export', 'reports.view');

@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { repos, validators, setCurrentAcademicYear, getCurrentAcademicYear } from './academics.service.js';
 import { crudController } from '../../utils/crudController.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const academicsRouter = Router();
-academicsRouter.use(requireAuth);
+academicsRouter.use(requireAuth, requireModule('academics'));
 
 const VIEW = requirePermission('academics.view');
 const MANAGE = requirePermission('academics.manage');

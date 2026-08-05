@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './attendance.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const attendanceRouter = Router();
-attendanceRouter.use(requireAuth);
+attendanceRouter.use(requireAuth, requireModule('attendance'));
 
 const VIEW = requirePermission('attendance.view');
 const MARK = requirePermission('attendance.mark');

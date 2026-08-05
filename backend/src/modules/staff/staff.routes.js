@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './staff.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const staffRouter = Router();
-staffRouter.use(requireAuth);
+staffRouter.use(requireAuth, requireModule('staff'));
 
 const VIEW = requirePermission('staff.view');
 const CREATE = requirePermission('staff.create');

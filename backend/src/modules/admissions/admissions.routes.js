@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './admissions.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const admissionsRouter = Router();
-admissionsRouter.use(requireAuth);
+admissionsRouter.use(requireAuth, requireModule('admissions'));
 
 const VIEW = requirePermission('admissions.view');
 const CREATE = requirePermission('admissions.create');

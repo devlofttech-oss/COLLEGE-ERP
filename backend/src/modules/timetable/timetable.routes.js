@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import * as service from './timetable.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const timetableRouter = Router();
-timetableRouter.use(requireAuth);
+timetableRouter.use(requireAuth, requireModule('timetable'));
 
 const VIEW = requirePermission('timetable.view', 'timetable.viewOwn');
 const MANAGE = requirePermission('timetable.manage');

@@ -8,6 +8,7 @@ import { repo } from '../../utils/firestore.js';
 import { pick, requireFields, oneOf } from '../../utils/validate.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordAudit } from '../../services/audit.service.js';
+import { getFeatureFlag } from '../../utils/institutionContext.js';
 
 const feeHeads = repo('feeHeads');
 const feeStructures = repo('feeStructures');
@@ -15,6 +16,19 @@ const feeAssignments = repo('feeAssignments');
 const feePayments = repo('feePayments');
 
 const PAYMENT_MODES = ['Cash', 'UPI', 'Card', 'Online', 'Cheque', 'NetBanking'];
+
+// Per-college customization example: fine rounding is driven by the institution's
+// `fineRounding` feature flag — NOT by a hardcoded college id. Any college that
+// wants this behavior just sets the flag; the code path is shared.
+function applyFineRounding(amount) {
+  const rule = getFeatureFlag('fineRounding', 'none');
+  if (!amount) return amount;
+  switch (rule) {
+    case 'nearest10': return Math.round(amount / 10) * 10;
+    case 'up10': return Math.ceil(amount / 10) * 10;
+    default: return amount;
+  }
+}
 
 function generateReceiptNumber() {
   return `REC-${Date.now().toString().slice(-8)}`;
@@ -79,7 +93,7 @@ export async function collectFee(body, actor) {
   oneOf(body.paymentMode, PAYMENT_MODES, 'paymentMode');
   const amount = Number(body.amount) || 0;
   const discount = Number(body.discount) || 0;
-  const fine = Number(body.fine) || 0;
+  const fine = applyFineRounding(Number(body.fine) || 0); // per-college rounding rule
   if (amount <= 0 && discount <= 0) throw ApiError.badRequest('Payment amount must be greater than zero.');
 
   const receiptNumber = generateReceiptNumber();

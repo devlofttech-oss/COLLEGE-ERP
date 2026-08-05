@@ -2,25 +2,21 @@
 // backup settings. Stored as fixed docs in the `settings` collection. Integration
 // secrets are write-through but masked on read.
 
-import { db, admin } from '../../config/firebase.js';
+import { admin } from '../../config/firebase.js';
+import { institutionCollection } from '../../utils/firestore.js';
 import { pick } from '../../utils/validate.js';
-import { ApiError } from '../../utils/ApiError.js';
 import { recordAudit } from '../../services/audit.service.js';
 
+// Per-tenant settings live in `institutions/{id}/settings/{docId}`.
 const COLLECTION = 'settings';
 
-function assertDb() {
-  if (!db) throw new ApiError(503, 'Firestore is not configured.');
-  return db;
-}
-
 async function getDoc(id, fallback = {}) {
-  const snap = await assertDb().collection(COLLECTION).doc(id).get();
+  const snap = await institutionCollection(COLLECTION).doc(id).get();
   return snap.exists ? snap.data() : fallback;
 }
 
 async function setDoc(id, data, actor) {
-  await assertDb().collection(COLLECTION).doc(id).set({
+  await institutionCollection(COLLECTION).doc(id).set({
     ...data,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedBy: actor?.uid || null,

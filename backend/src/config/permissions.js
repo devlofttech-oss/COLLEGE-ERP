@@ -65,6 +65,9 @@ export const PERMISSIONS = {
   settings: ['settings.view', 'settings.manage'],
   users: ['users.view', 'users.manage'],
   roles: ['roles.view', 'roles.manage'],
+  // Custom/bespoke modules (off by default; enabled per-institution). Admin +
+  // super-admin get these via the all() grant.
+  placements: ['placements.view', 'placements.manage'],
 };
 
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS).flat();

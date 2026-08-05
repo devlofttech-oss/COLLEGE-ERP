@@ -1,5 +1,35 @@
 # Backend Build Progress
 
+## ✅ Multi-tenancy + per-institution customization (LIVE-VERIFIED, 16/16)
+
+One shared deployment serves all colleges. Verified end-to-end against real Firebase
+(`scripts/verifyMultiTenant.js` — provisions 2 tenants, proves isolation/toggle/custom-
+module/feature-flag/tenant-hop guard, then cleans up).
+
+**How it works**
+- Tenant data → subcollections `institutions/{id}/{collection}`. Global collections: `institutions`, `users`.
+- Per-request tenant context via `AsyncLocalStorage` (`src/utils/institutionContext.js`), set inside
+  `requireAuth`. `repo()` + `institutionCollection()` resolve the right tenant path transparently.
+- `repo.list` sends only equality filters to Firestore and does ordering/ranges/limit in memory →
+  **no composite indexes to manage**.
+- Devloft `super-admin` (institutionId=null) provisions tenants + toggles modules:
+  `POST /api/institutions`, `PATCH /api/institutions/:id/modules|features`, `GET /api/dashboard/platform`.
+- Module gating: `requireModule('x')` on each business router → 403 `module-disabled` if not in the
+  tenant's `enabledModules` (super-admin bypasses). Frontend reads `GET /api/institution/config`.
+
+**Adding / customizing features (the payoff)**
+- New standard module → build with `repo()`, add to `STANDARD_MODULES` (`src/config/modules.js`).
+- Custom module for one client → build it (see `src/modules/placements/` reference), add to
+  `CUSTOM_MODULES`, enable per-tenant via `enabledModules`. Auto tenant-scoped, isolated.
+- Modify an existing feature for one college → branch on CONFIG, never on a college id:
+  `getFeatureFlag('key')` (see fee `fineRounding` in `src/modules/fees/fees.service.js`), or a
+  per-tenant `settings`/`branding` value. Any college enables it by setting the flag.
+
+**First super-admin:** `node scripts/createSuperAdmin.js <email> <password>` then `POST /api/institutions`.
+
+---
+
+
 Single backend API for the College ERP (web + mobile frontends).
 **Stack:** Node.js + Express (ESM) · Firebase Admin (Firestore + Auth) · Cloudflare R2 (files) · deploy to Vercel serverless.
 

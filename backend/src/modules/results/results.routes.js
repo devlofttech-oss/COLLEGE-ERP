@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import * as service from './results.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { generateReportCard } from '../../services/pdf.service.js';
 import { getInstitution } from '../settings/settings.service.js';
 
 export const resultsRouter = Router();
-resultsRouter.use(requireAuth);
+resultsRouter.use(requireAuth, requireModule('results'));
 
 const VIEW = requirePermission('results.view', 'results.viewOwn');
 const PROCESS = requirePermission('results.process');

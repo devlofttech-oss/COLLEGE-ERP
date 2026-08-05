@@ -79,8 +79,8 @@ export async function updateAuthUser(uid, updates) {
   return assertAuth().updateUser(uid, updates);
 }
 
-export async function setUserRoleClaim(uid, role) {
-  await assertAuth().setCustomUserClaims(uid, { role });
+export async function setUserRoleClaim(uid, role, institutionId = null) {
+  await assertAuth().setCustomUserClaims(uid, { role, institutionId });
 }
 
 export async function revokeSessions(uid) {

@@ -5,7 +5,7 @@
 // re-marking the same day is idempotent (upsert).
 
 import { db, admin } from '../../config/firebase.js';
-import { repo } from '../../utils/firestore.js';
+import { repo, institutionCollection } from '../../utils/firestore.js';
 import { requireFields, oneOf } from '../../utils/validate.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { recordAudit } from '../../services/audit.service.js';
@@ -26,7 +26,7 @@ export async function markStudentAttendance(body, actor) {
   if (!Array.isArray(entries) || !entries.length) throw ApiError.badRequest('entries must be a non-empty array.');
 
   const batch = assertDb().batch();
-  const col = db.collection('attendanceRecords');
+  const col = institutionCollection('attendanceRecords');
   for (const e of entries) {
     if (!e.studentId) throw ApiError.badRequest('Each entry needs a studentId.');
     oneOf(e.status, STATUSES, 'status');
@@ -59,7 +59,7 @@ export async function markStaffAttendance(body, actor) {
   requireFields(body, ['date', 'entries']);
   const { date, entries } = body;
   const batch = assertDb().batch();
-  const col = db.collection('staffAttendanceRecords');
+  const col = institutionCollection('staffAttendanceRecords');
   for (const e of entries) {
     if (!e.staffId) throw ApiError.badRequest('Each entry needs a staffId.');
     oneOf(e.status, STATUSES, 'status');

@@ -33,6 +33,7 @@ function publicUser(uid, email, profile, permissions) {
     uid,
     email,
     role: profile?.role || null,
+    institutionId: profile?.institutionId || null,
     status: profile?.status || 'active',
     name: profile?.name || profile?.displayName || null,
     permissions,
@@ -54,7 +55,7 @@ export const login = asyncHandler(async (req, res) => {
   const { cookie, expiresIn } = await createSessionCookie(idToken);
   res.cookie(SESSION_COOKIE_NAME, cookie, cookieOptions(expiresIn));
 
-  const permissions = await resolvePermissionsForRole(profile?.role);
+  const permissions = await resolvePermissionsForRole(profile?.role, profile?.institutionId || null);
   recordAudit({ action: 'auth.login', entity: 'user', entityId: uid, actor: { uid, email: verifiedEmail, role: profile?.role } });
 
   res.json({ user: publicUser(uid, verifiedEmail, profile, permissions) });

@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import * as service from './fees.service.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { requireModule } from '../../middleware/requireModule.js';
 import { requirePermission } from '../../middleware/requirePermission.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { generateReceipt } from '../../services/pdf.service.js';
 import { getInstitution } from '../settings/settings.service.js';
 
 export const feesRouter = Router();
-feesRouter.use(requireAuth);
+feesRouter.use(requireAuth, requireModule('fees'));
 
 const VIEW = requirePermission('fees.view');
 const STRUCTURE = requirePermission('fees.structure');
