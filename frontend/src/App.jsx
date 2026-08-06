@@ -4,6 +4,7 @@ import { Building2, GraduationCap } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
 import LegalPage from './pages/LegalPage';
 import StudentInformationManagement from './modules/students/StudentInformationManagement';
+import SuperAdminConsole from './modules/superAdmin/SuperAdminConsole';
 import { getCurrentSession, logoutSession } from './api/auth';
 import { getInstitutionSettings, getBrandingSettings } from './api/settings';
 import { normalizeInstituteSettings } from './modules/settings/settingsModel';
@@ -94,6 +95,7 @@ function WorkspaceGate({
   user,
 }) {
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'super-admin') return <SuperAdminConsole user={user} onLogout={onLogout} />;
   if (!hasActiveProfile) return <AccessPending user={user} onLogout={onLogout} />;
   if (needsCollegeSelection) return <CollegeSelection colleges={colleges} onSelect={onSelectCollege} />;
   return <StudentInformationManagement user={{ ...user, selectedCollege }} onLogout={onLogout} />;
