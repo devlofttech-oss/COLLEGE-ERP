@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PasswordInput } from '../../components/ui';
 import { listStudents } from '../../api/students';
 import {
   archiveUser,
@@ -92,16 +93,18 @@ function EmptyState({ message }) {
 }
 
 function TextField({ disabled, label, onChange, type = 'text', value }) {
+  const inputProps = {
+    value: value || '',
+    onChange: (event) => onChange(event.target.value),
+    disabled,
+    className: textInputClass,
+  };
   return (
     <label>
       <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
-      <input
-        type={type}
-        value={value || ''}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        className={textInputClass}
-      />
+      {type === 'password'
+        ? <PasswordInput {...inputProps} />
+        : <input type={type} {...inputProps} />}
     </label>
   );
 }

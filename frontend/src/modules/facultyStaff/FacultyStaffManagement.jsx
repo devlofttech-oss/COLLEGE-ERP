@@ -23,6 +23,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PasswordInput } from '../../components/ui';
 import { presignUpload, uploadPresignedFile } from '../../api/files';
 import {
   addStaffDocument,
@@ -540,7 +541,7 @@ function LoginModal({ staffMember, onClose, onSave }) {
           </label>
           <label>
             <span className="mb-1.5 block text-xs font-bold text-slate-500">Password *</span>
-            <input type="password" value={form.password} onChange={(event) => update('password', event.target.value)} className={inputClass} />
+            <PasswordInput value={form.password} onChange={(event) => update('password', event.target.value)} className={inputClass} />
           </label>
           <label>
             <span className="mb-1.5 block text-xs font-bold text-slate-500">Backend Role *</span>

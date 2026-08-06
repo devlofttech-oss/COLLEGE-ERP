@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PasswordInput } from '../../components/ui';
 import {
   createInstitution,
   listInstitutions,
@@ -224,7 +225,7 @@ function CreateModal({ onClose, onCreated }) {
             <input className={inputCls} type="email" value={form.adminEmail} onChange={e => set('adminEmail', e.target.value)} placeholder="admin@college.edu" />
           </Field>
           <Field label="Admin Password" error={errors.adminPassword}>
-            <input className={inputCls} type="password" value={form.adminPassword} onChange={e => set('adminPassword', e.target.value)} placeholder="Min. 8 characters" />
+            <PasswordInput className={inputCls} value={form.adminPassword} onChange={e => set('adminPassword', e.target.value)} placeholder="Min. 8 characters" />
           </Field>
         </div>
       </div>

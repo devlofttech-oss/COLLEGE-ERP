@@ -2,6 +2,29 @@
 // like one clean product (solid rounded tiles, soft shadows, generous spacing).
 // Styling lives in index.css (.tt-*).
 
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+
+// Password input with show/hide toggle.
+export function PasswordInput({ className = '', ...props }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input {...props} type={show ? 'text' : 'password'} className={`${className} pr-10`} />
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        onClick={() => setShow(s => !s)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink-2 transition-colors"
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
+
+
 // A soft white card with an optional header (title + action link/button).
 export function Card({ title, action, children, className = '', bodyClassName = '' }) {
   return (

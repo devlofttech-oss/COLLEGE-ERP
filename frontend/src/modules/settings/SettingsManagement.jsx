@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { PasswordInput } from '../../components/ui';
 import {
   getBackupSettings,
   getBrandingSettings,
@@ -212,8 +213,7 @@ function SecretField({ clear, disabled, field, onClearChange, onValueChange, set
           {set ? 'Set' : 'Missing'}
         </span>
       </div>
-      <input
-        type="password"
+      <PasswordInput
         value={value || ''}
         onChange={(event) => onValueChange(event.target.value)}
         disabled={disabled || clear}
