@@ -137,7 +137,7 @@ function assignmentTotal(assignment = {}) {
 
 function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitle, title }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/40 p-4">
+    <div className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/40 p-4">
       <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)]', maxWidth)}>
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
@@ -1101,8 +1101,8 @@ export default function FeesManagement({
       )}
 
       {selectedReceipt && (
-        <button type="button" aria-label="Close receipt" onClick={() => setSelectedReceipt(null)} className="fixed inset-0 z-[70] bg-slate-900/30">
-          <aside className="fixed right-0 top-0 z-[80] flex h-screen w-full max-w-lg flex-col overflow-hidden bg-white text-left shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <button type="button" aria-label="Close receipt" onClick={() => setSelectedReceipt(null)} className="fixed inset-0 z-70 bg-slate-900/30">
+          <aside className="fixed right-0 top-0 z-80 flex h-screen w-full max-w-lg flex-col overflow-hidden bg-white text-left shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between bg-brand-700 px-6 py-5 text-white">
               <div>
                 <p className="text-xs font-semibold text-white/70">Receipt</p>
@@ -1148,7 +1148,7 @@ function CollectionsPanel({ assignments, canCollect, canReceipt, loading, onColl
           <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-215 text-sm">
             <thead className="bg-slate-50 text-left border-b border-slate-100">
               <tr>
                 <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Student</th>
@@ -1198,7 +1198,7 @@ function CollectionsPanel({ assignments, canCollect, canReceipt, loading, onColl
 
       <aside className="tt-card p-5">
         <p className="text-[11px] font-bold uppercase text-slate-500">Payment History</p>
-        <div className="mt-4 max-h-[640px] space-y-3 overflow-y-auto pr-1">
+        <div className="mt-4 max-h-160 space-y-3 overflow-y-auto pr-1">
           {payments.map((payment) => (
             <div key={payment.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -1271,7 +1271,7 @@ function StructuresPanel({ canStructure, loading, onAdd, onArchive, onRestore, o
         {canStructure && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Add Structure</button>}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[840px] text-sm">
+        <table className="w-full min-w-210 text-sm">
           <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fee</th>
@@ -1322,7 +1322,7 @@ function AssignmentsPanel({ assignments, canAssign, canCollect, loading, onAssig
         {canAssign && <button type="button" onClick={onAssign} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Assign Fee</button>}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px] text-sm">
+        <table className="w-full min-w-220 text-sm">
           <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Student</th>
@@ -1378,7 +1378,7 @@ function DuesPanel({ canCollect, canRemind, dues, loading, onCollect, onSend, se
         )}
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[780px] text-sm">
+        <table className="w-full min-w-195 text-sm">
           <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Select</th>
