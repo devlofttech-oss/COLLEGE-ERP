@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>College ERP — User Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #2E8C97;
+    --brand-dark: #1B6B74;
+    --brand-darker: #0F4A52;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-500: #64748b;
+    --slate-300: #cbd5e1;
+    --slate-100: #f1f5f9;
+    --slate-50: #f8fafc;
+    --emerald: #059669;
+    --amber: #d97706;
+    --rose: #e11d48;
+    --purple: #7c3aed;
+  }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--slate-50);
+    color: var(--slate-700);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── Sidebar ── */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px; min-height: 100vh;
+    background: var(--brand-darker);
+    color: #e2e8f0;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    font-size: 17px; font-weight: 800;
+    color: #fff; letter-spacing: -.3px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-logo span { color: var(--brand); }
+  .sidebar-subtitle { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.45); letter-spacing: .5px; margin-top: 2px; }
+  .sidebar-section { padding: 16px 12px 4px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.35); }
+  .sidebar a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,.7); text-decoration: none;
+    border-radius: 8px; margin: 1px 8px;
+    transition: background .15s, color .15s;
+  }
+  .sidebar a:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .sidebar a.active { background: rgba(255,255,255,.12); color: #fff; }
+  .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); flex-shrink: 0; }
+
+  /* ── Main ── */
+  .main { flex: 1; min-width: 0; }
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--slate-100);
+    padding: 16px 40px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-size: 22px; font-weight: 800; color: var(--slate-900); }
+  .topbar-sub { font-size: 12px; color: var(--slate-500); margin-top: 1px; }
+  .audit-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ecfdf5; border: 1px solid #a7f3d0;
+    color: #065f46; font-size: 12px; font-weight: 700;
+    padding: 4px 12px; border-radius: 999px;
+  }
+  .audit-warn {
+    background: #fffbeb; border-color: #fde68a; color: #92400e;
+  }
+
+  .content { padding: 40px; max-width: 900px; }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff; border: 1px solid var(--slate-100);
+    border-radius: 16px; margin-bottom: 32px; overflow: hidden;
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 20px 24px; border-bottom: 1px solid var(--slate-100);
+    background: var(--slate-50);
+  }
+  .card-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--brand); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .card-icon.amber { background: #f59e0b; }
+  .card-icon.emerald { background: #10b981; }
+  .card-icon.rose { background: #f43f5e; }
+  .card-icon.purple { background: #8b5cf6; }
+  .card-icon.slate { background: #475569; }
+  .card-icon.sky { background: #0ea5e9; }
+  .card-icon.indigo { background: #6366f1; }
+  .card-icon.pink { background: #ec4899; }
+  .card-title { font-size: 17px; font-weight: 800; color: var(--slate-900); }
+  .card-subtitle { font-size: 12px; color: var(--slate-500); margin-top: 1px; }
+  .card-body { padding: 24px; }
+
+  /* ── Steps ── */
+  .steps { list-style: none; }
+  .steps li {
+    display: flex; gap: 14px; margin-bottom: 14px;
+  }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--brand); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-text { flex: 1; font-size: 14px; }
+  .step-text strong { color: var(--slate-900); }
+
+  /* ── Roles ── */
+  .roles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .role-tag {
+    font-size: 11px; font-weight: 700; padding: 3px 10px;
+    border-radius: 999px; border: 1px solid;
+  }
+  .role-admin { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+  .role-teacher { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+  .role-student { background: #fdf4ff; border-color: #e9d5ff; color: #7e22ce; }
+  .role-parent { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+  .role-accountant { background: #fefce8; border-color: #fde68a; color: #92400e; }
+  .role-super { background: #fdf2f8; border-color: #fbcfe8; color: #9d174d; }
+
+  /* ── Feature list ── */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .feature {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 13px; padding: 10px 12px;
+    background: var(--slate-50); border: 1px solid var(--slate-100);
+    border-radius: 10px;
+  }
+  .feature-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
+
+  /* ── Note boxes ── */
+  .note {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px 14px; border-radius: 10px;
+    font-size: 13px; margin: 12px 0;
+    border: 1px solid;
+  }
+  .note-icon { font-size: 16px; flex-shrink: 0; }
+  .note.info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+  .note.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .note.danger { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+  .note.tip { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+
+  /* ── Audit section ── */
+  .audit-section {
+    background: #fff; border: 1px solid var(--slate-100);
+    border-radius: 16px; padding: 24px; margin-bottom: 32px;
+  }
+  .audit-title { font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .audit-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--slate-100);
+    font-size: 13px;
+  }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-status {
+    font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 999px; flex-shrink: 0; margin-top: 2px;
+  }
+  .status-ok { background: #ecfdf5; color: #065f46; }
+  .status-warn { background: #fffbeb; color: #92400e; }
+  .status-gap { background: #fff1f2; color: #9f1239; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--slate-50); color: var(--slate-500); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--slate-100); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--slate-100); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  code { background: var(--slate-100); color: var(--brand-dark); font-size: 12px; padding: 1px 5px; border-radius: 4px; font-family: monospace; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--brand-darker) 0%, var(--brand-dark) 60%, var(--brand) 100%);
+    color: #fff; padding: 48px 40px; margin-bottom: 0;
+  }
+  .hero h1 { font-size: 32px; font-weight: 900; letter-spacing: -.5px; margin-bottom: 8px; }
+  .hero p { font-size: 15px; color: rgba(255,255,255,.75); max-width: 600px; }
+  .hero-meta { margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+  .hero-chip {
+    font-size: 12px; font-weight: 700; padding: 5px 14px;
+    border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
+    color: rgba(255,255,255,.85);
+  }
+
+  h2 { font-size: 22px; font-weight: 800; color: var(--slate-900); margin: 32px 0 12px; }
+  h3 { font-size: 15px; font-weight: 700; color: var(--slate-900); margin: 20px 0 8px; }
+  p { margin-bottom: 10px; }
+  ul { padding-left: 18px; margin-bottom: 10px; }
+  ul li { margin-bottom: 4px; font-size: 14px; }
+
+  .divider { border: none; border-top: 1px solid var(--slate-100); margin: 32px 0; }
+
+  .toc { display: flex; flex-direction: column; gap: 2px; padding: 16px; }
+  .toc a { font-size: 13px; color: rgba(255,255,255,.6); text-decoration: none; padding: 5px 8px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+  .toc a:hover { background: rgba(255,255,255,.06); color: #fff; }
+
+  .module-num { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.35); width: 18px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    College <span>ERP</span>
+    <div class="sidebar-subtitle">USER GUIDE v1.0</div>
+  </div>
+  <div class="toc">
+    <div style="padding: 8px 8px 2px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.3);">Getting Started</div>
+    <a href="#getting-started"><span class="module-num">—</span> Overview & Roles</a>
+    <a href="#login"><span class="module-num">—</span> Login & Auth</a>
+    <div style="padding: 8px 8px 2px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.3); margin-top: 8px;">Modules</div>
+    <a href="#dashboard"><span class="module-num">01</span> Dashboard</a>
+    <a href="#students"><span class="module-num">02</span> Students</a>
+    <a href="#fees"><span class="module-num">03</span> Fees</a>
+    <a href="#attendance"><span class="module-num">04</span> Attendance</a>
+    <a href="#academics"><span class="module-num">05</span> Academics</a>
+    <a href="#staff"><span class="module-num">06</span> Faculty & Staff</a>
+    <a href="#timetable"><span class="module-num">07</span> Timetable</a>
+    <a href="#examinations"><span class="module-num">08</span> Examinations</a>
+    <a href="#results"><span class="module-num">09</span> Results</a>
+    <a href="#communication"><span class="module-num">10</span> Notices</a>
+    <a href="#admissions"><span class="module-num">11</span> Admissions</a>
+    <a href="#placements"><span class="module-num">12</span> Placements</a>
+    <a href="#reports"><span class="module-num">13</span> Reports</a>
+    <a href="#settings"><span class="module-num">14</span> Settings</a>
+    <a href="#users-roles"><span class="module-num">15</span> Users & Roles</a>
+    <a href="#portal"><span class="module-num">16</span> My Portal</a>
+    <a href="#files"><span class="module-num">17</span> Files</a>
+    <div style="padding: 8px 8px 2px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.3); margin-top: 8px;">Audit</div>
+    <a href="#audit"><span class="module-num">—</span> System Audit Report</a>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>College ERP — User Guide</h1>
+    <p>Complete reference for all modules. Covers what each module does, who can use it, how to perform every common task, and known system gaps.</p>
+    <div class="hero-meta">
+      <div class="hero-chip">17 Modules</div>
+      <div class="hero-chip">8 User Roles</div>
+      <div class="hero-chip">Audit Included</div>
+      <div class="hero-chip">Backend: Express + Firebase</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ── Getting Started ─────────────────────────────────── -->
+  <h2 id="getting-started">Getting Started</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon slate">👥</div>
+      <div>
+        <div class="card-title">User Roles</div>
+        <div class="card-subtitle">Who can do what in this system</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Role</th><th>Typical Person</th><th>Default Access</th></tr></thead>
+        <tbody>
+          <tr><td><span class="role-tag role-super">super-admin</span></td><td>Devloft platform admin</td><td>Everything — all institutions, all modules, all data</td></tr>
+          <tr><td><span class="role-tag role-admin">admin</span></td><td>College administrator</td><td>All modules within their institution</td></tr>
+          <tr><td><span class="role-tag role-admin">principal</span></td><td>College principal</td><td>View access across all modules, limited edits</td></tr>
+          <tr><td><span class="role-tag role-teacher">teacher</span></td><td>Faculty member</td><td>Attendance, marks entry, timetable, My Portal</td></tr>
+          <tr><td><span class="role-tag role-accountant">accountant</span></td><td>Accounts staff</td><td>Fees collection, receipts, dues reports</td></tr>
+          <tr><td><span class="role-tag role-admin">admissions-officer</span></td><td>Admissions staff</td><td>Enquiries, applications, approvals</td></tr>
+          <tr><td><span class="role-tag role-parent">parent</span></td><td>Student parent/guardian</td><td>My Portal only — fees, attendance, results for linked students</td></tr>
+          <tr><td><span class="role-tag role-student">student</span></td><td>Enrolled student</td><td>My Portal only — own fees, attendance, results, timetable</td></tr>
+        </tbody>
+      </table>
+      <div class="note info" style="margin-top: 16px;">
+        <span class="note-icon">ℹ️</span>
+        <div>Role permissions can be customised per institution by an admin under <strong>Users & Roles → Roles</strong>. The table above shows defaults.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Login ─────────────────────────────────────────────── -->
+  <h2 id="login">Login & Authentication</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔐</div>
+      <div>
+        <div class="card-title">Signing In</div>
+        <div class="card-subtitle">Session cookie auth — no tokens stored in browser</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Open the ERP URL in your browser and you will land on the <strong>Login</strong> page.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter your <strong>email address</strong> and <strong>password</strong> assigned by your administrator.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Sign In</strong>. The system authenticates with Firebase and sets an <strong>HTTP-only session cookie</strong> — you will never see a raw token.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">You are redirected to the <strong>Dashboard</strong>. The sidebar shows only the modules enabled for your institution and allowed by your role.</span></li>
+      </ol>
+
+      <h3>Forgot Password</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Click <strong>Forgot password?</strong> on the login page.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter your email address and click <strong>Send reset link</strong>.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Check your inbox for a Firebase password-reset email. The system does not reveal whether the email exists.</span></li>
+      </ol>
+
+      <h3>Signing Out</h3>
+      <p>Click your avatar/name in the top-right corner and choose <strong>Sign out</strong>. Your session cookie is cleared immediately.</p>
+
+      <div class="note warn">
+        <span class="note-icon">⚠️</span>
+        <div><strong>Known gap:</strong> A "Sign out of all devices" button exists in the backend but has no UI yet. If you suspect a compromised session, contact your administrator to reset your Firebase credentials.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Dashboard ──────────────────────────────────────────── -->
+  <h2 id="dashboard">01 — Dashboard</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon sky">📊</div>
+      <div>
+        <div class="card-title">Dashboard</div>
+        <div class="card-subtitle">At-a-glance overview of institution activity</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+        <span class="role-tag role-teacher">teacher</span>
+        <span class="role-tag role-accountant">accountant</span>
+      </div>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">🎓</span>Total students, active vs alumni count</div>
+        <div class="feature"><span class="feature-icon">💰</span>Fees collected today vs pending dues</div>
+        <div class="feature"><span class="feature-icon">📅</span>Today's attendance snapshot</div>
+        <div class="feature"><span class="feature-icon">🕐</span>Recent activity feed (last 20 actions)</div>
+      </div>
+      <div class="note tip">
+        <span class="note-icon">✅</span>
+        <div>The dashboard loads automatically on login. Hit <strong>Refresh</strong> to pull the latest numbers without reloading the page.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Students ──────────────────────────────────────────── -->
+  <h2 id="students">02 — Students</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon emerald">🎓</div>
+      <div>
+        <div class="card-title">Student Management</div>
+        <div class="card-subtitle">Complete student lifecycle — enroll, track, promote, export</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+        <span class="role-tag role-teacher">teacher (view)</span>
+      </div>
+
+      <h3>Enrolling a New Student</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Students</strong> in the sidebar.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Click <strong>Add Student</strong> (top-right). A form slides in.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Fill in <strong>Admission</strong> details (admission number, date, academic year), <strong>Student</strong> info (name, gender, DOB), <strong>Academic Placement</strong> (course, class, section), and <strong>Parents & Guardian</strong> info.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Click <strong>Save</strong>. The student appears in the list immediately.</span></li>
+      </ol>
+
+      <h3>Searching & Filtering</h3>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">🔍</span>Search by name, admission no., or roll no.</div>
+        <div class="feature"><span class="feature-icon">📚</span>Filter by Academic Year, Course, Class, Section</div>
+        <div class="feature"><span class="feature-icon">⚡</span>Filter by Status (active / alumni / transferred)</div>
+        <div class="feature"><span class="feature-icon">📦</span>Toggle "Include Archived" to see deactivated records</div>
+      </div>
+
+      <h3>Viewing a Student Profile</h3>
+      <p>Click any row in the table to open the <strong>student drawer</strong> on the right. It has tabs:</p>
+      <ul>
+        <li><strong>Profile</strong> — personal, academic, and guardian details</li>
+        <li><strong>Documents</strong> — photo, Aadhar, TC, certificates. You can upload, verify, or reject each doc.</li>
+        <li><strong>Placement History</strong> — record of promotions and transfers</li>
+        <li><strong>ID Card</strong> — generate and download a PDF ID card</li>
+      </ul>
+
+      <h3>Promoting / Transferring a Student</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Open the student drawer and click <strong>Move / Promote</strong> in the footer.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Choose action: <strong>Promote</strong> (move to next class/year) or <strong>Transfer</strong> (to another institution).</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Select the target Academic Year, Class, and Section. Add a reason. Click <strong>Save</strong>.</span></li>
+      </ol>
+
+      <h3>Bulk Import</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Click <strong>Import</strong> (top-right).</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Paste or upload a JSON/CSV array of student records.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Import</strong>. Invalid rows are skipped; valid ones are created.</span></li>
+      </ol>
+
+      <h3>Exporting</h3>
+      <p>Click <strong>Export</strong> — a CSV file downloads with the current filter applied.</p>
+
+      <div class="note info">
+        <span class="note-icon">ℹ️</span>
+        <div>Archiving a student hides them from normal lists but does not delete the record. Use <strong>Restore</strong> from the drawer footer to reactivate.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Fees ──────────────────────────────────────────── -->
+  <h2 id="fees">03 — Fees</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon amber">💰</div>
+      <div>
+        <div class="card-title">Fee Management</div>
+        <div class="card-subtitle">Heads → Structures → Assignments → Collection → Receipts</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-accountant">accountant</span>
+        <span class="role-tag role-admin">principal (view)</span>
+      </div>
+
+      <h3>Setup Flow (first time)</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text"><strong>Create Fee Heads</strong> — e.g. "Tuition Fee", "Lab Fee", "Transport Fee". Go to Fees → Heads tab → Add Head.</span></li>
+        <li><span class="step-num">2</span><span class="step-text"><strong>Create Fee Structures</strong> — bundle heads with amounts for a course/class. Go to Fees → Structures tab → Add Structure.</span></li>
+        <li><span class="step-num">3</span><span class="step-text"><strong>Assign to Students</strong> — link a structure to individual students or a whole batch. Fees → Assignments → Assign.</span></li>
+      </ol>
+
+      <h3>Collecting a Fee Payment</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to Fees → <strong>Collect</strong> tab. Search for the student.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">The due items for that student appear. Select the items to pay.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Enter the amount received, payment mode (cash / UPI / cheque / online), and any remarks.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Click <strong>Collect</strong>. A receipt is generated automatically.</span></li>
+      </ol>
+
+      <h3>Printing a Receipt</h3>
+      <p>Go to Fees → Payments, find the payment, click the <strong>PDF</strong> icon. The receipt opens in a new tab as a printable PDF.</p>
+
+      <h3>Dues Report</h3>
+      <p>Fees → <strong>Dues</strong> tab. Filter by academic year, course, or class to see outstanding dues. You can also send payment reminders (SMS/email integration required in Settings).</p>
+
+      <div class="note warn">
+        <span class="note-icon">⚠️</span>
+        <div>Online payment order creation (<strong>Pay / Order</strong>) requires Razorpay or similar configured in <strong>Settings → Integrations</strong>. Without that, only manual collection works.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Attendance ──────────────────────────────────────── -->
+  <h2 id="attendance">04 — Attendance</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon rose">📋</div>
+      <div>
+        <div class="card-title">Attendance</div>
+        <div class="card-subtitle">Daily marking, staff attendance, and monthly reports</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-teacher">teacher</span>
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal (view)</span>
+      </div>
+
+      <h3>Marking Student Attendance</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Attendance</strong>. Select the <strong>Class</strong> and <strong>Date</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">The student list loads. Mark each student as <strong>Present / Absent / Late</strong>.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Attendance</strong>. Attendance is recorded for that date.</span></li>
+      </ol>
+
+      <h3>Staff Attendance</h3>
+      <p>Switch to the <strong>Staff</strong> tab. Same flow — select date, mark each staff member, save.</p>
+
+      <h3>Reports</h3>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">📅</span>Daily Report — who was absent today across all classes</div>
+        <div class="feature"><span class="feature-icon">📆</span>Monthly Report — heatmap of attendance per student per month</div>
+        <div class="feature"><span class="feature-icon">📊</span>Student Percentage — attendance % per student for a range</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Academics ──────────────────────────────────────── -->
+  <h2 id="academics">05 — Academics</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon indigo">📚</div>
+      <div>
+        <div class="card-title">Academics</div>
+        <div class="card-subtitle">Academic years, courses, classes, sections, subjects, teacher allocations</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+      </div>
+
+      <h3>Initial Academic Setup Order</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text"><strong>Academic Year</strong> — Create the year (e.g. "2025–26"). Mark it as Current.</span></li>
+        <li><span class="step-num">2</span><span class="step-text"><strong>Courses</strong> — Add courses (e.g. "B.Com", "BCA"). Link to an academic year.</span></li>
+        <li><span class="step-num">3</span><span class="step-text"><strong>Classes</strong> — Add class levels per course (e.g. "First Year B.Com").</span></li>
+        <li><span class="step-num">4</span><span class="step-text"><strong>Sections</strong> — Divide each class into sections (A, B, C).</span></li>
+        <li><span class="step-num">5</span><span class="step-text"><strong>Subjects</strong> — Add subjects per class. Assign a teacher to each subject.</span></li>
+        <li><span class="step-num">6</span><span class="step-text"><strong>Teacher Allocations</strong> — Formally allocate teachers to classes/sections if needed beyond subject assignment.</span></li>
+      </ol>
+
+      <div class="note info">
+        <span class="note-icon">ℹ️</span>
+        <div>Only <strong>one Academic Year can be "current"</strong> at a time. Setting a new current year automatically unsets the previous one. The current year is used as the default filter in Students, Fees, and Attendance.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Staff ──────────────────────────────────────────── -->
+  <h2 id="staff">06 — Faculty & Staff</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon purple">👨‍🏫</div>
+      <div>
+        <div class="card-title">Faculty & Staff</div>
+        <div class="card-subtitle">Departments, staff profiles, documents, ERP login creation</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+      </div>
+
+      <h3>Adding a Staff Member</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Faculty & Staff</strong>. Click <strong>Add Staff</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Fill in name, employee ID, department, designation, type (teaching / non-teaching), contact info.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save</strong>.</span></li>
+      </ol>
+
+      <h3>Creating an ERP Login for Staff</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Open the staff member's profile in the drawer.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Click <strong>Create Login</strong>.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Enter email and a temporary password. The staff member will receive login credentials.</span></li>
+      </ol>
+
+      <h3>Departments</h3>
+      <p>Use the <strong>Departments</strong> tab to create and manage departments (e.g. "Computer Science", "Commerce"). Staff members are assigned to departments.</p>
+    </div>
+  </div>
+
+  <!-- ── Timetable ──────────────────────────────────────── -->
+  <h2 id="timetable">07 — Timetable</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon sky">🕐</div>
+      <div>
+        <div class="card-title">Timetable</div>
+        <div class="card-subtitle">Periods, class timetables, teacher schedules</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-teacher">teacher (view own)</span>
+      </div>
+
+      <h3>Setup</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text"><strong>Create Periods</strong> — define your time slots (e.g. Period 1: 9:00–10:00, Period 2: 10:00–11:00). Go to Timetable → Periods tab.</span></li>
+        <li><span class="step-num">2</span><span class="step-text"><strong>Create Entries</strong> — assign a subject + teacher to a class/section/day/period. The system checks for conflicts. Use <strong>Force</strong> to override a detected conflict.</span></li>
+      </ol>
+
+      <h3>Views</h3>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">🏫</span>Class View — full week timetable for a selected class/section</div>
+        <div class="feature"><span class="feature-icon">👨‍🏫</span>Teacher View — all periods assigned to a specific teacher</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Examinations ──────────────────────────────────── -->
+  <h2 id="examinations">08 — Examinations</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon rose">📝</div>
+      <div>
+        <div class="card-title">Examinations</div>
+        <div class="card-subtitle">Exams, schedules, marks entry and verification</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-teacher">teacher (marks entry)</span>
+        <span class="role-tag role-admin">principal (verify)</span>
+      </div>
+
+      <h3>Creating an Exam</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Examinations</strong>. Click <strong>Add Exam</strong>. Enter name (e.g. "Mid-Term 2025"), type, academic year, max marks.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Click <strong>Save</strong>.</span></li>
+      </ol>
+
+      <h3>Adding a Schedule</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Under <strong>Schedules</strong> tab, click <strong>Add Schedule</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Select the Exam, Subject, Class, Date, and Time. Click <strong>Save</strong>.</span></li>
+      </ol>
+
+      <h3>Entering Marks</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to the <strong>Marks</strong> tab. Select Exam, Subject, and Class.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter marks for each student in the table. Click <strong>Save Marks</strong>.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Marks are in <em>draft</em> state until verified.</span></li>
+      </ol>
+
+      <h3>Verifying Marks</h3>
+      <p>An admin or principal can <strong>Verify</strong> a batch of marks to lock them. Use <strong>Unlock</strong> to allow corrections after verification.</p>
+    </div>
+  </div>
+
+  <!-- ── Results ──────────────────────────────────────── -->
+  <h2 id="results">09 — Results</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon emerald">🏆</div>
+      <div>
+        <div class="card-title">Results</div>
+        <div class="card-subtitle">Grade settings, result processing, report cards, publishing</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+        <span class="role-tag role-teacher">teacher (view own)</span>
+        <span class="role-tag role-student">student (view own)</span>
+      </div>
+
+      <h3>Processing Results</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Configure <strong>Grade Settings</strong> first — define grade bands (e.g. A: 90–100, B: 75–89). Go to Results → Grade Settings.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Click <strong>Process Results</strong>. Select the Exam and Class. The system calculates totals, percentages, grades, and pass/fail based on verified marks.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Review the generated results list.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Click <strong>Publish</strong> to make results visible to students/parents via My Portal. Or <strong>Lock</strong> to prevent further edits.</span></li>
+      </ol>
+
+      <h3>Report Cards</h3>
+      <p>Go to Results → <strong>Report Card</strong>. Select an Exam and Student. View the card or download a PDF version.</p>
+    </div>
+  </div>
+
+  <!-- ── Communication ──────────────────────────────────── -->
+  <h2 id="communication">10 — Notices & Communication</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📢</div>
+      <div>
+        <div class="card-title">Notices & Communication</div>
+        <div class="card-subtitle">Broadcast notices, manage message templates</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+        <span class="role-tag role-teacher">teacher (view)</span>
+        <span class="role-tag role-parent">parent (via portal)</span>
+        <span class="role-tag role-student">student (via portal)</span>
+      </div>
+
+      <h3>Creating and Sending a Notice</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Notices</strong>. Click <strong>New Notice</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter the title, body, audience (all / class / role), and priority.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save as Draft</strong> to keep it private, or <strong>Send</strong> to push it to the portal and any configured SMS/email channel.</span></li>
+      </ol>
+
+      <h3>Message Templates</h3>
+      <p>Under the <strong>Templates</strong> tab, create reusable message templates for fee reminders, attendance alerts, or exam notifications. Templates use placeholder variables like <code>{{studentName}}</code>, <code>{{amount}}</code>.</p>
+    </div>
+  </div>
+
+  <!-- ── Admissions ──────────────────────────────────────── -->
+  <h2 id="admissions">11 — Admissions</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon amber">🚪</div>
+      <div>
+        <div class="card-title">Admissions</div>
+        <div class="card-subtitle">Enquiries → Applications → Approval → Convert to Student</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admissions-officer</span>
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal (approve)</span>
+      </div>
+
+      <h3>Admission Pipeline</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text"><strong>Enquiry</strong> — A prospective student walks in. Click <strong>New Enquiry</strong>, fill in contact and course interest details.</span></li>
+        <li><span class="step-num">2</span><span class="step-text"><strong>Follow-ups</strong> — Log follow-up calls/visits on the enquiry record. Each follow-up has a date, notes, and next action.</span></li>
+        <li><span class="step-num">3</span><span class="step-text"><strong>Move to Application</strong> — When the student is serious, click <strong>To Application</strong> to upgrade the record.</span></li>
+        <li><span class="step-num">4</span><span class="step-text"><strong>Approve / Reject</strong> — Principal or admin reviews and clicks <strong>Approve</strong> or <strong>Reject</strong>.</span></li>
+        <li><span class="step-num">5</span><span class="step-text"><strong>Convert to Student</strong> — On approval, click <strong>Convert to Student</strong>. A full student record is automatically created from the admission data.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── Placements ──────────────────────────────────────── -->
+  <h2 id="placements">12 — Placements</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon emerald">💼</div>
+      <div>
+        <div class="card-title">Placements</div>
+        <div class="card-subtitle">Campus recruitment drives and student placement tracking</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">placement officer</span>
+      </div>
+      <div class="note warn">
+        <span class="note-icon">⚠️</span>
+        <div>Placements is an <strong>optional module</strong>. It must be enabled by the Devloft super-admin for your institution before it appears in the sidebar.</div>
+      </div>
+
+      <h3>Recording a Placement</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Placements</strong>. Click <strong>New Placement</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter company name, role, package (LPA), drive date, linked student, and status (open / in-progress / placed / closed).</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save</strong>. Track and update status as the drive progresses.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── Reports ──────────────────────────────────────────── -->
+  <h2 id="reports">13 — Reports</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon slate">📈</div>
+      <div>
+        <div class="card-title">Reports</div>
+        <div class="card-subtitle">Pre-built institution-wide reports with CSV export</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+        <span class="role-tag role-accountant">accountant</span>
+      </div>
+
+      <h3>Running a Report</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Reports</strong>. The left panel shows available report categories.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Click a report name (e.g. "Student Enrolment", "Fee Collection Summary", "Attendance Summary").</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Set any filters (academic year, date range, course) in the right panel.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Click <strong>Run Report</strong>. Results display in a table.</span></li>
+        <li><span class="step-num">5</span><span class="step-text">Click <strong>Export CSV</strong> to download the data as a spreadsheet.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── Settings ──────────────────────────────────────────── -->
+  <h2 id="settings">14 — Settings</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon slate">⚙️</div>
+      <div>
+        <div class="card-title">Settings</div>
+        <div class="card-subtitle">Institution profile, branding, integrations, backup</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin only</span>
+      </div>
+
+      <div class="features">
+        <div class="feature"><span class="feature-icon">🏫</span><strong>Institution</strong> — Name, address, phone, type, affiliation, established year</div>
+        <div class="feature"><span class="feature-icon">🎨</span><strong>Branding</strong> — Upload logo, set primary/secondary colour for the ERP</div>
+        <div class="feature"><span class="feature-icon">🔌</span><strong>Integrations</strong> — SMS provider keys, email provider, payment gateway credentials</div>
+        <div class="feature"><span class="feature-icon">💾</span><strong>Backup</strong> — Configure automated Firestore backup schedule and destination</div>
+      </div>
+
+      <div class="note danger">
+        <span class="note-icon">🔴</span>
+        <div><strong>Integration credentials</strong> (API keys, gateway secrets) are stored encrypted. Never share these with unauthorised users. Treat the Integrations tab like a password manager.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Users & Roles ──────────────────────────────────── -->
+  <h2 id="users-roles">15 — Users & Roles</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon purple">🛡️</div>
+      <div>
+        <div class="card-title">Users & Roles</div>
+        <div class="card-subtitle">Manage ERP users, assign roles, customise permissions</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin only</span>
+      </div>
+
+      <h3>Creating a User</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Users & Roles → Users</strong> tab. Click <strong>Add User</strong>.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter email, display name, and select a <strong>Role</strong>. For parent accounts, select students to link in the <strong>Linked Students</strong> field.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save</strong>. A Firebase account is created and the user can log in with a password reset link.</span></li>
+      </ol>
+
+      <h3>Customising Role Permissions</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to the <strong>Roles</strong> tab. Select a role (e.g. "teacher") from the left panel.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">The right panel shows all permission groups (students, fees, attendance…). Toggle individual permissions on/off.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Save Permissions</strong>. Changes take effect on next login.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Use <strong>Reset to Default</strong> to restore a role's factory permissions.</span></li>
+      </ol>
+
+      <div class="note info">
+        <span class="note-icon">ℹ️</span>
+        <div>The <strong>super-admin</strong> role cannot be customised — it always has full access and is reserved for Devloft platform administrators.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── My Portal ──────────────────────────────────────── -->
+  <h2 id="portal">16 — My Portal</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon pink">📱</div>
+      <div>
+        <div class="card-title">My Portal</div>
+        <div class="card-subtitle">Self-service view for students, parents, and teachers</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-student">student</span>
+        <span class="role-tag role-parent">parent</span>
+        <span class="role-tag role-teacher">teacher</span>
+      </div>
+
+      <h3>What Students / Parents See</h3>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">👤</span>Profile — personal and academic details</div>
+        <div class="feature"><span class="feature-icon">📋</span>Attendance — subject-wise attendance percentage</div>
+        <div class="feature"><span class="feature-icon">💰</span>Fees — pending dues and paid receipts</div>
+        <div class="feature"><span class="feature-icon">🕐</span>Timetable — weekly class schedule</div>
+        <div class="feature"><span class="feature-icon">📝</span>Exams — upcoming exam schedules</div>
+        <div class="feature"><span class="feature-icon">🏆</span>Results — published result cards</div>
+        <div class="feature"><span class="feature-icon">📢</span>Notices — institution announcements</div>
+        <div class="feature"><span class="feature-icon">📥</span>Downloads — documents (TC, certificates, ID card)</div>
+      </div>
+
+      <h3>What Teachers See</h3>
+      <div class="features">
+        <div class="feature"><span class="feature-icon">🏫</span>My Classes — classes and sections assigned to you</div>
+        <div class="feature"><span class="feature-icon">🕐</span>Teaching Timetable — your personal schedule</div>
+      </div>
+
+      <div class="note tip">
+        <span class="note-icon">✅</span>
+        <div>Parents linked to multiple students can switch between students using the dropdown at the top of My Portal.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Files ──────────────────────────────────────────── -->
+  <h2 id="files">17 — Files (Storage)</h2>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon slate">📁</div>
+      <div>
+        <div class="card-title">Files</div>
+        <div class="card-subtitle">Upload, download, and manage documents in cloud storage (R2)</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="roles">
+        <span class="role-tag role-admin">admin</span>
+        <span class="role-tag role-admin">principal</span>
+      </div>
+
+      <h3>Uploading a File</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><span class="step-text">Go to <strong>Files</strong>. Select a <strong>Folder</strong> (e.g. student-photos, documents, receipts). Folder policy shows allowed types and max size.</span></li>
+        <li><span class="step-num">2</span><span class="step-text">Enter the Owner ID (usually a student or staff ID), select the file, set the filename.</span></li>
+        <li><span class="step-num">3</span><span class="step-text">Click <strong>Generate Upload URL</strong> — the backend signs a temporary upload URL.</span></li>
+        <li><span class="step-num">4</span><span class="step-text">Click <strong>Upload File</strong> — the file uploads directly to Cloudflare R2.</span></li>
+        <li><span class="step-num">5</span><span class="step-text">The <strong>Upload Response</strong> panel shows the storage key. Click <strong>Use Key</strong> to pre-fill the download/delete tools.</span></li>
+      </ol>
+
+      <h3>Downloading / Resolving a File</h3>
+      <p>In the <strong>Download</strong> sub-form, paste the storage key and click <strong>Generate</strong>. A signed download URL is created. Click <strong>Open</strong> to view the file or <strong>Copy URL</strong> to share it.</p>
+
+      <h3>Deleting a File</h3>
+      <p>In the <strong>Delete Object</strong> sub-form, paste the storage key and click <strong>Delete</strong>. This is <strong>permanent and irreversible</strong>.</p>
+
+      <div class="note danger">
+        <span class="note-icon">🔴</span>
+        <div>The Files module is an <strong>internal admin tool</strong>. End users (students, parents, teachers) never interact with it directly — they access files through their respective modules (student documents, receipts, etc.).</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── AUDIT REPORT ──────────────────────────────────── -->
+  <h2 id="audit">System Audit Report</h2>
+  <p style="color: var(--slate-500); font-size: 13px; margin-bottom: 20px;">Every backend route and frontend API call was manually reviewed. Findings below.</p>
+
+  <div class="audit-section">
+    <div class="audit-title">🔍 Route Wiring Audit — All 20 Modules</div>
+
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Auth</strong> — login, logout, /me, password-reset all wired. Controller cleanly separates cookie logic from Firebase calls.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Students</strong> — all 14 routes (list, export, create, import, documents CRUD, verify/reject, placement-history, promote, transfer, id-card, id-card/pdf, get, patch, archive, restore) match frontend exactly.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Fees</strong> — all 17 routes wired. Heads, structures, assignments, collect, payments, receipts (JSON + PDF), dues, remind, and payment order all matched.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Attendance</strong> — all 7 routes wired. Student + staff marking and all 3 report endpoints matched.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Academics</strong> — all CRUD for 6 resources (academic-years, courses, classes, sections, subjects, teacher-allocations) plus set-current and get-current wired correctly.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Faculty & Staff</strong> — departments CRUD, staff CRUD, documents + verify/reject, create-login all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Timetable</strong> — periods CRUD, class/teacher views, entries CRUD with force-flag all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Examinations</strong> — exams CRUD, schedules CRUD, marks list/enter/verify/unlock all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Results</strong> — grade-settings (GET+PUT), process, list, publish, lock, unlock, report-card (JSON+PDF), history all wired. Frontend uses <code>apiRequest</code> with PUT correctly.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Communication</strong> — notices (list, create, get, update, send, archive) and templates (list, create, update, archive) all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Admissions</strong> — full pipeline wired: list, create, get, update, followups, to-application, approve, reject, convert, archive, restore.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Placements</strong> — list, get, create, update, archive, restore all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Dashboard</strong> — overview and recent-activities wired. Platform overview (super-admin) is backend-only; no frontend function needed for now.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Settings</strong> — institution, branding, integrations, backup (all GET+PUT) wired. Frontend correctly uses <code>apiRequest</code> with PUT method.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Users</strong> — list, get, create, update, change-role, set-linked-students, archive, restore all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Roles</strong> — list-roles, permission-catalog, update-permissions (PUT), reset-permissions (DELETE) all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>My Portal</strong> — all 11 routes (/my/*) for students, parents, and teachers wired correctly.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Reports</strong> — list names, run report (JSON), export report (CSV blob) all wired. CSV download uses raw fetch with correct blob handling.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Files</strong> — presign-upload, presign-download, resolve, delete (via <code>DELETE /files?key=</code>) all wired.</div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-ok">✅ OK</span>
+      <div><strong>Institutions</strong> — super-admin CRUD is backend-complete. No frontend page needed for this — managed via Devloft internal tooling.</div>
+    </div>
+  </div>
+
+  <div class="audit-section">
+    <div class="audit-title">⚠️ Known Gaps (Non-Critical)</div>
+
+    <div class="audit-row">
+      <span class="audit-status status-warn">GAP</span>
+      <div>
+        <strong>Logout Everywhere</strong> — <code>POST /auth/logout-everywhere</code> exists in the backend and revokes all Firebase sessions, but there is no button in the UI that calls it. If an account is compromised, the only recourse currently is to reset the Firebase password.
+        <br><em style="color:var(--slate-500); font-size:12px;">Fix: Add "Sign out of all devices" button to the user account/profile menu.</em>
+      </div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-warn">GAP</span>
+      <div>
+        <strong>Academics — classes response key fallback</strong> — The frontend reads <code>data.classes || data.classs</code> for the classes list. The <code>data.classs</code> fallback suggests there was uncertainty about what the backend returns. Should be confirmed and the fallback removed.
+        <br><em style="color:var(--slate-500); font-size:12px;">Fix: Verify crudController list response key for entity="class" and remove the redundant fallback.</em>
+      </div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-warn">GAP</span>
+      <div>
+        <strong>Fee Structure / Head — no restore</strong> — Archive is wired for fee heads and structures but there is no restore route on the backend and no restore button in the UI. Archived heads/structures cannot be recovered without direct DB access.
+        <br><em style="color:var(--slate-500); font-size:12px;">Fix: Add <code>POST /fees/heads/:id/restore</code> and <code>POST /fees/structures/:id/restore</code> routes.</em>
+      </div>
+    </div>
+    <div class="audit-row">
+      <span class="audit-status status-warn">GAP</span>
+      <div>
+        <strong>Files DELETE uses query param</strong> — <code>DELETE /files?key=...</code> passes the key as a query param rather than in the request body. This works but is non-standard (RFC advises against request bodies on DELETE, but query params are fine). No functional issue.
+      </div>
+    </div>
+  </div>
+
+  <div class="audit-section" style="border-color: #a7f3d0;">
+    <div class="audit-title" style="color: #065f46;">✅ Architecture Health</div>
+    <div class="features">
+      <div class="feature"><span class="feature-icon">✅</span>All routes protected by <code>requireAuth</code> + <code>requirePermission</code></div>
+      <div class="feature"><span class="feature-icon">✅</span>Multi-tenant isolation via AsyncLocalStorage per request</div>
+      <div class="feature"><span class="feature-icon">✅</span>No direct Firebase calls from frontend — backend-owned auth</div>
+      <div class="feature"><span class="feature-icon">✅</span>HTTP-only session cookies — XSS cannot steal tokens</div>
+      <div class="feature"><span class="feature-icon">✅</span>All async handlers wrapped in <code>asyncHandler</code> — no uncaught rejections</div>
+      <div class="feature"><span class="feature-icon">✅</span>CORS configured with <code>credentials: true</code> for cross-site cookie</div>
+      <div class="feature"><span class="feature-icon">✅</span>PDF generation for receipts, ID cards, report cards — all wired</div>
+      <div class="feature"><span class="feature-icon">✅</span>CSV export uses raw <code>fetch</code> blob pattern — correct for binary downloads</div>
+    </div>
+  </div>
+
+  <p style="color: var(--slate-400); font-size: 12px; text-align: center; margin-top: 40px;">College ERP — User Guide · Generated by code audit · All 20 modules verified</p>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+</body>
+</html>

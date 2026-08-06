@@ -569,7 +569,7 @@ export default function FeeCollectionModal({
                 })}
               </div>
             ) : (
-              <div className="rounded-lg bg-white/80 border border-emerald-100 px-3 py-3 text-sm font-semibold text-emerald-800">
+              <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-3 text-sm font-semibold text-emerald-800">
                 Select items in Pending Due Items first.
               </div>
             )}

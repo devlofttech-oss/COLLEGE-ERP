@@ -82,7 +82,7 @@ function statusClasses(value) {
   if (normalized === 'completed' || normalized === 'verified') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (normalized === 'inactive' || normalized === 'archived') return 'border-slate-200 bg-slate-100 text-slate-600';
   if (normalized === 'locked') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }
 
 function routeTab(initialTask = '', initialBranch = '') {
@@ -129,15 +129,15 @@ async function optionalLoad(loader, fallback) {
 
 function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitle, title }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
-      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl', maxWidth)}>
-        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50 p-4">
+      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,.15)]', maxWidth)}>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-[#006a62]">Examinations</p>
-            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
-            {subtitle && <p className="mt-1 text-sm text-[#3f4848]">{subtitle}</p>}
+            <p className="text-[11px] font-bold uppercase text-brand-500">Examinations</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200" aria-label="Close">
             <X size={17} />
           </button>
         </div>
@@ -150,19 +150,19 @@ function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitl
 
 function SummaryCard({ icon, label, loading, value }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
+    <div className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        <span className="text-[11px] font-bold uppercase text-slate-500">{label}</span>
         {icon}
       </div>
-      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-3 text-2xl font-bold text-slate-900">{loading ? '-' : value}</div>
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
       {message}
     </div>
   );
@@ -178,7 +178,7 @@ function ExamModal({ academicYear, initialRecord, onClose, onSave, saving }) {
     academicYear: initialRecord?.academicYear || academicYear || '',
     status: initialRecord?.status || 'active',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event) => {
@@ -207,9 +207,9 @@ function ExamModal({ academicYear, initialRecord, onClose, onSave, saving }) {
         onClose={onClose}
         maxWidth="max-w-2xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save
             </button>
           </div>
@@ -217,29 +217,29 @@ function ExamModal({ academicYear, initialRecord, onClose, onSave, saving }) {
       >
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Name *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Name *</span>
             <input value={form.name} onChange={(event) => update('name', event.target.value)} className={inputClass} autoFocus />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam Type *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Exam Type *</span>
             <select value={form.examType} onChange={(event) => update('examType', event.target.value)} className={inputClass}>
               {EXAM_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
             <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Start Date *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Start Date *</span>
             <input type="date" value={form.startDate} onChange={(event) => update('startDate', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">End Date *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">End Date *</span>
             <input type="date" value={form.endDate} onChange={(event) => update('endDate', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
@@ -265,7 +265,7 @@ function ScheduleModal({ academicYear, classes, exams, initialRecord, onClose, o
     room: initialRecord?.room || '',
     status: initialRecord?.status || 'active',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
   const classSubjects = subjects.filter((subject) => !form.classId || subject.classId === form.classId || !subject.classId);
   const selectedExam = exams.find((exam) => exam.id === form.examId);
   const selectedClass = classes.find((klass) => klass.id === form.classId);
@@ -314,9 +314,9 @@ function ScheduleModal({ academicYear, classes, exams, initialRecord, onClose, o
         subtitle={isEdit ? scheduleLabel(initialRecord) : academicYear || selectedExam?.academicYear || ''}
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save
             </button>
           </div>
@@ -324,48 +324,48 @@ function ScheduleModal({ academicYear, classes, exams, initialRecord, onClose, o
       >
         <div className="grid max-h-[64vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Exam *</span>
             <select value={form.examId} onChange={(event) => update('examId', event.target.value)} disabled={isEdit} className={inputClass}>
               <option value="">Select exam</option>
               {exams.map((exam) => <option key={exam.id} value={exam.id}>{examLabel(exam)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class *</span>
             <select value={form.classId} onChange={(event) => updateClass(event.target.value)} disabled={isEdit} className={inputClass}>
               <option value="">Select class</option>
               {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Subject *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Subject *</span>
             <select value={form.subjectId} onChange={(event) => update('subjectId', event.target.value)} disabled={isEdit} className={inputClass}>
               <option value="">Select subject</option>
               {classSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subjectLabel(subject)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam Date</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Exam Date</span>
             <input type="date" value={form.examDate} onChange={(event) => update('examDate', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Start Time</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Start Time</span>
             <input type="time" value={form.startTime} onChange={(event) => update('startTime', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Max Marks *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Max Marks *</span>
             <input type="number" min="1" value={form.maxMarks} onChange={(event) => update('maxMarks', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Passing Marks</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Passing Marks</span>
             <input type="number" min="0" value={form.passingMarks} onChange={(event) => update('passingMarks', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Room</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Room</span>
             <input value={form.room} onChange={(event) => update('room', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
@@ -378,14 +378,14 @@ function ScheduleModal({ academicYear, classes, exams, initialRecord, onClose, o
 
 function ExamsTable({ canCreate, exams, loading, onArchive, onEdit }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Exam Records</h2>
-        <span className="text-xs font-bold uppercase text-[#3f4848]">{exams.length} listed</span>
+    <section className="tt-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-900">Exam Records</h2>
+        <span className="text-xs font-bold uppercase text-slate-500">{exams.length} listed</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-5 py-3">Exam</th>
               <th className="px-5 py-3">Type</th>
@@ -396,19 +396,19 @@ function ExamsTable({ canCreate, exams, loading, onArchive, onEdit }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading exams...</td></tr>}
+            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-slate-500"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading exams...</td></tr>}
             {!loading && exams.map((exam) => (
               <tr key={exam.id}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{exam.name}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{exam.examType}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(exam.academicYear)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{formatDate(exam.startDate)} - {formatDate(exam.endDate)}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{exam.name}</td>
+                <td className="px-5 py-4 text-slate-500">{exam.examType}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(exam.academicYear)}</td>
+                <td className="px-5 py-4 text-slate-500">{formatDate(exam.startDate)} - {formatDate(exam.endDate)}</td>
                 <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(exam.status))}>{exam.status || 'active'}</span></td>
                 <td className="px-5 py-4">
                   {canCreate && (
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => onEdit(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>
-                      <button type="button" onClick={() => onArchive(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                      <button type="button" onClick={() => onEdit(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Edit3 size={13} /> Edit</button>
+                      <button type="button" onClick={() => onArchive(exam)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Archive size={13} /> Archive</button>
                     </div>
                   )}
                 </td>
@@ -424,14 +424,14 @@ function ExamsTable({ canCreate, exams, loading, onArchive, onEdit }) {
 
 function SchedulesTable({ canCreate, loading, onArchive, onEdit, schedules }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Exam Schedules</h2>
-        <span className="text-xs font-bold uppercase text-[#3f4848]">{schedules.length} listed</span>
+    <section className="tt-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-900">Exam Schedules</h2>
+        <span className="text-xs font-bold uppercase text-slate-500">{schedules.length} listed</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-5 py-3">Exam</th>
               <th className="px-5 py-3">Class</th>
@@ -444,21 +444,21 @@ function SchedulesTable({ canCreate, loading, onArchive, onEdit, schedules }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="8" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading schedules...</td></tr>}
+            {loading && <tr><td colSpan="8" className="px-5 py-10 text-center text-sm font-semibold text-slate-500"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading schedules...</td></tr>}
             {!loading && schedules.map((schedule) => (
               <tr key={schedule.id}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{valueOrDash(schedule.examName)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.className)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.subjectName)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{formatDate(schedule.examDate)} {schedule.startTime ? `at ${schedule.startTime}` : ''}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.maxMarks)} / {valueOrDash(schedule.passingMarks)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(schedule.room)}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{valueOrDash(schedule.examName)}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(schedule.className)}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(schedule.subjectName)}</td>
+                <td className="px-5 py-4 text-slate-500">{formatDate(schedule.examDate)} {schedule.startTime ? `at ${schedule.startTime}` : ''}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(schedule.maxMarks)} / {valueOrDash(schedule.passingMarks)}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(schedule.room)}</td>
                 <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(schedule.status))}>{schedule.status || 'active'}</span></td>
                 <td className="px-5 py-4">
                   {canCreate && (
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => onEdit(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>
-                      <button type="button" onClick={() => onArchive(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                      <button type="button" onClick={() => onEdit(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Edit3 size={13} /> Edit</button>
+                      <button type="button" onClick={() => onArchive(schedule)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Archive size={13} /> Archive</button>
                     </div>
                   )}
                 </td>
@@ -505,50 +505,50 @@ function MarksPanel({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-      <section className="erp-glass-card rounded-2xl p-5">
-        <h2 className="text-sm font-bold text-[#003434]">Marks Selection</h2>
+      <section className="tt-card p-5">
+        <h2 className="text-sm font-bold text-slate-900">Marks Selection</h2>
         <div className="mt-4 grid gap-4">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Schedule</span>
-            <select value={selectedScheduleId} onChange={(event) => onSelectSchedule(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Schedule</span>
+            <select value={selectedScheduleId} onChange={(event) => onSelectSchedule(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
               <option value="">Manual selection</option>
               {schedules.map((schedule) => <option key={schedule.id} value={schedule.id}>{scheduleLabel(schedule)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam *</span>
-            <select value={selectedExamId} onChange={(event) => setSelectedExamId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Exam *</span>
+            <select value={selectedExamId} onChange={(event) => setSelectedExamId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
               <option value="">Select exam</option>
               {exams.map((exam) => <option key={exam.id} value={exam.id}>{examLabel(exam)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
-            <select value={selectedClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class *</span>
+            <select value={selectedClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
               <option value="">Select class</option>
               {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Subject *</span>
-            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Subject *</span>
+            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
               <option value="">Select subject</option>
               {classSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subjectLabel(subject)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Max Marks</span>
-            <input type="number" min="1" value={maxMarks} onChange={(event) => onSetMaxMarks(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none" />
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Max Marks</span>
+            <input type="number" min="1" value={maxMarks} onChange={(event) => onSetMaxMarks(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none" />
           </label>
           <div className="grid grid-cols-2 gap-3">
-            <button type="button" onClick={onVerify} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+            <button type="button" onClick={onVerify} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
               <Lock size={14} /> Verify
             </button>
-            <button type="button" onClick={onUnlock} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+            <button type="button" onClick={onUnlock} disabled={!canVerify || !hasCurrentSelection || !currentMarks.length || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-brand-700">
               <Unlock size={14} /> Unlock
             </button>
           </div>
-          <div className="rounded-xl bg-white/40 p-4 text-sm text-[#3f4848]">
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-500">
             <div className="flex items-center justify-between">
               <span className="font-bold">Entered</span>
               <span>{currentMarks.length}</span>
@@ -561,21 +561,21 @@ function MarksPanel({
         </div>
       </section>
 
-      <section className="erp-glass-card overflow-hidden rounded-2xl">
-        <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="tt-card overflow-hidden rounded-2xl">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-bold text-[#003434]">Marks Entry</h2>
-            <p className="mt-1 text-xs font-semibold text-[#3f4848]">{students.length} students</p>
+            <h2 className="text-sm font-bold text-slate-900">Marks Entry</h2>
+            <p className="mt-1 text-xs font-semibold text-slate-500">{students.length} students</p>
           </div>
           {canEnterMarks && (
-            <button type="button" onClick={onSave} disabled={!hasCurrentSelection || !students.length || saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-4 text-xs font-bold text-white">
+            <button type="button" onClick={onSave} disabled={!hasCurrentSelection || !students.length || saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-4 text-xs font-bold text-white">
               {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Marks
             </button>
           )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-[#004d4d] text-left text-white">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-5 py-3">Student</th>
                 <th className="px-5 py-3">Marks</th>
@@ -584,15 +584,15 @@ function MarksPanel({
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading marks...</td></tr>}
+              {loading && <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-slate-500"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading marks...</td></tr>}
               {!loading && students.map((student) => {
                 const draft = drafts[student.id] || {};
                 const disabled = !canEnterMarks || draft.locked || draft.verified;
                 return (
                   <tr key={student.id}>
                     <td className="px-5 py-4">
-                      <p className="font-bold text-[#071e27]">{student.name}</p>
-                      <p className="text-xs text-[#3f4848]">{student.admissionNumber || student.rollNumber || student.id}</p>
+                      <p className="font-bold text-slate-900">{student.name}</p>
+                      <p className="text-xs text-slate-500">{student.admissionNumber || student.rollNumber || student.id}</p>
                     </td>
                     <td className="px-5 py-4">
                       <input
@@ -602,12 +602,12 @@ function MarksPanel({
                         value={draft.marksObtained ?? ''}
                         onChange={(event) => onUpdateDraft(student.id, 'marksObtained', event.target.value)}
                         disabled={disabled || draft.absent}
-                        className="h-10 w-28 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27]"
+                        className="h-10 w-28 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500"
                       />
                     </td>
                     <td className="px-5 py-4">
-                      <label className="inline-flex items-center gap-2 text-xs font-bold text-[#3f4848]">
-                        <input type="checkbox" checked={Boolean(draft.absent)} onChange={(event) => onUpdateDraft(student.id, 'absent', event.target.checked)} disabled={disabled} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+                      <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-500">
+                        <input type="checkbox" checked={Boolean(draft.absent)} onChange={(event) => onUpdateDraft(student.id, 'absent', event.target.checked)} disabled={disabled} className="h-4 w-4 rounded border-slate-200 text-brand-500" />
                         Absent
                       </label>
                     </td>
@@ -989,31 +989,29 @@ export default function ExaminationResultManagement({
 
   if (!canView) {
     return (
-      <div className="erp-exams-page">
+      <div className="min-w-0">
         <EmptyState message="You do not have permission to view examinations." />
       </div>
     );
   }
 
   return (
-    <div className="erp-exams-page">
+    <div className="min-w-0">
       <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase text-[#006a62]">Academic Office</p>
-          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Examinations Management</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">{effectiveAcademicYear || 'All academic years'}</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Examinations</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={16} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-full border border-white/40 bg-white/45 pl-10 pr-4 text-sm font-semibold text-[#071e27] outline-none sm:w-72" placeholder="Search exams" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-full border border-slate-200 bg-[#f8f9fa] pl-10 pr-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 sm:w-72" placeholder="Search exams" />
           </div>
-          <button type="button" onClick={loadExaminations} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d]">
+          <button type="button" onClick={loadExaminations} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 text-sm font-bold text-brand-700">
             <RefreshCcw size={16} /> Refresh
           </button>
           {canCreate && (
-            <button type="button" onClick={() => (activeTab === 'schedules' ? setScheduleModalRecord(null) : setExamModalRecord(null))} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white">
+            <button type="button" onClick={() => (activeTab === 'schedules' ? setScheduleModalRecord(null) : setExamModalRecord(null))} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-bold text-white">
               <Plus size={16} /> {activeTab === 'schedules' ? 'New Schedule' : 'Create Exam'}
             </button>
           )}
@@ -1021,10 +1019,10 @@ export default function ExaminationResultManagement({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={<BookOpenCheck size={20} className="text-[#006a62]" />} label="Exams" loading={loading} value={exams.length} />
-        <SummaryCard icon={<CalendarDays size={20} className="text-[#006a62]" />} label="Schedules" loading={loading} value={visibleSchedules.length} />
-        <SummaryCard icon={<ClipboardList size={20} className="text-[#006a62]" />} label="Marks Entries" loading={loading} value={marksEntered} />
-        <SummaryCard icon={<ShieldCheck size={20} className="text-[#006a62]" />} label="Verified Sets" loading={loading} value={verifiedGroups} />
+        <SummaryCard icon={<BookOpenCheck size={20} className="text-brand-500" />} label="Exams" loading={loading} value={exams.length} />
+        <SummaryCard icon={<CalendarDays size={20} className="text-brand-500" />} label="Schedules" loading={loading} value={visibleSchedules.length} />
+        <SummaryCard icon={<ClipboardList size={20} className="text-brand-500" />} label="Marks Entries" loading={loading} value={marksEntered} />
+        <SummaryCard icon={<ShieldCheck size={20} className="text-brand-500" />} label="Verified Sets" loading={loading} value={verifiedGroups} />
       </div>
 
       <div className="my-5 flex flex-wrap gap-2">
@@ -1037,7 +1035,7 @@ export default function ExaminationResultManagement({
               onClick={() => setActiveTab(tab.id)}
               className={cx(
                 'inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition',
-                activeTab === tab.id ? 'bg-[#004d4d] text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-white/45 text-[#004d4d]'
+                activeTab === tab.id ? 'bg-brand-700 text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
               <Icon size={16} /> {tab.label}

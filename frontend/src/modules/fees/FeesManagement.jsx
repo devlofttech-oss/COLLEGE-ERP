@@ -24,6 +24,8 @@ import { listAcademicResource } from '../../api/academics';
 import {
   archiveFeeHead,
   archiveFeeStructure,
+  restoreFeeHead,
+  restoreFeeStructure,
   assignFee,
   collectFee,
   createFeeHead,
@@ -82,7 +84,7 @@ function statusClasses(value) {
   if (normalized === 'partial') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'pending') return 'border-sky-200 bg-sky-50 text-sky-700';
   if (normalized === 'inactive' || normalized === 'archived') return 'border-slate-200 bg-slate-100 text-slate-600';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }
 
 function compactPayload(payload) {
@@ -135,15 +137,15 @@ function assignmentTotal(assignment = {}) {
 
 function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitle, title }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
-      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl', maxWidth)}>
-        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/40 p-4">
+      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)]', maxWidth)}>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-[#006a62]">Fees</p>
-            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
-            {subtitle && <p className="mt-1 text-sm text-[#3f4848]">{subtitle}</p>}
+            <p className="text-[11px] font-bold uppercase text-brand-700">Fees</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200" aria-label="Close">
             <X size={17} />
           </button>
         </div>
@@ -156,28 +158,26 @@ function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitl
 
 function DetailRow({ label, value }) {
   return (
-    <div className="rounded-lg bg-white/45 p-3">
-      <p className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-[#071e27]">{valueOrDash(value)}</p>
+    <div className="rounded-lg bg-[#f5f5f6] p-3">
+      <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{valueOrDash(value)}</p>
     </div>
   );
 }
 
-function SummaryCard({ icon, label, loading, value }) {
+function SummaryCard({ icon, label, loading, value, color = '#2e8c97' }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
-        {icon}
-      </div>
-      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+    <div className="tt-tile">
+      <div className="tt-stat-icon [&_svg]:text-white mb-4" style={{ background: color }}>{icon}</div>
+      <div className="tt-micro mb-2">{label}</div>
+      <div className="text-[22px] font-bold text-ink leading-none">{loading ? '…' : value}</div>
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
       {message}
     </div>
   );
@@ -191,7 +191,7 @@ function HeadModal({ academicYear, initialRecord, onClose, onSave }) {
     description: initialRecord?.description || '',
     status: initialRecord?.status || 'active',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event) => {
@@ -216,9 +216,9 @@ function HeadModal({ academicYear, initialRecord, onClose, onSave }) {
         onClose={onClose}
         maxWidth="max-w-2xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               <CheckCircle2 size={16} /> Save
             </button>
           </div>
@@ -226,21 +226,21 @@ function HeadModal({ academicYear, initialRecord, onClose, onSave }) {
       >
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Name *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Name *</span>
             <input value={form.name} onChange={(event) => update('name', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
             <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Description</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Description</span>
             <textarea value={form.description} onChange={(event) => update('description', event.target.value)} className={`${inputClass} py-3`} rows={3} />
           </label>
         </div>
@@ -261,7 +261,7 @@ function StructureModal({ academicYear, classes, heads, initialRecord, onClose, 
     dueDate: initialRecord?.dueDate || '',
     status: initialRecord?.status || 'active',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const updateClass = (classId) => {
     const klass = classes.find((item) => item.id === classId);
@@ -310,28 +310,28 @@ function StructureModal({ academicYear, classes, heads, initialRecord, onClose, 
         subtitle={isEdit ? structureLabel(initialRecord) : 'Creates a backend fee structure.'}
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               <CheckCircle2 size={16} /> Save
             </button>
           </div>
         )}
       >
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2 bg-white">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Fee Head{!isEdit ? ' *' : ''}</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Fee Head{!isEdit ? ' *' : ''}</span>
             <select value={form.feeHeadId} onChange={(event) => update('feeHeadId', event.target.value)} disabled={isEdit} className={inputClass}>
               <option value="">Select head</option>
               {heads.map((head) => <option key={head.id} value={head.id}>{head.name}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year{!isEdit ? ' *' : ''}</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year{!isEdit ? ' *' : ''}</span>
             <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} disabled={isEdit} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class</span>
             <select value={form.classId} onChange={(event) => updateClass(event.target.value)} disabled={isEdit} className={inputClass}>
               <option value="">No class filter</option>
               {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
@@ -339,23 +339,23 @@ function StructureModal({ academicYear, classes, heads, initialRecord, onClose, 
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class Name</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class Name</span>
             <input value={form.className} onChange={(event) => update('className', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Installment</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Installment</span>
             <input value={form.installment} onChange={(event) => update('installment', event.target.value)} className={inputClass} placeholder="Q1, Term 1, Annual..." />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Amount *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Amount *</span>
             <input type="number" min="0" value={form.amount} onChange={(event) => update('amount', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Due Date</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Due Date</span>
             <input type="date" value={form.dueDate} onChange={(event) => update('dueDate', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
@@ -377,7 +377,7 @@ function AssignmentModal({ academicYear, students, structures, onClose, onSave }
     installment: '',
     feeHeadName: '',
   });
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
   const selectedStudent = students.find((student) => student.id === form.studentId);
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -425,51 +425,51 @@ function AssignmentModal({ academicYear, students, structures, onClose, onSave }
         subtitle="Creates a backend student fee assignment."
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               <CheckCircle2 size={16} /> Assign
             </button>
           </div>
         )}
       >
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2 bg-white">
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Student *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Student *</span>
             <select value={form.studentId} onChange={(event) => update('studentId', event.target.value)} className={inputClass}>
               <option value="">Select student</option>
               {students.map((student) => <option key={student.id} value={student.id}>{studentLabel(student)}</option>)}
             </select>
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Fee Structure</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Fee Structure</span>
             <select value={form.feeStructureId} onChange={(event) => updateStructure(event.target.value)} className={inputClass}>
               <option value="">No structure selected</option>
               {structures.map((structure) => <option key={structure.id} value={structure.id}>{structureLabel(structure)} - {formatCurrency(structure.amount)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Amount *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Amount *</span>
             <input type="number" min="0" value={form.amount} onChange={(event) => update('amount', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Fee Head Name</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Fee Head Name</span>
             <input value={form.feeHeadName} onChange={(event) => update('feeHeadName', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
             <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Installment</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Installment</span>
             <input value={form.installment} onChange={(event) => update('installment', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class ID</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class ID</span>
             <input value={form.classId} onChange={(event) => update('classId', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Due Date</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Due Date</span>
             <input type="date" value={form.dueDate} onChange={(event) => update('dueDate', event.target.value)} className={inputClass} />
           </label>
         </div>
@@ -492,7 +492,7 @@ function CollectionModal({ assignment, canDiscount, students, onClose, onSave })
     referenceNumber: '',
     remarks: '',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const updateStudent = (studentId) => {
     const student = students.find((item) => item.id === studentId);
@@ -532,54 +532,54 @@ function CollectionModal({ assignment, canDiscount, students, onClose, onSave })
         subtitle={assignment ? `${assignment.studentName || assignment.studentId} | Balance ${formatCurrency(assignmentDue(assignment))}` : 'Creates a backend fee payment.'}
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               <Wallet size={16} /> Collect
             </button>
           </div>
         )}
       >
-        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+        <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2 bg-white">
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Student *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Student *</span>
             <select value={form.studentId} onChange={(event) => updateStudent(event.target.value)} disabled={Boolean(assignment)} className={inputClass}>
               <option value="">Select student</option>
               {students.map((student) => <option key={student.id} value={student.id}>{studentLabel(student)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Assignment ID</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Assignment ID</span>
             <input value={form.assignmentId} onChange={(event) => update('assignmentId', event.target.value)} disabled={Boolean(assignment)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Fee Head Name</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Fee Head Name</span>
             <input value={form.feeHeadName} onChange={(event) => update('feeHeadName', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Amount *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Amount *</span>
             <input type="number" min="0" value={form.amount} onChange={(event) => update('amount', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Discount</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Discount</span>
             <input type="number" min="0" value={form.discount} onChange={(event) => update('discount', event.target.value)} disabled={!canDiscount} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Fine</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Fine</span>
             <input type="number" min="0" value={form.fine} onChange={(event) => update('fine', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Payment Mode *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Payment Mode *</span>
             <select value={form.paymentMode} onChange={(event) => update('paymentMode', event.target.value)} className={inputClass}>
               {PAYMENT_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Reference Number</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Reference Number</span>
             <input value={form.referenceNumber} onChange={(event) => update('referenceNumber', event.target.value)} className={inputClass} />
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Remarks</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Remarks</span>
             <textarea value={form.remarks} onChange={(event) => update('remarks', event.target.value)} className={`${inputClass} py-3`} rows={3} />
           </label>
         </div>
@@ -843,6 +843,36 @@ export default function FeesManagement({
     }
   };
 
+  const restoreHeadRecord = async (head) => {
+    if (!canStructure) {
+      toast.error('You do not have permission to restore fee heads.');
+      return;
+    }
+    if (!window.confirm(`Restore ${head.name || 'this fee head'}?`)) return;
+    try {
+      await restoreFeeHead(head.id);
+      toast.success('Fee head restored');
+      await loadFees();
+    } catch (error) {
+      toast.error(error?.message || 'Fee head was not restored.');
+    }
+  };
+
+  const restoreStructureRecord = async (structure) => {
+    if (!canStructure) {
+      toast.error('You do not have permission to restore fee structures.');
+      return;
+    }
+    if (!window.confirm(`Restore ${structureLabel(structure) || 'this fee structure'}?`)) return;
+    try {
+      await restoreFeeStructure(structure.id);
+      toast.success('Fee structure restored');
+      await loadFees();
+    } catch (error) {
+      toast.error(error?.message || 'Fee structure was not restored.');
+    }
+  };
+
   const loadReceipt = async (payment) => {
     if (!canReceipt) {
       toast.error('You do not have permission to view receipts.');
@@ -902,9 +932,9 @@ export default function FeesManagement({
   if (!canView) {
     return (
       <div className="erp-fees-page min-w-0">
-        <section className="erp-glass-card rounded-2xl p-8 text-center">
-          <h1 className="font-['Montserrat'] text-2xl font-bold text-[#003434]">Fee Management</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">You do not have permission to view fees.</p>
+        <section className="tt-card p-8 text-center">
+          <h1 className="text-2xl font-bold text-slate-900">Fee Management</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">You do not have permission to view fees.</p>
         </section>
       </div>
     );
@@ -914,37 +944,31 @@ export default function FeesManagement({
     <div className="erp-fees-page min-w-0">
       <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
-            <span>Daily Work</span>
-            <span>/</span>
-            <span className="text-[#006a62]">Fees</span>
-          </div>
-          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Fee Management</h1>
-          <p className="mt-2 text-sm text-[#3f4848]">Backend-backed fee heads, structures, assignments, collections, receipts, dues, and reminders.</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-ink">Fee Management</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-neg">{loadError}</p>}
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={loadFees} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/45 bg-white/40 px-4 text-sm font-bold text-[#004d4d]">
-            <RefreshCcw size={17} /> Refresh
+          <button type="button" onClick={loadFees} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600">
+            <RefreshCcw size={16} /> Refresh
           </button>
           {canCollect && (
-            <button type="button" onClick={() => setCollectionAssignment(null)} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
-              <Wallet size={17} /> Collect Payment
+            <button type="button" onClick={() => setCollectionAssignment(null)} disabled={saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white disabled:bg-slate-300">
+              <Wallet size={16} /> Collect Payment
             </button>
           )}
         </div>
       </div>
 
-      <section className="mb-6 grid gap-4 lg:grid-cols-5">
-        <SummaryCard label="Assigned" value={formatCurrency(summary.totalAssigned)} loading={loading} icon={<Banknote size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Collected" value={formatCurrency(summary.totalCollected)} loading={loading} icon={<BadgeCheck size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Discounts" value={formatCurrency(summary.totalDiscount)} loading={loading} icon={<CreditCard size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Outstanding" value={formatCurrency(dues.totalDue || summary.totalDue)} loading={loading} icon={<BellRing size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Due Assignments" value={dues.count || assignments.filter((item) => assignmentDue(item) > 0).length} loading={loading} icon={<ClipboardList size={18} className="text-[#006a62]" />} />
+      <section className="mb-6 grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <SummaryCard label="Assigned" color="#2e8c97" value={formatCurrency(summary.totalAssigned)} loading={loading} icon={<Banknote size={20} />} />
+        <SummaryCard label="Collected" color="#2fbf71" value={formatCurrency(summary.totalCollected)} loading={loading} icon={<BadgeCheck size={20} />} />
+        <SummaryCard label="Discounts" color="#a78bfa" value={formatCurrency(summary.totalDiscount)} loading={loading} icon={<CreditCard size={20} />} />
+        <SummaryCard label="Outstanding" color="#f6b26b" value={formatCurrency(dues.totalDue || summary.totalDue)} loading={loading} icon={<BellRing size={20} />} />
+        <SummaryCard label="Due Assignments" color="#f472b6" value={dues.count || assignments.filter((item) => assignmentDue(item) > 0).length} loading={loading} icon={<ClipboardList size={20} />} />
       </section>
 
-      <section className="erp-glass-card mb-6 rounded-2xl p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <section className="tt-card mb-6 p-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap gap-2">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -953,28 +977,22 @@ export default function FeesManagement({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={cx('inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold', activeTab === tab.id ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+                  className={cx('inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors', activeTab === tab.id ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
                 >
-                  <Icon size={16} /> {tab.label}
+                  <Icon size={15} /> {tab.label}
                 </button>
               );
             })}
           </div>
-          <div className="grid gap-3 sm:grid-cols-[220px_minmax(240px,1fr)]">
-            <label>
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
-              <select value={classId} onChange={(event) => setClassId(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
-                <option value="">All classes</option>
-                {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Search</span>
-              <span className="relative block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
-                <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62]" placeholder="Student, receipt, fee head, status" />
-              </span>
-            </label>
+          <div className="flex flex-wrap gap-3">
+            <select value={classId} onChange={(event) => setClassId(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-700 outline-none focus:border-brand-500">
+              <option value="">All classes</option>
+              {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
+            </select>
+            <span className="relative block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-64 rounded-lg border border-slate-200 bg-[#f8f9fa] pl-9 pr-4 text-sm text-slate-900 outline-none focus:border-brand-500" placeholder="Student, receipt, fee head…" />
+            </span>
           </div>
         </div>
       </section>
@@ -1000,6 +1018,7 @@ export default function FeesManagement({
           loading={loading}
           onAdd={() => setHeadModalRecord(null)}
           onArchive={archiveHeadRecord}
+          onRestore={restoreHeadRecord}
           onEdit={setHeadModalRecord}
         />
       )}
@@ -1010,6 +1029,7 @@ export default function FeesManagement({
           loading={loading}
           onAdd={() => setStructureModalRecord(null)}
           onArchive={archiveStructureRecord}
+          onRestore={restoreStructureRecord}
           onEdit={setStructureModalRecord}
           structures={filteredStructures}
         />
@@ -1081,14 +1101,14 @@ export default function FeesManagement({
       )}
 
       {selectedReceipt && (
-        <button type="button" aria-label="Close receipt" onClick={() => setSelectedReceipt(null)} className="fixed inset-0 z-[70] bg-[#071e27]/30 backdrop-blur-sm">
-          <aside className="fixed right-0 top-0 z-[80] flex h-screen w-full max-w-lg flex-col overflow-hidden bg-[#f3faff] text-left shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between bg-[#004d4d] px-6 py-5 text-white">
+        <button type="button" aria-label="Close receipt" onClick={() => setSelectedReceipt(null)} className="fixed inset-0 z-[70] bg-slate-900/30">
+          <aside className="fixed right-0 top-0 z-[80] flex h-screen w-full max-w-lg flex-col overflow-hidden bg-white text-left shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between bg-brand-700 px-6 py-5 text-white">
               <div>
                 <p className="text-xs font-semibold text-white/70">Receipt</p>
                 <h2 className="text-lg font-bold text-white">{selectedReceipt.receiptNumber || selectedReceipt.id}</h2>
               </div>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={17} /></span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20"><X size={17} /></span>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-2 gap-3">
@@ -1106,8 +1126,8 @@ export default function FeesManagement({
               </div>
             </div>
             {canReceipt && selectedReceipt.id && (
-              <div className="border-t border-[#cfe6f2] bg-white/55 p-5">
-                <a href={feeReceiptPdfUrl(selectedReceipt.id)} target="_blank" rel="noreferrer" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white">
+              <div className="border-t border-slate-100 bg-white p-5">
+                <a href={feeReceiptPdfUrl(selectedReceipt.id)} target="_blank" rel="noreferrer" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-bold text-white">
                   <Receipt size={16} /> Open Receipt PDF
                 </a>
               </div>
@@ -1122,80 +1142,80 @@ export default function FeesManagement({
 function CollectionsPanel({ assignments, canCollect, canReceipt, loading, onCollect, onOnlineOrder, onReceipt, payments, paymentsByAssignment }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <section className="erp-glass-card overflow-hidden rounded-2xl">
-        <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-          <h2 className="text-sm font-bold text-[#003434]">Collection Queue</h2>
-          <span className="rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold text-[#3f4848]">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span>
+      <section className="tt-card overflow-hidden p-0">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <h2 className="text-sm font-bold text-slate-800">Collection Queue</h2>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500">{assignments.length} assignment{assignments.length === 1 ? '' : 's'}</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-sm">
-            <thead className="bg-[#004d4d] text-left text-white">
+            <thead className="bg-slate-50 text-left border-b border-slate-100">
               <tr>
-                <th className="px-5 py-3">Student</th>
-                <th className="px-5 py-3">Fee</th>
-                <th className="px-5 py-3">Amount</th>
-                <th className="px-5 py-3">Balance</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Student</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fee</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Amount</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Balance</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading assignments...</td></tr>}
+              {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm text-slate-400"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading…</td></tr>}
               {!loading && assignments.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td className="px-5 py-4">
+                <tr key={assignment.id} className="border-t border-slate-100 hover:bg-slate-50">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#004d4d] text-xs font-bold text-white">{initialsFor(assignment.studentName)}</div>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-xs font-bold text-white">{initialsFor(assignment.studentName)}</div>
                       <div>
-                        <p className="font-bold text-[#071e27]">{assignment.studentName || assignment.studentId}</p>
-                        <p className="mt-1 text-xs text-[#3f4848]">{assignment.studentId}</p>
+                        <p className="font-semibold text-slate-900">{assignment.studentName || assignment.studentId}</p>
+                        <p className="text-xs text-slate-400">{assignment.studentId}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-[#3f4848]">{assignment.feeHeadName || '-'}<div className="text-xs">{assignment.installment || assignment.dueDate || '-'}</div></td>
-                  <td className="px-5 py-4 font-bold text-[#071e27]">{formatCurrency(assignmentTotal(assignment))}</td>
-                  <td className="px-5 py-4 font-bold text-[#006a62]">{formatCurrency(assignmentDue(assignment))}</td>
-                  <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(assignment.status))}>{assignment.status || '-'}</span></td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-3 text-slate-600">{assignment.feeHeadName || '-'}<div className="text-xs text-slate-400">{assignment.installment || assignment.dueDate || '-'}</div></td>
+                  <td className="px-5 py-3 font-semibold text-slate-900">{formatCurrency(assignmentTotal(assignment))}</td>
+                  <td className="px-5 py-3 font-semibold text-emerald-700">{formatCurrency(assignmentDue(assignment))}</td>
+                  <td className="px-5 py-3"><span className={cx('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusClasses(assignment.status))}>{assignment.status || '-'}</span></td>
+                  <td className="px-5 py-3">
                     <div className="flex justify-end gap-2">
                       {canCollect && (
-                        <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
-                          <Wallet size={14} /> Collect
+                        <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white">
+                          <Wallet size={13} /> Collect
                         </button>
                       )}
-                      <button type="button" onClick={() => onOnlineOrder(assignment)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
-                        <CreditCard size={14} /> Online
+                      <button type="button" onClick={() => onOnlineOrder(assignment)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+                        <CreditCard size={13} /> Online
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {!loading && !assignments.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No fee assignments found.</td></tr>}
+              {!loading && !assignments.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-400">No fee assignments found.</td></tr>}
             </tbody>
           </table>
         </div>
       </section>
 
-      <aside className="erp-glass-card rounded-2xl p-5">
-        <p className="text-[11px] font-bold uppercase text-[#3f4848]">Payment History</p>
+      <aside className="tt-card p-5">
+        <p className="text-[11px] font-bold uppercase text-slate-500">Payment History</p>
         <div className="mt-4 max-h-[640px] space-y-3 overflow-y-auto pr-1">
           {payments.map((payment) => (
-            <div key={payment.id} className="rounded-xl border border-white/35 bg-white/35 p-4">
+            <div key={payment.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-bold text-[#071e27]">{payment.studentName || payment.studentId}</p>
-                  <p className="mt-1 text-xs text-[#3f4848]">{payment.receiptNumber || payment.id} | {payment.paymentMode}</p>
+                  <p className="font-semibold text-slate-900">{payment.studentName || payment.studentId}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{payment.receiptNumber || payment.id} | {payment.paymentMode}</p>
                 </div>
-                <span className="font-bold text-[#006a62]">{formatCurrency(payment.amount)}</span>
+                <span className="font-bold text-emerald-700">{formatCurrency(payment.amount)}</span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {canReceipt && (
-                  <button type="button" onClick={() => onReceipt(payment)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]">
+                  <button type="button" onClick={() => onReceipt(payment)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
                     <Receipt size={13} /> Receipt
                   </button>
                 )}
                 {payment.assignmentId && (
-                  <span className="rounded-lg bg-white/45 px-3 py-1 text-xs font-semibold text-[#3f4848]">{(paymentsByAssignment[payment.assignmentId] || []).length} assignment payment{(paymentsByAssignment[payment.assignmentId] || []).length === 1 ? '' : 's'}</span>
+                  <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{(paymentsByAssignment[payment.assignmentId] || []).length} payment{(paymentsByAssignment[payment.assignmentId] || []).length === 1 ? '' : 's'}</span>
                 )}
               </div>
             </div>
@@ -1207,29 +1227,32 @@ function CollectionsPanel({ assignments, canCollect, canReceipt, loading, onColl
   );
 }
 
-function HeadsPanel({ canStructure, heads, loading, onAdd, onArchive, onEdit }) {
+function HeadsPanel({ canStructure, heads, loading, onAdd, onArchive, onRestore, onEdit }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Fee Heads</h2>
-        {canStructure && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white"><Plus size={14} /> Add Head</button>}
+    <section className="tt-card overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-800">Fee Heads</h2>
+        {canStructure && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Add Head</button>}
       </div>
       <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-        {loading && <div className="text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading heads...</div>}
+        {loading && <div className="text-sm text-slate-400"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading heads…</div>}
         {!loading && heads.map((head) => (
-          <div key={head.id} className="rounded-2xl border border-white/35 bg-white/35 p-5">
+          <div key={head.id} className="rounded-xl border border-slate-100 bg-slate-50 p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-bold text-[#003434]">{head.name}</h3>
-                <p className="mt-1 text-xs text-[#3f4848]">{head.academicYear || 'All years'}</p>
+                <h3 className="font-bold text-slate-900">{head.name}</h3>
+                <p className="mt-0.5 text-xs text-slate-400">{head.academicYear || 'All years'}</p>
               </div>
-              <span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(head.status))}>{head.status || '-'}</span>
+              <span className={cx('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusClasses(head.status))}>{head.status || '-'}</span>
             </div>
-            <p className="mt-4 text-sm text-[#3f4848]">{head.description || 'No description.'}</p>
+            <p className="mt-3 text-sm text-slate-500">{head.description || 'No description.'}</p>
             {canStructure && (
               <div className="mt-4 flex gap-2">
-                <button type="button" onClick={() => onEdit(head)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Eye size={13} /> Edit</button>
-                <button type="button" onClick={() => onArchive(head)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                <button type="button" onClick={() => onEdit(head)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600"><Eye size={13} /> Edit</button>
+                {head.status === 'archived'
+                  ? <button type="button" onClick={() => onRestore(head)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-emerald-600"><RefreshCcw size={13} /> Restore</button>
+                  : <button type="button" onClick={() => onArchive(head)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-500"><Archive size={13} /> Archive</button>
+                }
               </div>
             )}
           </div>
@@ -1240,47 +1263,50 @@ function HeadsPanel({ canStructure, heads, loading, onAdd, onArchive, onEdit }) 
   );
 }
 
-function StructuresPanel({ canStructure, loading, onAdd, onArchive, onEdit, structures }) {
+function StructuresPanel({ canStructure, loading, onAdd, onArchive, onRestore, onEdit, structures }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Fee Structures</h2>
-        {canStructure && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white"><Plus size={14} /> Add Structure</button>}
+    <section className="tt-card overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-800">Fee Structures</h2>
+        {canStructure && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Add Structure</button>}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[840px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
-              <th className="px-5 py-3">Fee</th>
-              <th className="px-5 py-3">Class</th>
-              <th className="px-5 py-3">Installment</th>
-              <th className="px-5 py-3">Amount</th>
-              <th className="px-5 py-3">Due Date</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3 text-right">Actions</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fee</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Class</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Installment</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Amount</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Due Date</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="7" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading structures...</td></tr>}
+            {loading && <tr><td colSpan="7" className="px-5 py-10 text-center text-sm text-slate-400"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading…</td></tr>}
             {!loading && structures.map((structure) => (
-              <tr key={structure.id}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{structure.feeHeadName || structure.feeHeadId}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{structure.className || '-'}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{structure.installment || '-'}</td>
-                <td className="px-5 py-4 font-bold text-[#006a62]">{formatCurrency(structure.amount)}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{structure.dueDate || '-'}</td>
-                <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(structure.status))}>{structure.status || '-'}</span></td>
-                <td className="px-5 py-4">
+              <tr key={structure.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <td className="px-5 py-3 font-semibold text-slate-900">{structure.feeHeadName || structure.feeHeadId}</td>
+                <td className="px-5 py-3 text-slate-600">{structure.className || '-'}</td>
+                <td className="px-5 py-3 text-slate-600">{structure.installment || '-'}</td>
+                <td className="px-5 py-3 font-semibold text-emerald-700">{formatCurrency(structure.amount)}</td>
+                <td className="px-5 py-3 text-slate-600">{structure.dueDate || '-'}</td>
+                <td className="px-5 py-3"><span className={cx('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusClasses(structure.status))}>{structure.status || '-'}</span></td>
+                <td className="px-5 py-3">
                   {canStructure && (
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => onEdit(structure)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Eye size={13} /> Edit</button>
-                      <button type="button" onClick={() => onArchive(structure)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                      <button type="button" onClick={() => onEdit(structure)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600"><Eye size={13} /> Edit</button>
+                      {structure.status === 'archived'
+                        ? <button type="button" onClick={() => onRestore(structure)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-emerald-600"><RefreshCcw size={13} /> Restore</button>
+                        : <button type="button" onClick={() => onArchive(structure)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-500"><Archive size={13} /> Archive</button>
+                      }
                     </div>
                   )}
                 </td>
               </tr>
             ))}
-            {!loading && !structures.length && <tr><td colSpan="7" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No fee structures found.</td></tr>}
+            {!loading && !structures.length && <tr><td colSpan="7" className="px-5 py-12 text-center text-sm text-slate-400">No fee structures found.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1290,45 +1316,45 @@ function StructuresPanel({ canStructure, loading, onAdd, onArchive, onEdit, stru
 
 function AssignmentsPanel({ assignments, canAssign, canCollect, loading, onAssign, onCollect, paymentsByAssignment }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Fee Assignments</h2>
-        {canAssign && <button type="button" onClick={onAssign} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white"><Plus size={14} /> Assign Fee</button>}
+    <section className="tt-card overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-800">Fee Assignments</h2>
+        {canAssign && <button type="button" onClick={onAssign} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Assign Fee</button>}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[880px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
-              <th className="px-5 py-3">Student</th>
-              <th className="px-5 py-3">Fee</th>
-              <th className="px-5 py-3">Paid</th>
-              <th className="px-5 py-3">Discount</th>
-              <th className="px-5 py-3">Fine</th>
-              <th className="px-5 py-3">Balance</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3 text-right">Action</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Student</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fee</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Paid</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Discount</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fine</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Balance</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Action</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="8" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading assignments...</td></tr>}
+            {loading && <tr><td colSpan="8" className="px-5 py-10 text-center text-sm text-slate-400"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading…</td></tr>}
             {!loading && assignments.map((assignment) => (
-              <tr key={assignment.id}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{assignment.studentName || assignment.studentId}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{assignment.feeHeadName || '-'}<div className="text-xs">{assignment.installment || assignment.academicYear || '-'}</div></td>
-                <td className="px-5 py-4">{formatCurrency(assignment.paidAmount)}</td>
-                <td className="px-5 py-4">{formatCurrency(assignment.discountTotal)}</td>
-                <td className="px-5 py-4">{formatCurrency(assignment.fineTotal)}</td>
-                <td className="px-5 py-4 font-bold text-[#006a62]">{formatCurrency(assignmentDue(assignment))}</td>
-                <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(assignment.status))}>{assignment.status || '-'}</span></td>
-                <td className="px-5 py-4">
+              <tr key={assignment.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <td className="px-5 py-3 font-semibold text-slate-900">{assignment.studentName || assignment.studentId}</td>
+                <td className="px-5 py-3 text-slate-600">{assignment.feeHeadName || '-'}<div className="text-xs text-slate-400">{assignment.installment || assignment.academicYear || '-'}</div></td>
+                <td className="px-5 py-3 text-slate-700">{formatCurrency(assignment.paidAmount)}</td>
+                <td className="px-5 py-3 text-slate-700">{formatCurrency(assignment.discountTotal)}</td>
+                <td className="px-5 py-3 text-slate-700">{formatCurrency(assignment.fineTotal)}</td>
+                <td className="px-5 py-3 font-semibold text-emerald-700">{formatCurrency(assignmentDue(assignment))}</td>
+                <td className="px-5 py-3"><span className={cx('rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusClasses(assignment.status))}>{assignment.status || '-'}</span></td>
+                <td className="px-5 py-3">
                   <div className="flex justify-end gap-2">
-                    <span className="rounded-lg bg-white/45 px-3 py-1 text-xs font-semibold text-[#3f4848]">{(paymentsByAssignment[assignment.id] || []).length} payment{(paymentsByAssignment[assignment.id] || []).length === 1 ? '' : 's'}</span>
-                    {canCollect && <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-[#004d4d] px-3 text-xs font-bold text-white"><Wallet size={13} /> Collect</button>}
+                    <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{(paymentsByAssignment[assignment.id] || []).length} pmt{(paymentsByAssignment[assignment.id] || []).length === 1 ? '' : 's'}</span>
+                    {canCollect && <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Wallet size={13} /> Collect</button>}
                   </div>
                 </td>
               </tr>
             ))}
-            {!loading && !assignments.length && <tr><td colSpan="8" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No fee assignments found.</td></tr>}
+            {!loading && !assignments.length && <tr><td colSpan="8" className="px-5 py-12 text-center text-sm text-slate-400">No fee assignments found.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1339,47 +1365,47 @@ function AssignmentsPanel({ assignments, canAssign, canCollect, loading, onAssig
 function DuesPanel({ canCollect, canRemind, dues, loading, onCollect, onSend, selectedIds, toggleSelected }) {
   const dueAssignments = dues.assignments || [];
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 md:flex-row md:items-center md:justify-between">
+    <section className="tt-card overflow-hidden p-0">
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-sm font-bold text-[#003434]">Dues & Reminders</h2>
-          <p className="mt-1 text-xs font-semibold text-[#3f4848]">{dues.count || dueAssignments.length} due assignment{(dues.count || dueAssignments.length) === 1 ? '' : 's'} | {formatCurrency(dues.totalDue)}</p>
+          <h2 className="text-sm font-bold text-slate-800">Dues & Reminders</h2>
+          <p className="mt-0.5 text-xs text-slate-500">{dues.count || dueAssignments.length} due | {formatCurrency(dues.totalDue)}</p>
         </div>
         {canRemind && (
-          <button type="button" onClick={onSend} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+          <button type="button" onClick={onSend} className="inline-flex h-9 items-center gap-2 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white">
             <Send size={14} /> Record Reminders
           </button>
         )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[780px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left border-b border-slate-100">
             <tr>
-              <th className="px-5 py-3">Select</th>
-              <th className="px-5 py-3">Student</th>
-              <th className="px-5 py-3">Fee</th>
-              <th className="px-5 py-3">Due Date</th>
-              <th className="px-5 py-3">Balance</th>
-              <th className="px-5 py-3 text-right">Action</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Select</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Student</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Fee</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Due Date</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase">Balance</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Action</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading dues...</td></tr>}
+            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm text-slate-400"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading…</td></tr>}
             {!loading && dueAssignments.map((assignment) => (
-              <tr key={assignment.id}>
-                <td className="px-5 py-4">
-                  <input type="checkbox" checked={selectedIds.includes(assignment.id)} onChange={() => toggleSelected(assignment.id)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+              <tr key={assignment.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <td className="px-5 py-3">
+                  <input type="checkbox" checked={selectedIds.includes(assignment.id)} onChange={() => toggleSelected(assignment.id)} className="h-4 w-4 rounded border-slate-300 text-brand-700" />
                 </td>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{assignment.studentName || assignment.studentId}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{assignment.feeHeadName || '-'}<div className="text-xs">{assignment.installment || '-'}</div></td>
-                <td className="px-5 py-4 text-[#3f4848]">{assignment.dueDate || '-'}</td>
-                <td className="px-5 py-4 font-bold text-[#006a62]">{formatCurrency(assignmentDue(assignment))}</td>
-                <td className="px-5 py-4 text-right">
-                  {canCollect && <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-[#004d4d] px-3 text-xs font-bold text-white"><Wallet size={13} /> Collect</button>}
+                <td className="px-5 py-3 font-semibold text-slate-900">{assignment.studentName || assignment.studentId}</td>
+                <td className="px-5 py-3 text-slate-600">{assignment.feeHeadName || '-'}<div className="text-xs text-slate-400">{assignment.installment || '-'}</div></td>
+                <td className="px-5 py-3 text-slate-600">{assignment.dueDate || '-'}</td>
+                <td className="px-5 py-3 font-semibold text-emerald-700">{formatCurrency(assignmentDue(assignment))}</td>
+                <td className="px-5 py-3 text-right">
+                  {canCollect && <button type="button" onClick={() => onCollect(assignment)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white"><Wallet size={13} /> Collect</button>}
                 </td>
               </tr>
             ))}
-            {!loading && !dueAssignments.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No dues found.</td></tr>}
+            {!loading && !dueAssignments.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm text-slate-400">No dues found.</td></tr>}
           </tbody>
         </table>
       </div>

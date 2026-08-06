@@ -45,5 +45,5 @@ export function resultStatusClasses(value) {
   const normalized = String(value || '').toLowerCase();
   if (normalized === 'pass') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (normalized === 'fail') return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }

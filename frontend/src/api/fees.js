@@ -29,6 +29,11 @@ export async function archiveFeeHead(id) {
   return data.head;
 }
 
+export async function restoreFeeHead(id) {
+  const data = await api.post(`/fees/heads/${id}/restore`, {});
+  return data.head;
+}
+
 export async function listFeeStructures(params) {
   const data = await api.get(`/fees/structures${queryString(params)}`);
   return data.structures || [];
@@ -46,6 +51,11 @@ export async function updateFeeStructure(id, payload) {
 
 export async function archiveFeeStructure(id) {
   const data = await api.post(`/fees/structures/${id}/archive`, {});
+  return data.structure;
+}
+
+export async function restoreFeeStructure(id) {
+  const data = await api.post(`/fees/structures/${id}/restore`, {});
   return data.structure;
 }
 

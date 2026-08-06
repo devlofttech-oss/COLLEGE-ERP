@@ -2,18 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  createFeeAssignment,
+  assignFee,
   createFeeStructure,
-  getFeesManagementData,
+  listFeeAssignments,
+  listFeeStructures,
   updateFeeStructure,
-} from '../../../firebase/db';
-import { isFirebaseConfigured } from '../../../firebase/config';
+} from '../../../api/fees';
 import { canAccess, defaultRoles } from '../../userRoles/rolePermissions';
 import { getClassOptions } from '../../timetable/timetableUtils';
 import { filterByCourse, filterStudentScopedRecords, filterStudentsByCourse } from '../../shared/courseFilters';
 import {
   formatCurrency,
-  formatDisplayDate,
   getFeeComponentValues,
   getStudentClassKey,
   totalFeeComponents,
@@ -59,44 +58,41 @@ export default function PaymentSettingsPanel({
   selectedCourse = null,
   selectedCourseCode = 'all',
 }) {
-  const [students, setStudents] = useState([]);
   const [structures, setStructures] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(isFirebaseConfigured);
-  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [showStructureModal, setShowStructureModal] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
 
   useEffect(() => {
-    const loadPaymentSettings = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        setLoading(false);
-        return;
-      }
+    let active = true;
+    const load = async () => {
       setLoading(true);
       try {
-        const data = await getFeesManagementData(academicYear);
-        setStudents(data.students.filter((student) => student.status !== 'Archived'));
-        setStructures(data.feeStructures);
-        setAssignments(data.feeAssignments);
-        setLoadError('');
+        const params = academicYear ? { academicYear } : {};
+        const [structs, assigns] = await Promise.all([
+          listFeeStructures(params),
+          listFeeAssignments(params),
+        ]);
+        if (!active) return;
+        setStructures(structs);
+        setAssignments(assigns);
       } catch (error) {
-        console.warn('Unable to load live payment settings.', error);
-        setLoadError('Unable to load live payment settings.');
+        console.warn('Unable to load payment settings.', error);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
-    loadPaymentSettings();
+    load();
+    return () => { active = false; };
   }, [academicYear]);
 
   const currentRoleId = currentUser?.roleId || 'admin';
   const canSetup = canAccess(defaultRoles, currentRoleId, 'fees.structure');
   const canAssign = canAccess(defaultRoles, currentRoleId, 'fees.structure');
   const courseStudents = useMemo(
-    () => scopedStudents.length ? scopedStudents : filterStudentsByCourse(students, selectedCourseCode, selectedCourse),
-    [scopedStudents, selectedCourse, selectedCourseCode, students]
+    () => filterStudentsByCourse(scopedStudents, selectedCourseCode, selectedCourse),
+    [scopedStudents, selectedCourse, selectedCourseCode]
   );
   const courseStructures = useMemo(
     () => filterByCourse(structures, selectedCourseCode, selectedCourse),
@@ -136,29 +132,27 @@ export default function PaymentSettingsPanel({
     };
 
     if (editingStructure) {
-      const updates = { ...payload, updatedAtText: formatDisplayDate() };
       try {
-        await updateFeeStructure(editingStructure.id, updates);
-        setStructures((prev) => prev.map((item) => item.id === editingStructure.id ? { ...item, ...updates } : item));
+        const updated = await updateFeeStructure(editingStructure.id, payload);
+        setStructures((prev) => prev.map((item) => item.id === editingStructure.id ? { ...item, ...(updated || payload) } : item));
         toast.success('Fee structure updated');
       } catch (error) {
-        console.error('Unable to update live fee structure.', error);
-        toast.error('Fee structure was not saved to live data.');
+        console.error('Unable to update fee structure.', error);
+        toast.error('Fee structure was not saved.');
       } finally {
         setEditingStructure(null);
       }
       return;
     }
 
-    const createPayload = { ...payload, createdAtText: formatDisplayDate() };
     try {
-      const id = await createFeeStructure(createPayload);
-      if (!id) throw new Error('Live fee structure was not created.');
-      setStructures((prev) => [{ id, ...createPayload }, ...prev]);
+      const created = await createFeeStructure(payload);
+      if (!created) throw new Error('Fee structure was not created.');
+      setStructures((prev) => [created, ...prev]);
       toast.success('Fee structure created');
     } catch (error) {
-      console.error('Unable to create live fee structure.', error);
-      toast.error('Fee structure was not saved to live data.');
+      console.error('Unable to create fee structure.', error);
+      toast.error('Fee structure was not saved.');
     } finally {
       setShowStructureModal(false);
     }
@@ -201,7 +195,6 @@ export default function PaymentSettingsPanel({
           dueAmount: studentPayableTotal,
           dueDate: structure.dueDate,
           status: 'Due',
-          assignedAtText: formatDisplayDate(),
           feeYearLabel: structure.feeYearLabel || '',
           seedSource: structure.seedSource || '',
         };
@@ -211,13 +204,13 @@ export default function PaymentSettingsPanel({
       return;
     }
     try {
-      const ids = await Promise.all(payloads.map((payload) => createFeeAssignment(payload)));
-      if (ids.some((id) => !id)) throw new Error('One or more live fee assignments were not created.');
-      setAssignments((prev) => [...payloads.map((payload, index) => ({ id: ids[index], ...payload })), ...prev]);
+      const created = await Promise.all(payloads.map((payload) => assignFee(payload)));
+      const newAssignments = created.filter(Boolean);
+      setAssignments((prev) => [...newAssignments, ...prev]);
       toast.success('Fee structure assigned');
     } catch (error) {
-      console.error('Unable to assign live fee structure.', error);
-      toast.error('Fee assignments were not saved to live data.');
+      console.error('Unable to assign fee structure.', error);
+      toast.error('Fee assignments were not saved.');
     }
   };
 
@@ -231,7 +224,6 @@ export default function PaymentSettingsPanel({
           <div className="min-w-0">
             <h2 className="text-xl font-extrabold text-slate-900">Payment Settings</h2>
             <p className="text-sm text-slate-500 mt-1">Create, edit, and assign course fee structures.</p>
-            {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
           </div>
         </div>
         <button

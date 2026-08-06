@@ -40,7 +40,6 @@ export async function listAcademicResource(resource, params) {
     subjects: 'subjects',
     teacherAllocations: 'teacherAllocations',
   };
-  if (resource === 'classes') return data.classes || data.classs || [];
   return data[keys[resource]] || [];
 }
 

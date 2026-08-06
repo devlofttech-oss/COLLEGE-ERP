@@ -131,7 +131,7 @@ function statusClasses(value) {
   if (normalized === 'rejected') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'verified') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (normalized === 'pending') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }
 
 function formatDate(value) {
@@ -259,15 +259,15 @@ function initialsFor(name = '') {
 
 function ModalFrame({ title, subtitle, children, footer, onClose, maxWidth = 'max-w-4xl' }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
-      <div className={`max-h-[92vh] w-full ${maxWidth} overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl`}>
-        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50 p-4">
+      <div className={`max-h-[92vh] w-full ${maxWidth} overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,.15)]`}>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-[#006a62]">Students</p>
-            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
-            {subtitle && <p className="mt-1 text-sm text-[#3f4848]">{subtitle}</p>}
+            <p className="text-[11px] font-bold uppercase text-brand-500">Students</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200" aria-label="Close">
             <X size={17} />
           </button>
         </div>
@@ -328,7 +328,7 @@ function StudentRecordModal({ academicData, defaultAcademicYear, initialRecord, 
     onSave(payload);
   };
 
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
 
   const renderField = (field) => {
     const value = form[field.key] ?? '';
@@ -414,9 +414,9 @@ function StudentRecordModal({ academicData, defaultAcademicYear, initialRecord, 
         subtitle={isEdit ? initialRecord?.admissionNumber : 'Create a backend student record.'}
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="h-10 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="h-10 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
               Save Student
             </button>
           </div>
@@ -425,11 +425,11 @@ function StudentRecordModal({ academicData, defaultAcademicYear, initialRecord, 
         <div className="max-h-[62vh] space-y-6 overflow-y-auto p-6">
           {studentFieldGroups.map((group) => (
             <section key={group.title}>
-              <h3 className="mb-3 text-sm font-bold text-[#003434]">{group.title}</h3>
+              <h3 className="mb-3 text-sm font-bold text-slate-900">{group.title}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 {group.fields.map((field) => (
                   <label key={field.key} className={field.type === 'textarea' ? 'sm:col-span-2' : ''}>
-                    <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">
+                    <span className="mb-1.5 block text-xs font-bold text-slate-500">
                       {field.label}{field.required && !isEdit ? ' *' : ''}
                     </span>
                     {renderField(field)}
@@ -455,7 +455,7 @@ function DocumentModal({ student, onClose, onSave }) {
     onSave({ form, file });
   };
 
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
 
   return (
     <form onSubmit={submit}>
@@ -465,9 +465,9 @@ function DocumentModal({ student, onClose, onSave }) {
         onClose={onClose}
         maxWidth="max-w-2xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
               <Upload size={16} /> Attach
             </button>
           </div>
@@ -475,13 +475,13 @@ function DocumentModal({ student, onClose, onSave }) {
       >
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Type *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Type *</span>
             <select value={form.type} onChange={(event) => update('type', event.target.value)} className={inputClass}>
               {DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">File</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">File</span>
             <input
               type="file"
               accept="application/pdf,image/jpeg,image/png,image/webp"
@@ -501,19 +501,19 @@ function DocumentModal({ student, onClose, onSave }) {
             />
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">File Key</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">File Key</span>
             <input value={form.fileKey} onChange={(event) => update('fileKey', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">File Name</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">File Name</span>
             <input value={form.fileName} onChange={(event) => update('fileName', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">File Size</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">File Size</span>
             <input value={form.fileSize} onChange={(event) => update('fileSize', event.target.value)} className={inputClass} />
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Content Type</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Content Type</span>
             <input value={form.contentType} onChange={(event) => update('contentType', event.target.value)} className={inputClass} />
           </label>
         </div>
@@ -548,16 +548,16 @@ function ImportModal({ onClose, onImport }) {
         onClose={onClose}
         maxWidth="max-w-3xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
               <Upload size={16} /> Import
             </button>
           </div>
         )}
       >
         <div className="space-y-4 p-6">
-          <select value={format} onChange={(event) => setFormat(event.target.value)} className="h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+          <select value={format} onChange={(event) => setFormat(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
             <option value="json">JSON rows</option>
             <option value="csv">CSV rows</option>
           </select>
@@ -565,7 +565,7 @@ function ImportModal({ onClose, onImport }) {
             value={text}
             onChange={(event) => setText(event.target.value)}
             rows={12}
-            className="w-full rounded-xl border border-white/40 bg-white/45 px-3 py-3 font-mono text-sm text-[#071e27] outline-none focus:border-[#006a62]"
+            className="w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 py-3 font-mono text-sm text-slate-900 outline-none focus:border-brand-500"
             placeholder={format === 'json' ? '[{"name":"Aarav Singh","gender":"Male","dob":"2008-04-12","academicYear":"2026-2027","fatherMobile":"9999999999","className":"Class X"}]' : 'name,gender,dob,academicYear,fatherMobile,className'}
           />
         </div>
@@ -598,7 +598,7 @@ function MovementModal({ academicData, defaultAcademicYear, student, onClose, on
     onSave(form.mode, payload);
   };
 
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
 
   return (
     <form onSubmit={submit}>
@@ -608,9 +608,9 @@ function MovementModal({ academicData, defaultAcademicYear, student, onClose, on
         onClose={onClose}
         maxWidth="max-w-2xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
               <MoveRight size={16} /> Save
             </button>
           </div>
@@ -618,14 +618,14 @@ function MovementModal({ academicData, defaultAcademicYear, student, onClose, on
       >
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Action</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Action</span>
             <select value={form.mode} onChange={(event) => update('mode', event.target.value)} className={inputClass}>
               <option value="promotion">Promotion</option>
               <option value="transfer">Transfer</option>
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
             <select value={form.toAcademicYear} onChange={(event) => update('toAcademicYear', event.target.value)} className={inputClass}>
               <option value="">Keep current</option>
               {academicData.academicYears.map((year) => <option key={year.id} value={year.name}>{year.name}</option>)}
@@ -633,21 +633,21 @@ function MovementModal({ academicData, defaultAcademicYear, student, onClose, on
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class *</span>
             <select value={form.toClassId} onChange={(event) => update('toClassId', event.target.value)} className={inputClass}>
               <option value="">Select class</option>
               {academicData.classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Section</span>
             <select value={form.toSectionId} onChange={(event) => update('toSectionId', event.target.value)} className={inputClass}>
               <option value="">No section</option>
               {academicData.sections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
             </select>
           </label>
           <label className="sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Reason</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Reason</span>
             <textarea value={form.reason} onChange={(event) => update('reason', event.target.value)} className={`${inputClass} py-3`} rows={3} />
           </label>
         </div>
@@ -658,9 +658,9 @@ function MovementModal({ academicData, defaultAcademicYear, student, onClose, on
 
 function DetailRow({ label, value }) {
   return (
-    <div className="rounded-lg bg-white/45 p-3">
-      <p className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-[#071e27]">{valueOrDash(value)}</p>
+    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+      <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-900">{valueOrDash(value)}</p>
     </div>
   );
 }
@@ -1051,31 +1051,25 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
   ];
 
   return (
-    <div className="erp-students-page min-w-0">
+    <div className="min-w-0">
       <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
-            <span>Management</span>
-            <span>/</span>
-            <span className="text-[#006a62]">Students</span>
-          </div>
-          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Students</h1>
-          <p className="mt-2 text-sm text-[#3f4848]">Backend-backed student lifecycle records.</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-ink">Students</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-neg">{loadError}</p>}
         </div>
         <div className="flex flex-wrap gap-3">
           {canImport && (
-            <button type="button" onClick={() => setImportModalOpen(true)} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/35 px-4 text-sm font-bold text-[#004d4d] hover:bg-white/55 disabled:opacity-50">
+            <button type="button" onClick={() => setImportModalOpen(true)} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700 hover:bg-slate-50 disabled:opacity-50">
               <Upload size={17} /> Import
             </button>
           )}
           {canExport && (
-            <button type="button" onClick={handleExport} disabled={saving || loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/35 px-4 text-sm font-bold text-[#004d4d] hover:bg-white/55 disabled:opacity-50">
+            <button type="button" onClick={handleExport} disabled={saving || loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700 hover:bg-slate-50 disabled:opacity-50">
               <Download size={17} /> Export
             </button>
           )}
           {canCreate && (
-            <button type="button" onClick={() => setStudentModalRecord(null)} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
+            <button type="button" onClick={() => setStudentModalRecord(null)} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
               <Plus size={17} /> Add Student
             </button>
           )}
@@ -1084,17 +1078,17 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
 
       <div className="grid grid-cols-12 gap-6">
         <aside className="col-span-12 space-y-5 xl:col-span-3">
-          <section className="erp-glass-card rounded-2xl p-5">
+          <section className="tt-card p-5">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase text-[#3f4848]">Current Filter</span>
-              <CalendarDays size={20} className="text-[#006a62]" />
+              <span className="text-[11px] font-bold uppercase text-slate-500">Current Filter</span>
+              <CalendarDays size={20} className="text-brand-500" />
             </div>
-            <h2 className="mt-4 font-['Montserrat'] text-2xl font-bold text-[#003434]">{defaultAcademicYear || '-'}</h2>
-            <p className="mt-1 text-sm text-[#3f4848]">{count} backend record{count === 1 ? '' : 's'} matched.</p>
+            <h2 className="mt-4 text-2xl font-bold text-slate-900">{defaultAcademicYear || '-'}</h2>
+            <p className="mt-1 text-sm text-slate-500">{count} backend record{count === 1 ? '' : 's'} matched.</p>
           </section>
 
-          <section className="erp-glass-card rounded-2xl p-5">
-            <p className="mb-4 text-[11px] font-bold uppercase text-[#3f4848]">Loaded Records</p>
+          <section className="tt-card p-5">
+            <p className="mb-4 text-[11px] font-bold uppercase text-slate-500">Loaded Records</p>
             <div className="space-y-3">
               {[
                 ['Total', summary.all],
@@ -1104,11 +1098,11 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
               ].map(([label, value]) => (
                 <div key={label}>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#3f4848]">{label}</span>
-                    <b className="text-[#003434]">{loading ? '-' : value}</b>
+                    <span className="text-slate-500">{label}</span>
+                    <b className="text-slate-900">{loading ? '-' : value}</b>
                   </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/35">
-                    <div className="h-full rounded-full bg-[#004d4d]" style={{ width: `${Math.min(100, Math.max(8, Number(value || 0) * 10))}%` }} />
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.min(100, Math.max(8, Number(value || 0) * 10))}%` }} />
                   </div>
                 </div>
               ))}
@@ -1117,118 +1111,118 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
         </aside>
 
         <section className="col-span-12 space-y-5 xl:col-span-9">
-          <div className="erp-glass-card rounded-2xl p-5">
+          <div className="tt-card p-5">
             <div className="grid gap-4 lg:grid-cols-12">
               <label className="lg:col-span-4">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Search</span>
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Search</span>
                 <span className="relative block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
-                  <input value={filters.q} onChange={(event) => updateFilter('q', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20" placeholder="Name, admission no, roll no" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                  <input value={filters.q} onChange={(event) => updateFilter('q', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-brand-500" placeholder="Name, admission no, roll no" />
                 </span>
               </label>
               <label className="lg:col-span-2">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
-                <select value={filters.academicYear} onChange={(event) => updateFilter('academicYear', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
+                <select value={filters.academicYear} onChange={(event) => updateFilter('academicYear', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All years</option>
                   {academicData.academicYears.map((year) => <option key={year.id} value={year.name}>{year.name}</option>)}
                   {filters.academicYear && !academicData.academicYears.some((year) => year.name === filters.academicYear) && <option value={filters.academicYear}>{filters.academicYear}</option>}
                 </select>
               </label>
               <label className="lg:col-span-3">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Course</span>
-                <select value={filters.courseId} onChange={(event) => updateFilter('courseId', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Course</span>
+                <select value={filters.courseId} onChange={(event) => updateFilter('courseId', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All courses</option>
                   {academicData.courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
                 </select>
               </label>
               <label className="lg:col-span-3">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
-                <select value={filters.classId} onChange={(event) => updateFilter('classId', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Class</span>
+                <select value={filters.classId} onChange={(event) => updateFilter('classId', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All classes</option>
                   {filteredClasses.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
                 </select>
               </label>
               <label className="lg:col-span-3">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
-                <select value={filters.sectionId} onChange={(event) => updateFilter('sectionId', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Section</span>
+                <select value={filters.sectionId} onChange={(event) => updateFilter('sectionId', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All sections</option>
                   {filteredSections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
                 </select>
               </label>
               <label className="lg:col-span-3">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
-                <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
+                <select value={filters.status} onChange={(event) => updateFilter('status', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All statuses</option>
                   {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                 </select>
               </label>
               <label className="lg:col-span-3">
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Gender</span>
-                <select value={filters.gender} onChange={(event) => updateFilter('gender', event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Gender</span>
+                <select value={filters.gender} onChange={(event) => updateFilter('gender', event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All genders</option>
                   {GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
                 </select>
               </label>
               <div className="flex items-end gap-3 lg:col-span-3">
-                <label className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-white/40 bg-white/35 px-3 text-xs font-semibold text-[#3f4848]">
-                  <input type="checkbox" checked={filters.includeArchived} onChange={(event) => updateFilter('includeArchived', event.target.checked)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+                <label className="flex h-11 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-500">
+                  <input type="checkbox" checked={filters.includeArchived} onChange={(event) => updateFilter('includeArchived', event.target.checked)} className="h-4 w-4 rounded border-slate-200 text-brand-500" />
                   Include archived
                 </label>
-                <button type="button" onClick={loadStudents} className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#004d4d] text-white" aria-label="Refresh students">
+                <button type="button" onClick={loadStudents} className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-700 text-white" aria-label="Refresh students">
                   <RefreshCcw size={17} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="erp-glass-card overflow-hidden rounded-2xl">
+          <div className="tt-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
-                  <tr className="bg-[#004d4d] text-white">
-                    <th className="px-5 py-4 text-[11px] font-bold uppercase">Student Info</th>
-                    <th className="px-5 py-4 text-[11px] font-bold uppercase">Admission</th>
-                    <th className="px-5 py-4 text-[11px] font-bold uppercase">Course and Class</th>
-                    <th className="px-5 py-4 text-[11px] font-bold uppercase">Guardian</th>
-                    <th className="px-5 py-4 text-[11px] font-bold uppercase">Status</th>
-                    <th className="px-5 py-4 text-right text-[11px] font-bold uppercase">Actions</th>
+                  <tr className="bg-slate-50 text-slate-500">
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase">Student Info</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase">Admission</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase">Course and Class</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase">Guardian</th>
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase">Status</th>
+                    <th className="px-5 py-3 text-right text-[11px] font-bold uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/25">
+                <tbody className="divide-y divide-slate-100">
                   {loading && (
                     <tr>
-                      <td colSpan="6" className="px-5 py-12 text-center text-[#3f4848]">
+                      <td colSpan="6" className="px-5 py-12 text-center text-slate-500">
                         <span className="inline-flex items-center gap-2 font-semibold"><Loader2 className="animate-spin" size={16} /> Loading students...</span>
                       </td>
                     </tr>
                   )}
                   {!loading && students.map((student) => (
-                    <tr key={student.id} onClick={() => openStudent(student)} className="cursor-pointer transition hover:bg-white/25">
+                    <tr key={student.id} onClick={() => openStudent(student)} className="cursor-pointer transition hover:bg-slate-50">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           {student.photoUrl ? (
                             <img src={student.photoUrl} alt="" className="h-11 w-11 rounded-lg object-cover shadow-sm" />
                           ) : (
-                            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#004d4d] text-sm font-bold text-white shadow-sm">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-700 text-sm font-bold text-white shadow-sm">
                               {initialsFor(student.name)}
                             </div>
                           )}
                           <div>
-                            <p className="font-bold text-[#071e27]">{student.name || '-'}</p>
-                            <p className="text-xs text-[#3f4848]">{student.rollNumber ? `Roll ${student.rollNumber}` : student.email || student.mobile || '-'}</p>
+                            <p className="font-bold text-slate-900">{student.name || '-'}</p>
+                            <p className="text-xs text-slate-500">{student.rollNumber ? `Roll ${student.rollNumber}` : student.email || student.mobile || '-'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[#3f4848]">
-                        <b className="block text-[#071e27]">{student.admissionNumber || '-'}</b>
+                      <td className="px-5 py-4 text-slate-500">
+                        <b className="block text-slate-900">{student.admissionNumber || '-'}</b>
                         <span className="text-xs">{formatDate(student.admissionDate)}</span>
                       </td>
-                      <td className="px-5 py-4 text-[#3f4848]">
-                        <b className="block text-[#071e27]">{student.courseName || student.course || '-'}</b>
+                      <td className="px-5 py-4 text-slate-500">
+                        <b className="block text-slate-900">{student.courseName || student.course || '-'}</b>
                         <span className="text-xs">{[student.className, student.section].filter(Boolean).join(' / ') || '-'}</span>
                       </td>
-                      <td className="px-5 py-4 text-[#3f4848]">
-                        <b className="block text-[#071e27]">{student.fatherName || student.guardianName || '-'}</b>
+                      <td className="px-5 py-4 text-slate-500">
+                        <b className="block text-slate-900">{student.fatherName || student.guardianName || '-'}</b>
                         <span className="text-xs">{student.fatherMobile || student.guardianMobile || '-'}</span>
                       </td>
                       <td className="px-5 py-4">
@@ -1238,16 +1232,16 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <button type="button" onClick={(event) => { event.stopPropagation(); openStudent(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/40 text-[#004d4d] hover:bg-white" title="View">
+                          <button type="button" onClick={(event) => { event.stopPropagation(); openStudent(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-700 hover:bg-slate-50" title="View">
                             <Eye size={16} />
                           </button>
                           {canEdit && (
-                            <button type="button" onClick={(event) => { event.stopPropagation(); setStudentModalRecord(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/40 text-[#004d4d] hover:bg-white" title="Edit">
+                            <button type="button" onClick={(event) => { event.stopPropagation(); setStudentModalRecord(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-700 hover:bg-slate-50" title="Edit">
                               <Edit3 size={16} />
                             </button>
                           )}
                           {canArchive && (
-                            <button type="button" onClick={(event) => { event.stopPropagation(); archiveOrRestore(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/40 text-[#004d4d] hover:bg-white" title={student.archived ? 'Restore' : 'Archive'}>
+                            <button type="button" onClick={(event) => { event.stopPropagation(); archiveOrRestore(student); }} className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-700 hover:bg-slate-50" title={student.archived ? 'Restore' : 'Archive'}>
                               {student.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                             </button>
                           )}
@@ -1257,9 +1251,9 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                   ))}
                   {!loading && !students.length && (
                     <tr>
-                      <td colSpan="6" className="px-5 py-14 text-center text-[#3f4848]">
-                        <Users className="mx-auto mb-3 text-[#006a62]" size={34} />
-                        <p className="font-bold text-[#003434]">No students found.</p>
+                      <td colSpan="6" className="px-5 py-14 text-center text-slate-500">
+                        <Users className="mx-auto mb-3 text-brand-500" size={34} />
+                        <p className="font-bold text-slate-900">No students found.</p>
                       </td>
                     </tr>
                   )}
@@ -1272,9 +1266,9 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
 
       {selectedStudent && (
         <>
-          <button type="button" aria-label="Close profile" onClick={closeDrawer} className="fixed inset-0 z-[70] bg-[#071e27]/30 backdrop-blur-sm" />
-          <aside className="fixed right-0 top-0 z-[80] flex h-screen w-full max-w-xl flex-col overflow-hidden bg-[#f3faff] shadow-2xl">
-            <div className="flex items-center justify-between bg-[#004d4d] px-6 py-5 text-white">
+          <button type="button" aria-label="Close profile" onClick={closeDrawer} className="fixed inset-0 z-[70] bg-slate-900/20" />
+          <aside className="fixed right-0 top-0 z-[80] flex h-screen w-full max-w-xl flex-col overflow-hidden bg-white shadow-2xl">
+            <div className="flex items-center justify-between bg-brand-700 px-6 py-5 text-white">
               <div className="flex items-center gap-3">
                 <button type="button" onClick={closeDrawer} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20" aria-label="Close profile">
                   <X size={17} />
@@ -1299,32 +1293,32 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="border-b border-[#cfe6f2] bg-white/45 p-6 text-center">
+              <div className="border-b border-slate-100 bg-slate-50 p-6 text-center">
                 {selectedStudent.photoUrl ? (
                   <img src={selectedStudent.photoUrl} alt="" className="mx-auto h-24 w-24 rounded-2xl border-4 border-white object-cover shadow-lg" />
                 ) : (
-                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-[#004d4d] text-2xl font-bold text-white shadow-lg">
+                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white bg-brand-700 text-2xl font-bold text-white shadow-lg">
                     {initialsFor(selectedStudent.name)}
                   </div>
                 )}
-                <h3 className="mt-4 font-['Montserrat'] text-2xl font-bold text-[#003434]">{selectedStudent.name || '-'}</h3>
-                <p className="text-sm font-semibold text-[#3f4848]">{selectedStudent.admissionNumber || selectedStudent.id}</p>
+                <h3 className="mt-4 text-2xl font-bold text-slate-900">{selectedStudent.name || '-'}</h3>
+                <p className="text-sm font-semibold text-slate-500">{selectedStudent.admissionNumber || selectedStudent.id}</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase ${statusClasses(displayStatus(selectedStudent))}`}>
                     {displayStatus(selectedStudent)}
                   </span>
-                  <span className="inline-flex rounded-full border border-[#81f3e5]/60 bg-[#81f3e5]/35 px-3 py-1 text-[11px] font-bold uppercase text-[#006f66]">
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase text-emerald-700">
                     {selectedStudent.academicYear || '-'}
                   </span>
                 </div>
               </div>
 
-              <div className="flex gap-2 overflow-x-auto border-b border-[#cfe6f2] bg-white/25 px-4">
+              <div className="flex gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4">
                 {drawerTabs.map((tab) => {
                   const Icon = tab.icon;
                   const active = drawerTab === tab.id;
                   return (
-                    <button key={tab.id} type="button" onClick={() => setDrawerTab(tab.id)} className={`flex items-center gap-2 border-b-2 px-3 py-4 text-sm font-bold whitespace-nowrap ${active ? 'border-[#004d4d] text-[#004d4d]' : 'border-transparent text-[#3f4848]'}`}>
+                    <button key={tab.id} type="button" onClick={() => setDrawerTab(tab.id)} className={`flex items-center gap-2 border-b-2 px-3 py-4 text-sm font-bold whitespace-nowrap ${active ? 'border-brand-700 text-brand-700' : 'border-transparent text-slate-500'}`}>
                       <Icon size={15} /> {tab.label}{tab.value !== undefined ? ` (${tab.value})` : ''}
                     </button>
                   );
@@ -1332,7 +1326,7 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
               </div>
 
               {drawerLoading && (
-                <div className="flex items-center justify-center gap-2 p-4 text-sm font-semibold text-[#3f4848]">
+                <div className="flex items-center justify-center gap-2 p-4 text-sm font-semibold text-slate-500">
                   <Loader2 className="animate-spin" size={16} /> Loading details...
                 </div>
               )}
@@ -1340,7 +1334,7 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
               {drawerTab === 'profile' && (
                 <div className="space-y-6 p-6">
                   <section>
-                    <h4 className="mb-3 text-sm font-bold text-[#003434]">Academic Details</h4>
+                    <h4 className="mb-3 text-sm font-bold text-slate-900">Academic Details</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <DetailRow label="Admission Date" value={formatDate(selectedStudent.admissionDate)} />
                       <DetailRow label="Roll No." value={selectedStudent.rollNumber} />
@@ -1349,7 +1343,7 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                     </div>
                   </section>
                   <section>
-                    <h4 className="mb-3 text-sm font-bold text-[#003434]">Personal Details</h4>
+                    <h4 className="mb-3 text-sm font-bold text-slate-900">Personal Details</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <DetailRow label="Gender" value={selectedStudent.gender} />
                       <DetailRow label="DOB" value={formatDate(selectedStudent.dob)} />
@@ -1365,7 +1359,7 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                     </div>
                   </section>
                   <section>
-                    <h4 className="mb-3 text-sm font-bold text-[#003434]">Parents and Guardian</h4>
+                    <h4 className="mb-3 text-sm font-bold text-slate-900">Parents and Guardian</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <DetailRow label="Father" value={selectedStudent.fatherName} />
                       <DetailRow label="Father Mobile" value={selectedStudent.fatherMobile} />
@@ -1383,20 +1377,20 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
               {drawerTab === 'documents' && (
                 <div className="space-y-4 p-6">
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-sm font-bold text-[#003434]">Documents</h4>
+                    <h4 className="text-sm font-bold text-slate-900">Documents</h4>
                     {canEdit && (
-                      <button type="button" onClick={() => setDocumentModalOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+                      <button type="button" onClick={() => setDocumentModalOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
                         <Plus size={14} /> Add
                       </button>
                     )}
                   </div>
                   {documents.map((document) => (
-                    <div key={document.id} className="rounded-xl border border-[#cfe6f2] bg-white/55 p-4">
+                    <div key={document.id} className="rounded-xl border border-slate-100 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-bold text-[#071e27]">{document.type || 'document'}</p>
-                          <p className="mt-1 break-all text-xs text-[#3f4848]">{document.fileName || document.fileKey || '-'}</p>
-                          {document.remarks && <p className="mt-2 text-xs text-[#3f4848]">{document.remarks}</p>}
+                          <p className="font-bold text-slate-900">{document.type || 'document'}</p>
+                          <p className="mt-1 break-all text-xs text-slate-500">{document.fileName || document.fileKey || '-'}</p>
+                          {document.remarks && <p className="mt-2 text-xs text-slate-500">{document.remarks}</p>}
                         </div>
                         <span className={`inline-flex shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold uppercase ${statusClasses(document.status)}`}>
                           {document.status || 'pending'}
@@ -1404,7 +1398,7 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {document.url && (
-                          <a href={document.url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/65 px-3 text-xs font-bold text-[#004d4d]">
+                          <a href={document.url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded-lg bg-slate-50 px-3 text-xs font-bold text-brand-700">
                             <Eye size={14} /> Open
                           </a>
                         )}
@@ -1421,28 +1415,28 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                       </div>
                     </div>
                   ))}
-                  {!documents.length && <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">No documents found.</div>}
+                  {!documents.length && <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">No documents found.</div>}
                 </div>
               )}
 
               {drawerTab === 'placement' && (
                 <div className="space-y-4 p-6">
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-sm font-bold text-[#003434]">Placement History</h4>
+                    <h4 className="text-sm font-bold text-slate-900">Placement History</h4>
                     {canPromote && (
-                      <button type="button" onClick={() => setMovementModalOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+                      <button type="button" onClick={() => setMovementModalOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
                         <MoveRight size={14} /> Move
                       </button>
                     )}
                   </div>
                   {placementHistory.map((record) => (
-                    <div key={record.id} className="rounded-xl border border-[#cfe6f2] bg-white/55 p-4">
+                    <div key={record.id} className="rounded-xl border border-slate-100 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-bold capitalize text-[#071e27]">{record.type || 'movement'}</p>
-                          <p className="mt-1 text-xs text-[#3f4848]">{formatDate(record.at)}</p>
+                          <p className="font-bold capitalize text-slate-900">{record.type || 'movement'}</p>
+                          <p className="mt-1 text-xs text-slate-500">{formatDate(record.at)}</p>
                         </div>
-                        <span className="rounded-full border border-[#81f3e5]/60 bg-[#81f3e5]/35 px-3 py-1 text-[11px] font-bold uppercase text-[#006f66]">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase text-emerald-700">
                           {record.toAcademicYear || record.fromAcademicYear || selectedStudent.academicYear || '-'}
                         </span>
                       </div>
@@ -1454,36 +1448,36 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
                       </div>
                     </div>
                   ))}
-                  {!placementHistory.length && <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">No placement history found.</div>}
+                  {!placementHistory.length && <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">No placement history found.</div>}
                 </div>
               )}
 
               {drawerTab === 'id-card' && (
                 <div className="space-y-4 p-6">
-                  {!canIdCard && <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">ID card permission is required.</div>}
+                  {!canIdCard && <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">ID card permission is required.</div>}
                   {canIdCard && (
                     <>
                       <div className="flex justify-end gap-2">
-                        <button type="button" onClick={loadIdCard} className="inline-flex h-9 items-center gap-2 rounded-xl bg-white/60 px-3 text-xs font-bold text-[#004d4d]">
+                        <button type="button" onClick={loadIdCard} className="inline-flex h-9 items-center gap-2 rounded-xl bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700">
                           <RefreshCcw size={14} /> Refresh
                         </button>
-                        <a href={studentIdCardPdfUrl(selectedStudent.id)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+                        <a href={studentIdCardPdfUrl(selectedStudent.id)} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
                           <FileDown size={14} /> PDF
                         </a>
                       </div>
-                      <div className="rounded-2xl border border-[#cfe6f2] bg-white p-5 shadow-lg">
-                        <div className="flex items-center gap-4 border-b border-[#cfe6f2] pb-4">
+                      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-lg">
+                        <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
                           {idCardData?.photoUrl ? (
                             <img src={idCardData.photoUrl} alt="" className="h-20 w-20 rounded-xl object-cover" />
                           ) : (
-                            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-[#004d4d] text-xl font-bold text-white">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-brand-700 text-xl font-bold text-white">
                               {initialsFor(idCardData?.name || selectedStudent.name)}
                             </div>
                           )}
                           <div>
-                            <p className="text-[11px] font-bold uppercase text-[#006a62]">Student ID Card</p>
-                            <h4 className="mt-1 text-xl font-bold text-[#003434]">{idCardData?.name || selectedStudent.name || '-'}</h4>
-                            <p className="text-sm text-[#3f4848]">{idCardData?.admissionNumber || selectedStudent.admissionNumber || '-'}</p>
+                            <p className="text-[11px] font-bold uppercase text-brand-500">Student ID Card</p>
+                            <h4 className="mt-1 text-xl font-bold text-slate-900">{idCardData?.name || selectedStudent.name || '-'}</h4>
+                            <p className="text-sm text-slate-500">{idCardData?.admissionNumber || selectedStudent.admissionNumber || '-'}</p>
                           </div>
                         </div>
                         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1503,19 +1497,19 @@ export default function StudentsManagement({ currentUser, academicYear = '' }) {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-3 border-t border-[#cfe6f2] bg-white/55 p-5">
+            <div className="flex flex-wrap gap-3 border-t border-slate-100 bg-white p-5">
               {canEdit && (
-                <button type="button" onClick={() => setStudentModalRecord(selectedStudent)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white">
+                <button type="button" onClick={() => setStudentModalRecord(selectedStudent)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-bold text-white">
                   <Edit3 size={16} /> Edit
                 </button>
               )}
               {canPromote && (
-                <button type="button" onClick={() => setMovementModalOpen(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[#cfe6f2] bg-white px-4 text-sm font-bold text-[#004d4d]">
+                <button type="button" onClick={() => setMovementModalOpen(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700">
                   <MoveRight size={16} /> Move
                 </button>
               )}
               {canArchive && (
-                <button type="button" onClick={() => archiveOrRestore(selectedStudent)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#cfe6f2] bg-white px-4 text-sm font-bold text-[#004d4d]">
+                <button type="button" onClick={() => archiveOrRestore(selectedStudent)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700">
                   {selectedStudent.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                 </button>
               )}

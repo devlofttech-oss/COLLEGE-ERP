@@ -42,6 +42,7 @@ export async function createHead(data, actor) {
 }
 export const updateHead = (id, data, actor) => feeHeads.update(id, pick(data, ['name', 'academicYear', 'description', 'status']), { actor });
 export const archiveHead = (id, actor) => feeHeads.archive(id, { actor });
+export const restoreHead = (id, actor) => feeHeads.restore(id, { actor });
 
 // ── Fee structures ──
 export async function listStructures(q = {}) {
@@ -60,6 +61,7 @@ export async function createStructure(data, actor) {
 }
 export const updateStructure = (id, data, actor) => feeStructures.update(id, pick(data, ['installment', 'amount', 'dueDate', 'status', 'className']), { actor });
 export const archiveStructure = (id, actor) => feeStructures.archive(id, { actor });
+export const restoreStructure = (id, actor) => feeStructures.restore(id, { actor });
 
 // ── Assignments (student-wise fee) ──
 export async function listAssignments(q = {}) {

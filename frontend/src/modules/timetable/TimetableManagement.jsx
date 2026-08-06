@@ -87,13 +87,13 @@ function selectedLabel(item, labeler) {
 function statusClasses(value) {
   const normalized = String(value || 'active').toLowerCase();
   if (normalized === 'inactive') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }
 
 function roomClasses(room = '') {
   const normalized = String(room).toLowerCase();
-  if (normalized.includes('lab')) return 'border-[#e9a43c] bg-[#e9a43c]/10 text-[#633f00]';
-  return 'border-[#006a62] bg-[#006a62]/10 text-[#006a62]';
+  if (normalized.includes('lab')) return 'border-amber-300 bg-amber-50 text-amber-800';
+  return 'border-emerald-300 bg-emerald-50 text-emerald-700';
 }
 
 async function optionalLoad(loader, fallback) {
@@ -111,15 +111,15 @@ function flattenGroupedTimetable(grouped = {}) {
 
 function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitle, title }) {
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
-      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-white/35 bg-[#f3faff]/90 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl', maxWidth)}>
-        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50 p-4">
+      <div className={cx('max-h-[92vh] w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,.15)]', maxWidth)}>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-[#006a62]">Timetable</p>
-            <h2 className="mt-1 text-xl font-bold text-[#003434]">{title}</h2>
-            {subtitle && <p className="mt-1 text-sm text-[#3f4848]">{subtitle}</p>}
+            <p className="text-[11px] font-bold uppercase text-brand-500">Timetable</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/45 text-[#3f4848] hover:bg-white" aria-label="Close">
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200" aria-label="Close">
             <X size={17} />
           </button>
         </div>
@@ -132,12 +132,12 @@ function ModalFrame({ children, footer, maxWidth = 'max-w-3xl', onClose, subtitl
 
 function SummaryCard({ icon, label, loading, value }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
+    <div className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        <span className="text-[11px] font-bold uppercase text-slate-500">{label}</span>
         {icon}
       </div>
-      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-3 text-2xl font-bold text-slate-900">{loading ? '-' : value}</div>
     </div>
   );
 }
@@ -151,7 +151,7 @@ function PeriodModal({ initialRecord, onClose, onSave }) {
     order: initialRecord?.order ?? '',
     status: initialRecord?.status || 'active',
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (event) => {
@@ -179,9 +179,9 @@ function PeriodModal({ initialRecord, onClose, onSave }) {
         onClose={onClose}
         maxWidth="max-w-2xl"
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white">
               <CheckCircle2 size={16} /> Save
             </button>
           </div>
@@ -189,23 +189,23 @@ function PeriodModal({ initialRecord, onClose, onSave }) {
       >
         <div className="grid gap-4 p-6 sm:grid-cols-2">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Name *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Name *</span>
             <input value={form.name} onChange={(event) => update('name', event.target.value)} className={inputClass} placeholder="Period 1" />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Order</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Order</span>
             <input type="number" min="0" value={form.order} onChange={(event) => update('order', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Start Time *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Start Time *</span>
             <input type="time" value={form.startTime} onChange={(event) => update('startTime', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">End Time *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">End Time *</span>
             <input type="time" value={form.endTime} onChange={(event) => update('endTime', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
@@ -243,7 +243,7 @@ function EntryModal({
     status: initialRecord?.status || 'active',
     force: false,
   }));
-  const inputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+  const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500';
   const selectedClass = classes.find((item) => item.id === form.classId);
   const classSections = sections.filter((section) => !form.classId || section.classId === form.classId);
   const classSubjects = subjects.filter((subject) => !form.classId || subject.classId === form.classId || !subject.classId);
@@ -297,9 +297,9 @@ function EntryModal({
         subtitle={isEdit ? `${initialRecord.subjectName || initialRecord.subjectId} | ${initialRecord.day}` : 'Creates a backend timetable entry.'}
         onClose={onClose}
         footer={(
-          <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white disabled:bg-slate-300">
+          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500">Cancel</button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white disabled:bg-slate-300">
               {saving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} Save
             </button>
           </div>
@@ -307,63 +307,63 @@ function EntryModal({
       >
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Day *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Day *</span>
             <select value={form.day} onChange={(event) => update('day', event.target.value)} className={inputClass}>
               {DAYS.map((day) => <option key={day} value={day}>{day}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Period *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Period *</span>
             <select value={form.periodId} onChange={(event) => update('periodId', event.target.value)} className={inputClass}>
               <option value="">Select period</option>
               {periods.map((period) => <option key={period.id} value={period.id}>{period.name} | {displayPeriodRange(period)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class *</span>
             <select value={form.classId} onChange={(event) => updateClass(event.target.value)} className={inputClass}>
               <option value="">Select class</option>
               {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Section</span>
             <select value={form.sectionId} onChange={(event) => update('sectionId', event.target.value)} className={inputClass}>
               <option value="">No section</option>
               {classSections.map((section) => <option key={section.id} value={section.id}>{sectionLabel(section)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Subject *</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Subject *</span>
             <select value={form.subjectId} onChange={(event) => update('subjectId', event.target.value)} className={inputClass}>
               <option value="">Select subject</option>
               {classSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subjectLabel(subject)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Teacher</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Teacher</span>
             <select value={form.teacherId} onChange={(event) => update('teacherId', event.target.value)} className={inputClass}>
               <option value="">No teacher</option>
               {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacherLabel(teacher)}</option>)}
             </select>
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Room</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Room</span>
             <input value={form.room} onChange={(event) => update('room', event.target.value)} className={inputClass} placeholder="Room 302" />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year</span>
             <input value={form.academicYear} onChange={(event) => update('academicYear', event.target.value)} className={inputClass} />
           </label>
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Status</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value)} className={inputClass}>
               {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-3 rounded-xl border border-white/35 bg-white/35 px-4 py-3">
-            <input type="checkbox" checked={form.force} onChange={(event) => update('force', event.target.checked)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
-            <span className="text-sm font-bold text-[#003434]">Override conflict check</span>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <input type="checkbox" checked={form.force} onChange={(event) => update('force', event.target.checked)} className="h-4 w-4 rounded border-slate-200 text-brand-500" />
+            <span className="text-sm font-bold text-slate-900">Override conflict check</span>
           </label>
           {conflicts.length > 0 && (
             <div className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -382,7 +382,7 @@ function ScheduleGrid({ canManage, entriesByDay, loading, onArchive, onCreate, o
 
   if (loading) {
     return (
-      <section className="erp-glass-card rounded-2xl p-10 text-center text-sm font-semibold text-[#3f4848]">
+      <section className="tt-card p-10 text-center text-sm font-semibold text-slate-500">
         <Loader2 className="mr-2 inline animate-spin" size={16} /> Loading timetable...
       </section>
     );
@@ -390,53 +390,53 @@ function ScheduleGrid({ canManage, entriesByDay, loading, onArchive, onCreate, o
 
   if (!activePeriods.length) {
     return (
-      <section className="erp-glass-card rounded-2xl p-10 text-center">
-        <Clock3 className="mx-auto text-[#006a62]" size={28} />
-        <h2 className="mt-3 text-lg font-bold text-[#003434]">No periods found</h2>
-        <p className="mt-1 text-sm font-semibold text-[#3f4848]">Create periods before adding timetable slots.</p>
+      <section className="tt-card p-10 text-center">
+        <Clock3 className="mx-auto text-brand-500" size={28} />
+        <h2 className="mt-3 text-lg font-bold text-slate-900">No periods found</h2>
+        <p className="mt-1 text-sm font-semibold text-slate-500">Create periods before adding timetable slots.</p>
       </section>
     );
   }
 
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
+    <section className="tt-card overflow-hidden rounded-2xl">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1120px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th className="w-32 border-b border-white/25 bg-white/30 px-4 py-4 text-left text-[11px] font-bold uppercase text-[#3f4848]">Time</th>
+              <th className="w-32 border-b border-slate-100 bg-slate-50 px-4 py-4 text-left text-[11px] font-bold uppercase text-slate-500">Time</th>
               {DAYS.map((day) => (
-                <th key={day} className="border-b border-white/25 bg-white/30 px-4 py-4 text-center text-[11px] font-bold uppercase text-[#003434]">{day.slice(0, 3)}</th>
+                <th key={day} className="border-b border-slate-100 bg-slate-50 px-4 py-4 text-center text-[11px] font-bold uppercase text-slate-900">{day.slice(0, 3)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {activePeriods.map((period) => (
               <tr key={period.id}>
-                <td className="border-b border-r border-white/25 px-4 py-4 align-top">
-                  <span className="block text-[11px] font-bold uppercase text-[#6f7978]">{period.name}</span>
-                  <span className="mt-1 block text-sm font-bold text-[#003434]">{displayPeriodRange(period)}</span>
+                <td className="border-b border-r border-slate-100 px-4 py-4 align-top">
+                  <span className="block text-[11px] font-bold uppercase text-slate-400">{period.name}</span>
+                  <span className="mt-1 block text-sm font-bold text-slate-900">{displayPeriodRange(period)}</span>
                 </td>
                 {DAYS.map((day) => {
                   const cellEntries = (entriesByDay[day] || []).filter((entry) => entry.periodId === period.id);
                   return (
-                    <td key={`${period.id}-${day}`} className="group min-h-24 border-b border-r border-white/25 p-2 align-top hover:bg-white/25">
+                    <td key={`${period.id}-${day}`} className="group min-h-24 border-b border-r border-slate-100 p-2 align-top hover:bg-slate-50">
                       <div className="space-y-2">
                         {cellEntries.map((entry) => (
                           <div key={entry.id} className={cx('rounded-r-xl border-l-4 p-3', roomClasses(entry.room))}>
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-[#003434]">{entry.subjectName || entry.subjectId}</p>
-                                <p className="mt-1 truncate text-xs text-[#3f4848]">{entry.teacherName || valueOrDash(entry.teacherId)}</p>
+                                <p className="truncate text-sm font-bold text-slate-900">{entry.subjectName || entry.subjectId}</p>
+                                <p className="mt-1 truncate text-xs text-slate-500">{entry.teacherName || valueOrDash(entry.teacherId)}</p>
                                 <p className="mt-1 text-[10px] font-bold uppercase text-current">{entry.room || 'No room'}</p>
                               </div>
                             </div>
                             {canManage && (
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <button type="button" onClick={() => onEdit(entry)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-white/65 px-3 text-xs font-bold text-[#004d4d]">
+                                <button type="button" onClick={() => onEdit(entry)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700">
                                   <Edit3 size={13} /> Edit
                                 </button>
-                                <button type="button" onClick={() => onArchive(entry)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-white/65 px-3 text-xs font-bold text-[#004d4d]">
+                                <button type="button" onClick={() => onArchive(entry)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700">
                                   <Archive size={13} /> Archive
                                 </button>
                               </div>
@@ -447,7 +447,7 @@ function ScheduleGrid({ canManage, entriesByDay, loading, onArchive, onCreate, o
                           <button
                             type="button"
                             onClick={() => onCreate({ day, periodId: period.id })}
-                            className="flex min-h-20 w-full items-center justify-center rounded-xl border border-dashed border-white/45 bg-white/20 text-xs font-bold text-[#6f7978] hover:border-[#006a62] hover:text-[#006a62]"
+                            className="flex min-h-20 w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs font-bold text-slate-400 hover:border-brand-500 hover:text-brand-500"
                           >
                             <Plus size={14} className="mr-1" /> Add slot
                           </button>
@@ -468,14 +468,14 @@ function ScheduleGrid({ canManage, entriesByDay, loading, onArchive, onCreate, o
 function PeriodsPanel({ canManage, loading, onAdd, onArchive, onEdit, periods }) {
   const visiblePeriods = sortPeriods(periods);
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Periods</h2>
-        {canManage && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white"><Plus size={14} /> Add Period</button>}
+    <section className="tt-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-900">Periods</h2>
+        {canManage && <button type="button" onClick={onAdd} className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white"><Plus size={14} /> Add Period</button>}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-5 py-3">Period</th>
               <th className="px-5 py-3">Start</th>
@@ -486,25 +486,25 @@ function PeriodsPanel({ canManage, loading, onAdd, onArchive, onEdit, periods })
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading periods...</td></tr>}
+            {loading && <tr><td colSpan="6" className="px-5 py-10 text-center text-sm font-semibold text-slate-500"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading periods...</td></tr>}
             {!loading && visiblePeriods.map((period) => (
               <tr key={period.id}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{period.name}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{period.startTime}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{period.endTime}</td>
-                <td className="px-5 py-4 text-[#3f4848]">{period.order ?? '-'}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{period.name}</td>
+                <td className="px-5 py-4 text-slate-500">{period.startTime}</td>
+                <td className="px-5 py-4 text-slate-500">{period.endTime}</td>
+                <td className="px-5 py-4 text-slate-500">{period.order ?? '-'}</td>
                 <td className="px-5 py-4"><span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(period.status))}>{period.status || 'active'}</span></td>
                 <td className="px-5 py-4">
                   {canManage && (
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => onEdit(period)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Edit3 size={13} /> Edit</button>
-                      <button type="button" onClick={() => onArchive(period)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]"><Archive size={13} /> Archive</button>
+                      <button type="button" onClick={() => onEdit(period)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Edit3 size={13} /> Edit</button>
+                      <button type="button" onClick={() => onArchive(period)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700"><Archive size={13} /> Archive</button>
                     </div>
                   )}
                 </td>
               </tr>
             ))}
-            {!loading && !visiblePeriods.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No periods found.</td></tr>}
+            {!loading && !visiblePeriods.length && <tr><td colSpan="6" className="px-5 py-12 text-center text-sm font-semibold text-slate-500">No periods found.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -731,33 +731,28 @@ export default function TimetableManagement({
 
   if (!canView) {
     return (
-      <div className="erp-timetable-page min-w-0">
-        <section className="erp-glass-card rounded-2xl p-8 text-center">
-          <h1 className="font-['Montserrat'] text-2xl font-bold text-[#003434]">Timetable Management</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">You do not have permission to view timetable records.</p>
+      <div className="min-w-0">
+        <section className="tt-card p-8 text-center">
+          <h1 className="text-2xl font-bold text-slate-900">Timetable Management</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">You do not have permission to view timetable records.</p>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="erp-timetable-page min-w-0">
+    <div className="min-w-0">
       <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
-            <span>Academics</span>
-            <span>/</span>
-            <span className="text-[#006a62]">Timetable</span>
-          </div>
-          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Academic Schedule</h1>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Timetable</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={loadTimetable} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/45 bg-white/40 px-4 text-sm font-bold text-[#004d4d]">
+          <button type="button" onClick={loadTimetable} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 text-sm font-bold text-brand-700">
             <RefreshCcw size={17} /> Refresh
           </button>
           {canManage && activeView !== 'periods' && (
-            <button type="button" onClick={() => openEntryModal()} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
+            <button type="button" onClick={() => openEntryModal()} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
               <Plus size={17} /> Add Slot
             </button>
           )}
@@ -765,13 +760,13 @@ export default function TimetableManagement({
       </div>
 
       <section className="mb-6 grid gap-4 lg:grid-cols-4">
-        <SummaryCard label="Periods" value={summary.activePeriods} loading={loading} icon={<Clock3 size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Slots" value={summary.activeEntries} loading={loading} icon={<CalendarDays size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Teachers" value={summary.activeTeachers} loading={loading} icon={<UserRound size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Days" value={summary.activeDays} loading={loading} icon={<BookOpen size={18} className="text-[#006a62]" />} />
+        <SummaryCard label="Periods" value={summary.activePeriods} loading={loading} icon={<Clock3 size={18} className="text-brand-500" />} />
+        <SummaryCard label="Slots" value={summary.activeEntries} loading={loading} icon={<CalendarDays size={18} className="text-brand-500" />} />
+        <SummaryCard label="Teachers" value={summary.activeTeachers} loading={loading} icon={<UserRound size={18} className="text-brand-500" />} />
+        <SummaryCard label="Days" value={summary.activeDays} loading={loading} icon={<BookOpen size={18} className="text-brand-500" />} />
       </section>
 
-      <section className="erp-glass-card mb-6 rounded-2xl p-5">
+      <section className="tt-card mb-6 rounded-2xl p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex flex-wrap gap-2">
             {VIEW_TABS.map((tab) => {
@@ -781,7 +776,7 @@ export default function TimetableManagement({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveView(tab.id)}
-                  className={cx('inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold', activeView === tab.id ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+                  className={cx('inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold', activeView === tab.id ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
                 >
                   <Icon size={16} /> {tab.label}
                 </button>
@@ -792,15 +787,15 @@ export default function TimetableManagement({
           {activeView === 'class' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
-                <select value={effectiveClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Class</span>
+                <select value={effectiveClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">Select class</option>
                   {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
                 </select>
               </label>
               <label>
-                <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
-                <select value={effectiveSectionId} onChange={(event) => setSelectedSectionId(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <span className="mb-1.5 block text-xs font-bold text-slate-500">Section</span>
+                <select value={effectiveSectionId} onChange={(event) => setSelectedSectionId(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">All sections</option>
                   {sectionOptions.map((section) => <option key={section.id} value={section.id}>{sectionLabel(section)}</option>)}
                 </select>
@@ -810,8 +805,8 @@ export default function TimetableManagement({
 
           {activeView === 'teacher' && (
             <label className="w-full max-w-sm">
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Teacher</span>
-              <select value={effectiveTeacherId} onChange={(event) => setSelectedTeacherId(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">Teacher</span>
+              <select value={effectiveTeacherId} onChange={(event) => setSelectedTeacherId(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                 <option value="">Select teacher</option>
                 {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacherLabel(teacher)}</option>)}
               </select>
@@ -823,17 +818,17 @@ export default function TimetableManagement({
       {activeView !== 'periods' && (
         <>
           <section className="mb-6 grid gap-4 md:grid-cols-3">
-            <div className="erp-glass-card rounded-2xl p-4">
-              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Academic Year</p>
-              <p className="mt-1 text-sm font-bold text-[#003434]">{effectiveAcademicYear || '-'}</p>
+            <div className="tt-card p-4">
+              <p className="text-[11px] font-bold uppercase text-slate-500">Academic Year</p>
+              <p className="mt-1 text-sm font-bold text-slate-900">{effectiveAcademicYear || '-'}</p>
             </div>
-            <div className="erp-glass-card rounded-2xl p-4">
-              <p className="text-[11px] font-bold uppercase text-[#3f4848]">{activeView === 'class' ? 'Selected Class' : 'Selected Teacher'}</p>
-              <p className="mt-1 text-sm font-bold text-[#003434]">{activeView === 'class' ? selectedLabel(selectedClass, classLabel) : selectedLabel(selectedTeacher, teacherLabel)}</p>
+            <div className="tt-card p-4">
+              <p className="text-[11px] font-bold uppercase text-slate-500">{activeView === 'class' ? 'Selected Class' : 'Selected Teacher'}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900">{activeView === 'class' ? selectedLabel(selectedClass, classLabel) : selectedLabel(selectedTeacher, teacherLabel)}</p>
             </div>
-            <div className="erp-glass-card rounded-2xl p-4">
-              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Visible Slots</p>
-              <p className="mt-1 text-sm font-bold text-[#003434]">{viewLoading ? '-' : viewEntries.length}</p>
+            <div className="tt-card p-4">
+              <p className="text-[11px] font-bold uppercase text-slate-500">Visible Slots</p>
+              <p className="mt-1 text-sm font-bold text-slate-900">{viewLoading ? '-' : viewEntries.length}</p>
             </div>
           </section>
 

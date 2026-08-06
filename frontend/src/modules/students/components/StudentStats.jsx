@@ -1,14 +1,16 @@
+const STAT_COLORS = ['#a78bfa', '#f472b6', '#f6b26b', '#57c4c9', '#2e8c97', '#1b6b74'];
+
 export default function StudentStats({ loading, stats }) {
   return (
-    <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 py-5">
-      {stats.map(({ label, value, icon }) => (
-        <div key={label} className="bg-[#f5f5f6] rounded-lg p-4 flex items-center gap-4">
-          <div className="h-12 w-12 bg-white rounded-lg flex items-center justify-center text-[#34363d] shadow-sm">
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+      {stats.map(({ label, value, icon }, i) => (
+        <div key={label} className="tt-tile flex items-center gap-4">
+          <div className="tt-stat-icon [&_svg]:text-white shrink-0" style={{ background: STAT_COLORS[i % STAT_COLORS.length] }}>
             {icon}
           </div>
-          <div>
-            <div className="text-xs text-slate-500">{label}</div>
-            <div className="text-xl font-bold text-slate-900">{loading ? '...' : value}</div>
+          <div className="min-w-0">
+            <div className="tt-micro mb-1">{label}</div>
+            <div className="text-[22px] font-bold text-ink leading-none">{loading ? '…' : value}</div>
           </div>
         </div>
       ))}

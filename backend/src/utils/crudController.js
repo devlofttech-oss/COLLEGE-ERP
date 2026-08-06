@@ -9,6 +9,7 @@ import { recordAudit } from '../services/audit.service.js';
 export function crudController(repository, options = {}) {
   const {
     entity = 'record', // used in audit logs
+    listKey, // optional override for the list-response key (e.g. 'classes' when entity='class')
     // async (data, { mode, req }) => cleanedData ; throw ApiError on invalid
     validate = async (data) => data,
     // optional filter builder from query params: (req) => where[]
@@ -29,7 +30,7 @@ export function crudController(repository, options = {}) {
         orderBy,
         includeArchived,
       });
-      res.json({ [`${entity}s`]: items, count: items.length });
+      res.json({ [listKey || `${entity}s`]: items, count: items.length });
     }),
 
     get: asyncHandler(async (req, res) => {

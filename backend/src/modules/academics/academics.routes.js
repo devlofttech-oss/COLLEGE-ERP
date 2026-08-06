@@ -32,6 +32,7 @@ const courses = crudController(repos.courses, {
 });
 const classes = crudController(repos.classes, {
   entity: 'class',
+  listKey: 'classes',
   validate: validators.klass,
   buildWhere: whereFrom(['academicYear', 'courseId', 'status']),
   orderBy: { field: 'name' },

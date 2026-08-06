@@ -22,12 +22,14 @@ feesRouter.get('/heads', VIEW, asyncHandler(async (req, res) => res.json({ heads
 feesRouter.post('/heads', STRUCTURE, asyncHandler(async (req, res) => res.status(201).json({ head: await service.createHead(req.body || {}, req.user) })));
 feesRouter.patch('/heads/:id', STRUCTURE, asyncHandler(async (req, res) => res.json({ head: await service.updateHead(req.params.id, req.body || {}, req.user) })));
 feesRouter.post('/heads/:id/archive', STRUCTURE, asyncHandler(async (req, res) => res.json({ head: await service.archiveHead(req.params.id, req.user) })));
+feesRouter.post('/heads/:id/restore', STRUCTURE, asyncHandler(async (req, res) => res.json({ head: await service.restoreHead(req.params.id, req.user) })));
 
 // Structures
 feesRouter.get('/structures', VIEW, asyncHandler(async (req, res) => res.json({ structures: await service.listStructures(req.query) })));
 feesRouter.post('/structures', STRUCTURE, asyncHandler(async (req, res) => res.status(201).json({ structure: await service.createStructure(req.body || {}, req.user) })));
 feesRouter.patch('/structures/:id', STRUCTURE, asyncHandler(async (req, res) => res.json({ structure: await service.updateStructure(req.params.id, req.body || {}, req.user) })));
 feesRouter.post('/structures/:id/archive', STRUCTURE, asyncHandler(async (req, res) => res.json({ structure: await service.archiveStructure(req.params.id, req.user) })));
+feesRouter.post('/structures/:id/restore', STRUCTURE, asyncHandler(async (req, res) => res.json({ structure: await service.restoreStructure(req.params.id, req.user) })));
 
 // Assignments
 feesRouter.get('/assignments', VIEW, asyncHandler(async (req, res) => res.json({ assignments: await service.listAssignments(req.query) })));

@@ -64,7 +64,7 @@ function statusClasses(value) {
   if (normalized === 'absent') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'late') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'leave') return 'border-sky-200 bg-sky-50 text-sky-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-slate-200 bg-slate-50 text-slate-600';
 }
 
 function tally(records = []) {
@@ -127,19 +127,19 @@ function buildAttendanceEntries(entities, drafts, mode) {
 
 function SummaryCard({ icon, label, loading, value }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
+    <div className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        <span className="text-[11px] font-bold uppercase text-slate-500">{label}</span>
         {icon}
       </div>
-      <div className="mt-3 font-['Montserrat'] text-3xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-3 text-3xl font-bold text-slate-900">{loading ? '—' : value}</div>
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-400">
       {message}
     </div>
   );
@@ -412,9 +412,9 @@ export default function AttendanceManagement({
   if (!canView) {
     return (
       <div className="erp-attendance-page min-w-0">
-        <section className="erp-glass-card rounded-2xl p-8 text-center">
-          <h1 className="font-['Montserrat'] text-2xl font-bold text-[#003434]">Attendance Management</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">You do not have permission to view attendance.</p>
+        <section className="tt-card p-8 text-center">
+          <h1 className="text-2xl font-bold text-slate-900">Attendance Management</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500">You do not have permission to view attendance.</p>
         </section>
       </div>
     );
@@ -424,21 +424,15 @@ export default function AttendanceManagement({
     <div className="erp-attendance-page min-w-0">
       <div className="mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
-            <span>Daily Work</span>
-            <span>/</span>
-            <span className="text-[#006a62]">Attendance</span>
-          </div>
-          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Attendance Management</h1>
-          <p className="mt-2 text-sm text-[#3f4848]">Backend-backed student and staff attendance marking with reports.</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Attendance</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={loadAttendanceData} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/45 bg-white/40 px-4 text-sm font-bold text-[#004d4d]">
+          <button type="button" onClick={loadAttendanceData} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700 hover:bg-slate-50">
             <RefreshCcw size={17} /> Refresh
           </button>
           {canMark && (
-            <button type="button" onClick={saveAttendance} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
+            <button type="button" onClick={saveAttendance} disabled={saving} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:bg-slate-300">
               {saving ? <Loader2 className="animate-spin" size={17} /> : <CheckCircle2 size={17} />}
               Save Attendance
             </button>
@@ -447,14 +441,14 @@ export default function AttendanceManagement({
       </div>
 
       <section className="mb-6 grid gap-4 lg:grid-cols-5">
-        <SummaryCard label={mode === 'staff' ? 'Staff Roster' : 'Student Roster'} value={mode === 'staff' ? staffCount : studentCount} loading={loading} icon={<Users size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Present" value={entitySummary.present} loading={loading} icon={<BadgeCheck size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Late" value={entitySummary.late} loading={loading} icon={<CalendarDays size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Absent" value={entitySummary.absent} loading={loading} icon={<UserCheck size={18} className="text-[#006a62]" />} />
-        <SummaryCard label="Attendance %" value={`${entityPercentage}%`} loading={loading} icon={<BarChart3 size={18} className="text-[#006a62]" />} />
+        <SummaryCard label={mode === 'staff' ? 'Staff Roster' : 'Student Roster'} value={mode === 'staff' ? staffCount : studentCount} loading={loading} icon={<Users size={18} className="text-emerald-600" />} />
+        <SummaryCard label="Present" value={entitySummary.present} loading={loading} icon={<BadgeCheck size={18} className="text-emerald-600" />} />
+        <SummaryCard label="Late" value={entitySummary.late} loading={loading} icon={<CalendarDays size={18} className="text-emerald-600" />} />
+        <SummaryCard label="Absent" value={entitySummary.absent} loading={loading} icon={<UserCheck size={18} className="text-emerald-600" />} />
+        <SummaryCard label="Attendance %" value={`${entityPercentage}%`} loading={loading} icon={<BarChart3 size={18} className="text-emerald-600" />} />
       </section>
 
-      <section className="erp-glass-card mb-6 rounded-2xl p-5">
+      <section className="tt-card mb-6 rounded-2xl p-5">
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="flex flex-wrap items-end gap-2 lg:col-span-3">
             {[
@@ -466,35 +460,35 @@ export default function AttendanceManagement({
                 key={value}
                 type="button"
                 onClick={() => setMode(value)}
-                className={cx('h-11 rounded-xl px-4 text-sm font-bold', mode === value ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+                className={cx('h-11 rounded-xl px-4 text-sm font-bold', mode === value ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
               >
                 {label}
               </button>
             ))}
           </div>
           <label className="lg:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Date</span>
-            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]" />
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Date</span>
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500" />
           </label>
           <label className="lg:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class</span>
-            <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Class</span>
+            <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60">
               <option value="">All classes</option>
               {classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
             </select>
           </label>
           <label className="lg:col-span-2">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Section</span>
-            <select value={sectionId} onChange={(event) => setSectionId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Section</span>
+            <select value={sectionId} onChange={(event) => setSectionId(event.target.value)} disabled={mode === 'staff'} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60">
               <option value="">All sections</option>
               {visibleSections.map((section) => <option key={section.id} value={section.id}>{section.name}</option>)}
             </select>
           </label>
           <label className="lg:col-span-3">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Search Roster</span>
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Search Roster</span>
             <span className="relative block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-xl border border-white/40 bg-white/45 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62]" placeholder="Name, ID, phone, email" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-brand-500" placeholder="Name, ID, phone, email" />
             </span>
           </label>
         </div>
@@ -502,11 +496,11 @@ export default function AttendanceManagement({
 
       {mode !== 'reports' ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="erp-glass-card overflow-hidden rounded-2xl">
-            <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <section className="tt-card overflow-hidden rounded-2xl">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-sm font-bold text-[#003434]">{mode === 'staff' ? 'Staff Roster' : 'Student Roster'}</h2>
-                <p className="mt-1 text-xs font-semibold text-[#3f4848]">Re-marking the same date updates the backend record.</p>
+                <h2 className="text-sm font-bold text-slate-800">{mode === 'staff' ? 'Staff Roster' : 'Student Roster'}</h2>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Re-marking the same date updates the backend record.</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {ATTENDANCE_STATUSES.map((status) => (
@@ -518,7 +512,7 @@ export default function AttendanceManagement({
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] text-sm">
-                <thead className="bg-[#004d4d] text-left text-white">
+                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-5 py-3">{mode === 'staff' ? 'Staff' : 'Student'}</th>
                     <th className="px-5 py-3">{mode === 'staff' ? 'Department' : 'Class'}</th>
@@ -527,10 +521,10 @@ export default function AttendanceManagement({
                     <th className="px-5 py-3">Remarks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/30">
+                <tbody className="divide-y divide-slate-100">
                   {loading && (
                     <tr>
-                      <td colSpan="5" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">
+                      <td colSpan="5" className="px-5 py-10 text-center text-sm font-semibold text-slate-500">
                         <Loader2 className="mr-2 inline animate-spin" size={16} /> Loading roster...
                       </td>
                     </tr>
@@ -541,21 +535,21 @@ export default function AttendanceManagement({
                       <tr key={entity.id}>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#004d4d] text-xs font-bold text-white">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-700 text-xs font-bold text-white">
                               {initialsFor(entity.name)}
                             </div>
                             <div>
-                              <p className="font-bold text-[#071e27]">{entity.name || '-'}</p>
-                              <p className="mt-1 text-xs font-semibold text-[#3f4848]">{entityLabel(entity, mode)}</p>
+                              <p className="font-bold text-slate-900">{entity.name || '-'}</p>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">{entityLabel(entity, mode)}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-[#3f4848]">{mode === 'staff' ? getDepartmentLabel(entity) : getClassLabel(entity)}</td>
+                        <td className="px-5 py-4 text-slate-500">{mode === 'staff' ? getDepartmentLabel(entity) : getClassLabel(entity)}</td>
                         <td className="px-5 py-4">
                           {existing ? (
                             <span className={cx('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(existing.status))}>{existing.status}</span>
                           ) : (
-                            <span className="text-xs font-semibold text-[#3f4848]">Not marked</span>
+                            <span className="text-xs font-semibold text-slate-500">Not marked</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
@@ -568,7 +562,7 @@ export default function AttendanceManagement({
                                 disabled={!canMark}
                                 className={cx(
                                   'h-8 rounded-lg border px-3 text-xs font-bold disabled:opacity-70',
-                                  drafts[entity.id]?.status === status ? statusClasses(status) : 'border-white/40 bg-white/35 text-[#3f4848]'
+                                  drafts[entity.id]?.status === status ? statusClasses(status) : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
                                 )}
                               >
                                 {statusLabel(status)}
@@ -581,7 +575,7 @@ export default function AttendanceManagement({
                             value={drafts[entity.id]?.remarks || ''}
                             onChange={(event) => updateDraft(entity.id, { remarks: event.target.value })}
                             disabled={!canMark}
-                            className="h-9 w-full min-w-40 rounded-lg border border-white/40 bg-white/45 px-3 text-xs text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-70"
+                            className="h-9 w-full min-w-40 rounded-lg border border-slate-200 bg-[#f8f9fa] px-3 text-xs text-slate-900 outline-none focus:border-brand-500 disabled:opacity-70"
                             placeholder="Optional"
                           />
                         </td>
@@ -590,7 +584,7 @@ export default function AttendanceManagement({
                   })}
                   {!loading && !roster.length && (
                     <tr>
-                      <td colSpan="5" className="px-5 py-12 text-center text-sm font-semibold text-[#3f4848]">No roster records found.</td>
+                      <td colSpan="5" className="px-5 py-12 text-center text-sm font-semibold text-slate-500">No roster records found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -599,33 +593,33 @@ export default function AttendanceManagement({
           </section>
 
           <aside className="space-y-5">
-            <section className="erp-glass-card rounded-2xl p-5">
-              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Selected Date</p>
-              <h2 className="mt-1 text-lg font-bold text-[#003434]">{date}</h2>
+            <section className="tt-card p-5">
+              <p className="text-[11px] font-bold uppercase text-slate-500">Selected Date</p>
+              <h2 className="mt-1 text-lg font-bold text-slate-800">{date}</h2>
               <div className="mt-5 space-y-3">
                 {ATTENDANCE_STATUSES.map((status) => (
                   <div key={status}>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold text-[#3f4848]">{statusLabel(status)}</span>
-                      <b className="text-[#071e27]">{entitySummary[status]}</b>
+                      <span className="font-semibold text-slate-500">{statusLabel(status)}</span>
+                      <b className="text-slate-900">{entitySummary[status]}</b>
                     </div>
-                    <div className="mt-1 h-2 rounded-full bg-white/40">
-                      <div className="h-full rounded-full bg-[#006a62]" style={{ width: `${entitySummary.total ? Math.round((entitySummary[status] / entitySummary.total) * 100) : 0}%` }} />
+                    <div className="mt-1 h-2 rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-emerald-600" style={{ width: `${entitySummary.total ? Math.round((entitySummary[status] / entitySummary.total) * 100) : 0}%` }} />
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            <section className="erp-glass-card rounded-2xl p-5">
-              <p className="text-[11px] font-bold uppercase text-[#3f4848]">Loaded Records</p>
+            <section className="tt-card p-5">
+              <p className="text-[11px] font-bold uppercase text-slate-500">Loaded Records</p>
               <div className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
                 {entityRecords.map((record) => (
-                  <div key={record.id || `${record.date}-${record.studentId || record.staffId}`} className="rounded-xl border border-white/35 bg-white/35 p-3">
+                  <div key={record.id || `${record.date}-${record.studentId || record.staffId}`} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-bold text-[#071e27]">{record.studentName || record.staffName || record.studentId || record.staffId}</p>
-                        <p className="mt-1 text-xs text-[#3f4848]">{record.date} | {record.remarks || 'No remarks'}</p>
+                        <p className="font-bold text-slate-900">{record.studentName || record.staffName || record.studentId || record.staffId}</p>
+                        <p className="mt-1 text-xs text-slate-500">{record.date} | {record.remarks || 'No remarks'}</p>
                       </div>
                       <span className={cx('rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', statusClasses(record.status))}>{record.status}</span>
                     </div>
@@ -637,13 +631,13 @@ export default function AttendanceManagement({
           </aside>
         </div>
       ) : (
-        <section className="erp-glass-card rounded-2xl p-5">
+        <section className="tt-card p-5">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-[#003434]">Attendance Reports</h2>
-              <p className="mt-1 text-sm text-[#3f4848]">Student attendance report endpoints from the backend.</p>
+              <h2 className="text-lg font-bold text-slate-800">Attendance Reports</h2>
+              <p className="mt-1 text-sm text-slate-500">Student attendance report endpoints from the backend.</p>
             </div>
-            <button type="button" onClick={loadReport} disabled={reportLoading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white disabled:bg-slate-300">
+            <button type="button" onClick={loadReport} disabled={reportLoading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white disabled:bg-slate-300">
               {reportLoading ? <Loader2 className="animate-spin" size={16} /> : <ClipboardCheck size={16} />}
               Load Report
             </button>
@@ -660,33 +654,33 @@ export default function AttendanceManagement({
                   key={value}
                   type="button"
                   onClick={() => setReportType(value)}
-                  className={cx('h-10 rounded-xl px-4 text-sm font-bold', reportType === value ? 'bg-[#004d4d] text-white' : 'bg-white/40 text-[#3f4848]')}
+                  className={cx('h-10 rounded-xl px-4 text-sm font-bold', reportType === value ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}
                 >
                   {label}
                 </button>
               ))}
             </div>
             <label className="lg:col-span-2">
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Date</span>
-              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={reportType !== 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">Date</span>
+              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={reportType !== 'daily'} className="h-10 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60" />
             </label>
             <label className="lg:col-span-2">
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">From</span>
-              <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">From</span>
+              <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60" />
             </label>
             <label className="lg:col-span-2">
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">To</span>
-              <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60" />
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">To</span>
+              <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60" />
             </label>
             <label className="lg:col-span-3">
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{reportType === 'student' ? 'Student' : 'Class'}</span>
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">{reportType === 'student' ? 'Student' : 'Class'}</span>
               {reportType === 'student' ? (
-                <select value={selectedStudentId} onChange={(event) => setSelectedStudentId(event.target.value)} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62]">
+                <select value={selectedStudentId} onChange={(event) => setSelectedStudentId(event.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500">
                   <option value="">Select student</option>
                   {students.map((student) => <option key={student.id} value={student.id}>{student.name} - {entityLabel(student, 'students')}</option>)}
                 </select>
               ) : (
-                <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] disabled:opacity-60">
+                <select value={classId} onChange={(event) => setClassId(event.target.value)} disabled={reportType === 'daily'} className="h-10 w-full rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:opacity-60">
                   <option value="">All classes</option>
                   {classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name}</option>)}
                 </select>
@@ -696,14 +690,14 @@ export default function AttendanceManagement({
 
           {reportType === 'daily' && dailyReport && (
             <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <div className="rounded-2xl border border-white/35 bg-white/35 p-5">
-                <p className="text-[11px] font-bold uppercase text-[#3f4848]">Daily Summary</p>
-                <h3 className="mt-1 text-xl font-bold text-[#003434]">{dailyReport.date}</h3>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                <p className="text-[11px] font-bold uppercase text-slate-500">Daily Summary</p>
+                <h3 className="mt-1 text-xl font-bold text-slate-800">{dailyReport.date}</h3>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {ATTENDANCE_STATUSES.map((status) => (
-                    <div key={status} className="rounded-xl bg-white/45 p-3">
-                      <p className="text-xs font-bold uppercase text-[#3f4848]">{statusLabel(status)}</p>
-                      <p className="mt-1 text-2xl font-bold text-[#003434]">{dailyReport.summary?.[status] || 0}</p>
+                    <div key={status} className="rounded-xl bg-[#f8f9fa] p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">{statusLabel(status)}</p>
+                      <p className="mt-1 text-2xl font-bold text-slate-800">{dailyReport.summary?.[status] || 0}</p>
                     </div>
                   ))}
                 </div>
@@ -713,9 +707,9 @@ export default function AttendanceManagement({
           )}
 
           {reportType === 'monthly' && monthlyReport && (
-            <div className="overflow-x-auto rounded-2xl border border-white/35 bg-white/35">
+            <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-slate-50">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-[#004d4d] text-left text-white">
+                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Student</th>
                     <th className="px-5 py-3">Present</th>
@@ -729,17 +723,17 @@ export default function AttendanceManagement({
                 <tbody>
                   {(monthlyReport.students || []).map((student) => (
                     <tr key={student.studentId}>
-                      <td className="px-5 py-4 font-bold text-[#071e27]">{student.studentName || student.studentId}</td>
+                      <td className="px-5 py-4 font-bold text-slate-900">{student.studentName || student.studentId}</td>
                       <td className="px-5 py-4">{student.present}</td>
                       <td className="px-5 py-4">{student.late}</td>
                       <td className="px-5 py-4">{student.absent}</td>
                       <td className="px-5 py-4">{student.leave}</td>
                       <td className="px-5 py-4">{student.total}</td>
-                      <td className="px-5 py-4 font-bold text-[#006a62]">{student.percentage}%</td>
+                      <td className="px-5 py-4 font-bold text-emerald-600">{student.percentage}%</td>
                     </tr>
                   ))}
                   {!monthlyReport.students?.length && (
-                    <tr><td colSpan="7" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">No monthly report rows found.</td></tr>
+                    <tr><td colSpan="7" className="px-5 py-10 text-center text-sm font-semibold text-slate-500">No monthly report rows found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -756,9 +750,9 @@ export default function AttendanceManagement({
                 ['Leave', studentPercentage.leave],
                 ['Percentage', `${studentPercentage.percentage}%`],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-white/35 bg-white/35 p-5">
-                  <p className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</p>
-                  <p className="mt-2 text-2xl font-bold text-[#003434]">{valueOrDash(value)}</p>
+                <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                  <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-800">{valueOrDash(value)}</p>
                 </div>
               ))}
             </div>
@@ -775,9 +769,9 @@ export default function AttendanceManagement({
 
 function ReportRecords({ records }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/35 bg-white/35">
+    <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-slate-50">
       <table className="w-full min-w-[640px] text-sm">
-        <thead className="bg-[#004d4d] text-left text-white">
+        <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
           <tr>
             <th className="px-5 py-3">Student</th>
             <th className="px-5 py-3">Date</th>
@@ -788,16 +782,16 @@ function ReportRecords({ records }) {
         <tbody>
           {records.map((record) => (
             <tr key={record.id || `${record.date}-${record.studentId}`}>
-              <td className="px-5 py-4 font-bold text-[#071e27]">{record.studentName || record.studentId}</td>
-              <td className="px-5 py-4 text-[#3f4848]">{record.date}</td>
+              <td className="px-5 py-4 font-bold text-slate-900">{record.studentName || record.studentId}</td>
+              <td className="px-5 py-4 text-slate-500">{record.date}</td>
               <td className="px-5 py-4">
                 <span className={cx('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(record.status))}>{record.status}</span>
               </td>
-              <td className="px-5 py-4 text-[#3f4848]">{record.remarks || '-'}</td>
+              <td className="px-5 py-4 text-slate-500">{record.remarks || '-'}</td>
             </tr>
           ))}
           {!records.length && (
-            <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]">No report records found.</td></tr>
+            <tr><td colSpan="4" className="px-5 py-10 text-center text-sm font-semibold text-slate-500">No report records found.</td></tr>
           )}
         </tbody>
       </table>

@@ -1,307 +1,91 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, LogOut, UserRound } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Search, Bell, ChevronDown, LogOut, MonitorSmartphone } from 'lucide-react';
 import { defaultRoles, getRoleById } from '../../userRoles/rolePermissions';
-import mauryaLogo from '../../../../assets/maurya.png';
+import { logoutEverywhere } from '../../../api/auth';
 
-const departmentOrder = [
-  'Maurya College of Nursing',
-  'Maurya College of Physiotherapy',
-  'Maurya College of Allied Health Sciences',
-];
-
-function getCourseLabel(course = {}) {
-  const suffix = course.admissionType || course.courseYear || '';
-  return [course.courseName || course.name || course.courseCode, suffix].filter(Boolean).join(' - ');
-}
-
-function getDepartmentLabel(course = {}) {
-  const source = [
-    course.department,
-    course.departmentName,
-    course.collegeName,
-    course.institute,
-    course.courseName,
-    course.courseCode,
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  if (source.includes('nursing')) return 'Maurya College of Nursing';
-  if (source.includes('physio') || source.includes('bpt')) return 'Maurya College of Physiotherapy';
-  if (
-    source.includes('allied') ||
-    source.includes('bot') ||
-    source.includes('atot') ||
-    source.includes('occupational') ||
-    source.includes('anaesthesia') ||
-    source.includes('anesthesia') ||
-    source.includes('operation') ||
-    source.includes('imaging') ||
-    source.includes('mit') ||
-    source.includes('mlt')
-  ) {
-    return 'Maurya College of Allied Health Sciences';
-  }
-
-  const fallback = course.collegeName || course.department || course.institute || 'Other Courses';
-  return fallback
-    .replace(/\([^)]*\)/g, '')
-    .replace(/\bMysore\b|\bMysuru\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim() || 'Other Courses';
-}
-
-function buildDepartmentCourseGroups(courses = []) {
-  const groups = new Map();
-  courses.forEach((course) => {
-    if (!course?.courseCode) return;
-    const departmentName = getDepartmentLabel(course);
-    if (!groups.has(departmentName)) groups.set(departmentName, { name: departmentName, courses: [] });
-    groups.get(departmentName).courses.push(course);
-  });
-
-  return [...groups.values()].sort((a, b) => {
-    const firstIndex = departmentOrder.indexOf(a.name);
-    const secondIndex = departmentOrder.indexOf(b.name);
-    if (firstIndex !== -1 || secondIndex !== -1) {
-      return (firstIndex === -1 ? 999 : firstIndex) - (secondIndex === -1 ? 999 : secondIndex);
-    }
-    return a.name.localeCompare(b.name);
-  });
-}
-
+// Teal Tiles top bar — clean and low-clutter: a warm greeting + the page title on
+// the left; compact academic-year / course controls, search, notifications and a
+// profile menu (with sign out) on the right. Keeps all the data props the shell
+// already passes, so cross-module course/year context is preserved.
 export default function TopHeader({
+  title = 'Dashboard',
   academicYear,
   academicYears = [],
   courseCode = 'all',
   courses = [],
-  institute,
   onAcademicYearChange,
   onCourseChange,
   user,
   onLogout,
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [courseMenuOpen, setCourseMenuOpen] = useState(false);
-  const [yearMenuOpen, setYearMenuOpen] = useState(false);
-  const [expandedDepartment, setExpandedDepartment] = useState('');
-  const profileMenuRef = useRef(null);
-  const courseMenuRef = useRef(null);
-  const yearMenuRef = useRef(null);
-  const currentRoleId = user?.roleId || 'admin';
-  const currentRole = getRoleById(defaultRoles, currentRoleId);
-  const isSuperAdmin = currentRoleId === 'super-admin';
-  const isParent = currentRoleId === 'parent';
-  const userDisplayId = user?.displayId || user?.adminId || user?.employeeId || user?.uid?.slice(0, 8) || '-';
-  const roleLabel = (currentRole?.name || 'Admin').toUpperCase();
-  const selectedCourseValue = isParent && !courses.some((course) => course.courseCode === courseCode)
-    ? courses[0]?.courseCode || ''
-    : courseCode;
-  const selectedCourse = useMemo(
-    () => courses.find((course) => course.courseCode === selectedCourseValue) || null,
-    [courses, selectedCourseValue]
-  );
-  const courseGroups = useMemo(() => buildDepartmentCourseGroups(courses), [courses]);
-  const selectedDepartmentName = selectedCourse ? getDepartmentLabel(selectedCourse) : '';
-  const collegeName = selectedDepartmentName || institute?.name || user?.selectedCollege?.name || 'College Management';
-  const instituteId = selectedCourse?.collegeCode || user?.selectedCollege?.code || institute?.instituteId || institute?.code || '-';
-  const selectedCourseLabel = selectedCourse
-    ? getCourseLabel(selectedCourse)
-    : isParent && !courses.length
-      ? 'Student Course'
-      : 'All Courses';
-  const coursePickerDisabled = isParent && courses.length <= 1;
-  const selectedAcademicYear = academicYear || academicYears[0] || 'Academic Year';
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const menuRef = useRef(null);
 
-  const toggleCourseMenu = () => {
-    if (coursePickerDisabled) return;
-    if (!courseMenuOpen) setExpandedDepartment(selectedDepartmentName);
-    setCourseMenuOpen((open) => !open);
+  const handleLogoutEverywhere = async () => {
+    if (!window.confirm('Sign out of all devices? All active sessions will end immediately.')) return;
+    setSigningOutAll(true);
+    try { await logoutEverywhere(); } catch { /* best-effort */ }
+    onLogout?.();
   };
-
-  const selectCourse = (nextCourseCode) => {
-    onCourseChange?.(nextCourseCode);
-    setCourseMenuOpen(false);
-  };
-
-  const selectAcademicYear = (nextYear) => {
-    onAcademicYearChange?.(nextYear);
-    setYearMenuOpen(false);
-  };
+  const roleId = user?.roleId || 'admin';
+  const roleLabel = (getRoleById(defaultRoles, roleId)?.name || 'Admin');
+  const name = user?.name || user?.displayName || user?.email || 'User';
+  const firstName = String(name).trim().split(' ')[0];
+  const initial = String(name).trim().charAt(0).toUpperCase() || 'U';
 
   useEffect(() => {
-    const closeMenus = (event) => {
-      if (!profileMenuRef.current?.contains(event.target)) {
-        setProfileOpen(false);
-      }
-      if (!courseMenuRef.current?.contains(event.target)) {
-        setCourseMenuOpen(false);
-      }
-      if (!yearMenuRef.current?.contains(event.target)) {
-        setYearMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', closeMenus);
-    return () => document.removeEventListener('mousedown', closeMenus);
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setProfileOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   return (
-    <header className="erp-header min-h-[72px] bg-white border-b border-slate-200 px-4 lg:px-8 py-3 shrink-0">
-      <div className="erp-header-grid">
-        <div className="erp-header-college-title" title={collegeName}>
-          <img src={mauryaLogo} alt="" className="erp-header-logo" />
-          <span className="erp-header-college-name">{collegeName}</span>
-        </div>
-        <div className="erp-header-actions">
-        <div className="erp-header-filters">
-          <label className="erp-course-picker-label text-xs font-semibold text-slate-500">
-            <span className="sr-only">Course</span>
-            <div ref={courseMenuRef} className={`erp-course-picker ${courseMenuOpen ? 'is-open' : ''}`}>
-              <button
-                type="button"
-                onClick={toggleCourseMenu}
-                disabled={coursePickerDisabled}
-                className="erp-header-select erp-course-picker-button bg-white border border-slate-200 rounded-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] px-3 text-xs text-slate-600 outline-none focus:border-[#fb9a5b] focus:ring-2 focus:ring-orange-100"
-                title="Select course"
-                aria-haspopup="menu"
-                aria-expanded={courseMenuOpen}
-              >
-                <span>{selectedCourseLabel}</span>
-                <ChevronDown className="erp-course-picker-chevron" size={15} />
-              </button>
-              {courseMenuOpen && !coursePickerDisabled && (
-                <div className="erp-course-picker-menu" role="menu">
-                  {!isParent && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExpandedDepartment('');
-                        selectCourse('all');
-                      }}
-                      className={`erp-course-picker-all ${selectedCourseValue === 'all' ? 'is-selected' : ''}`}
-                      role="menuitem"
-                    >
-                      <span>All Courses</span>
-                      {selectedCourseValue === 'all' && <Check size={15} />}
-                    </button>
-                  )}
-                  {isParent && !courses.length && (
-                    <div className="erp-course-picker-empty">Student Course</div>
-                  )}
-                  {courseGroups.map((group) => {
-                    const expanded = expandedDepartment === group.name;
-                    return (
-                      <div key={group.name} className="erp-course-picker-group">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedDepartment(expanded ? '' : group.name)}
-                          className="erp-course-picker-department"
-                          aria-expanded={expanded}
-                        >
-                          <span>{group.name}</span>
-                          <span className="erp-course-picker-count">{group.courses.length}</span>
-                          <ChevronRight className={`erp-course-picker-group-chevron ${expanded ? 'is-expanded' : ''}`} size={15} />
-                        </button>
-                        {expanded && (
-                          <div className="erp-course-picker-courses">
-                            {group.courses.map((course) => {
-                              const selected = selectedCourseValue === course.courseCode;
-                              return (
-                                <button
-                                  type="button"
-                                  key={course.courseCode}
-                                  onClick={() => selectCourse(course.courseCode)}
-                                  className={`erp-course-picker-course ${selected ? 'is-selected' : ''}`}
-                                  role="menuitem"
-                                >
-                                  <span>{getCourseLabel(course)}</span>
-                                  {selected && <Check size={14} />}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </label>
-          {!isParent && (
-          <label className="erp-course-picker-label text-xs font-semibold text-slate-500">
-            <span className="sr-only">Academic Year</span>
-            <div ref={yearMenuRef} className={`erp-course-picker erp-year-picker ${yearMenuOpen ? 'is-open' : ''}`}>
-              <button
-                type="button"
-                onClick={() => academicYears.length && setYearMenuOpen((open) => !open)}
-                disabled={!academicYears.length}
-                className="erp-header-select erp-course-picker-button erp-header-year-select bg-white border border-slate-200 rounded-lg shadow-[0_2px_8px_rgba(15,23,42,0.04)] px-3 text-xs text-slate-600 outline-none focus:border-[#fb9a5b] focus:ring-2 focus:ring-orange-100"
-                aria-haspopup="menu"
-                aria-expanded={yearMenuOpen}
-              >
-                <span>{selectedAcademicYear}</span>
-                <ChevronDown className="erp-course-picker-chevron" size={15} />
-              </button>
-              {yearMenuOpen && Boolean(academicYears.length) && (
-                <div className="erp-course-picker-menu erp-year-picker-menu" role="menu">
-                  {academicYears.map((year) => {
-                    const selected = year === selectedAcademicYear;
-                    return (
-                      <button
-                        type="button"
-                        key={year}
-                        onClick={() => selectAcademicYear(year)}
-                        className={`erp-course-picker-course erp-year-picker-option ${selected ? 'is-selected' : ''}`}
-                        role="menuitem"
-                      >
-                        <span>{year}</span>
-                        {selected && <Check size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </label>
-          )}
-        </div>
-        <div className="erp-header-user-cluster">
-        {isSuperAdmin && (
-          <>
-            <div className="hidden sm:block h-9 w-px bg-slate-200" />
-            <div className="hidden xl:block text-xs text-slate-700 leading-5 whitespace-nowrap">
-              <div>User ID : {userDisplayId}</div>
-              <div>Institute ID : {instituteId}</div>
-            </div>
-            <div className="hidden xl:block h-9 w-px bg-slate-200" />
-          </>
+    <header className="tt-header">
+      <div className="min-w-0">
+        <div className="tt-welcome">Welcome back, {firstName} 👋</div>
+        <h1 className="tt-title">{title}</h1>
+      </div>
+
+      <div className="tt-header-right">
+        {courses.length > 0 && (
+          <select className="tt-select" value={courseCode} onChange={(e) => onCourseChange?.(e.target.value)} aria-label="Course">
+            <option value="all">All Courses</option>
+            {courses.map((c) => (
+              <option key={c.courseCode} value={c.courseCode}>{c.courseName || c.name || c.courseCode}</option>
+            ))}
+          </select>
         )}
-        <div className="erp-header-user-text text-right leading-tight min-w-0">
-          <div className="text-sm font-bold text-slate-900 whitespace-nowrap">{user?.name || 'Admin'}</div>
-          <span className="erp-header-role-badge inline-flex bg-[#ff9f68] text-white text-[10px] px-3 py-1 rounded-md font-bold uppercase whitespace-nowrap leading-none">
-            {roleLabel}
-          </span>
-        </div>
-        <div ref={profileMenuRef} className="erp-profile-menu-wrap relative">
-          <button
-            onClick={() => setProfileOpen((open) => !open)}
-            className="h-10 w-10 rounded-full bg-[#2e333b] text-emerald-300 flex items-center justify-center"
-            title="Profile"
-          >
-            <UserRound size={22} />
+        {academicYears.length > 0 && (
+          <select className="tt-select" value={academicYear || academicYears[0]} onChange={(e) => onAcademicYearChange?.(e.target.value)} aria-label="Academic year">
+            {academicYears.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        )}
+
+        <button type="button" className="tt-icon-btn" aria-label="Search"><Search size={19} /></button>
+        <button type="button" className="tt-icon-btn" aria-label="Notifications"><Bell size={19} /><span className="tt-dot" /></button>
+
+        <div className="tt-profile" ref={menuRef}>
+          <button type="button" className="tt-profile-btn" onClick={() => setProfileOpen((o) => !o)}>
+            <span className="tt-avatar-fallback">{initial}</span>
+            <span className="tt-profile-name hidden sm:block">{name}</span>
+            <ChevronDown size={16} className="text-muted" />
           </button>
           {profileOpen && (
-            <div className="erp-profile-menu absolute right-0 top-12 w-44 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
-              <button
-                onClick={onLogout}
-                className="erp-profile-logout w-full h-10 rounded-md px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-              >
-                <LogOut size={16} /> Logout
+            <div className="tt-profile-menu">
+              <div className="tt-profile-meta">
+                <div className="tt-profile-name-lg">{name}</div>
+                <div className="tt-profile-role">{roleLabel}</div>
+              </div>
+              <button type="button" className="tt-profile-logout" onClick={onLogout}>
+                <LogOut size={16} /> Sign out
+              </button>
+              <button type="button" className="tt-profile-logout" onClick={handleLogoutEverywhere} disabled={signingOutAll} style={{ opacity: signingOutAll ? 0.6 : 1, fontSize: '12px' }}>
+                <MonitorSmartphone size={14} /> Sign out of all devices
               </button>
             </div>
           )}
         </div>
-      </div>
-      </div>
       </div>
     </header>
   );

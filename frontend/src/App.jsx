@@ -5,8 +5,7 @@ import AuthPage from './pages/AuthPage';
 import LegalPage from './pages/LegalPage';
 import StudentInformationManagement from './modules/students/StudentInformationManagement';
 import { getCurrentSession, logoutSession } from './api/auth';
-import { getInstituteShellData } from './firebase/db';
-import ParticleBackground from './components/ParticleBackground';
+import { getInstitutionSettings, getBrandingSettings } from './api/settings';
 import { normalizeInstituteSettings } from './modules/settings/settingsModel';
 import { getCanonicalModulePath } from './modules/moduleRegistry';
 
@@ -175,16 +174,28 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!user) return undefined; // backend settings require an authenticated session
+    let active = true;
     const loadInstitute = async () => {
       try {
-        const data = await getInstituteShellData();
-        if (data) setInstitute(normalizeInstituteSettings(data));
+        const [profile, branding] = await Promise.all([
+          getInstitutionSettings().catch(() => ({})),
+          getBrandingSettings().catch(() => ({})),
+        ]);
+        if (!active) return;
+        const merged = {
+          ...profile,
+          logoUrl: branding.logoUrl || profile.logoUrl || '',
+          instituteId: profile.instituteId || profile.registrationNumber || profile.code || '',
+        };
+        setInstitute(normalizeInstituteSettings(merged));
       } catch (error) {
-        console.error('Unable to load live institute for college selection.', error);
+        console.error('Unable to load institution profile from the backend.', error);
       }
     };
     loadInstitute();
-  }, []);
+    return () => { active = false; };
+  }, [user]);
 
   const logout = async () => {
     setSelectedCollege(null);
@@ -218,9 +229,8 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="app-background">
-        <ParticleBackground />
-        <main className="relative z-[1] min-h-screen bg-transparent flex items-center justify-center text-sm font-semibold text-[#00ff88]">
-          Loading ERP...
+        <main className="min-h-screen flex items-center justify-center text-sm font-semibold text-brand-700">
+          Loading…
         </main>
       </div>
     );
@@ -241,7 +251,6 @@ export default function App() {
 
   return (
     <div className="app-background">
-      <ParticleBackground />
       <Routes>
         <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage onAuthenticated={handleAuthenticated} />} />

@@ -68,7 +68,7 @@ const SECRET_LABELS = {
   fcmServerKey: 'FCM Server Key',
 };
 
-const textInputClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20 disabled:cursor-not-allowed disabled:opacity-70';
+const textInputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-70';
 
 function hasPermission(user, permission) {
   const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
@@ -96,7 +96,7 @@ function statusClasses(value) {
   if (['ready', 'configured', 'enabled', 'set', 'daily', 'weekly', 'monthly'].includes(normalized)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (['pending', 'missing', 'not set', 'partial'].includes(normalized)) return 'border-amber-200 bg-amber-50 text-amber-700';
   if (['unavailable', 'failed', 'error'].includes(normalized)) return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-[#81f3e5]/60 bg-[#81f3e5]/35 text-[#006f66]';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 }
 
 function healthStatusBadge(summary = {}) {
@@ -106,32 +106,32 @@ function healthStatusBadge(summary = {}) {
 
 function SummaryCard({ icon, label, loading, value }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
+    <div className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        <span className="text-[11px] font-bold uppercase text-slate-500">{label}</span>
         {icon}
       </div>
-      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-3 text-2xl font-bold text-slate-900">{loading ? '-' : value}</div>
     </div>
   );
 }
 
 function SystemStatusItem({ badge, icon, label, value }) {
   return (
-    <div className="rounded-xl bg-white/40 p-4">
+    <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/45 text-[#006a62]">{icon}</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-brand-500">{icon}</span>
         {badge && <span className={cx('rounded-full border px-3 py-1 text-[10px] font-bold uppercase', statusClasses(badge))}>{badge}</span>}
       </div>
-      <p className="mt-4 text-xs font-bold uppercase text-[#3f4848]">{label}</p>
-      <p className="mt-1 break-words text-sm font-bold text-[#071e27]">{value || '-'}</p>
+      <p className="mt-4 text-xs font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold text-slate-900">{value || '-'}</p>
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
       {message}
     </div>
   );
@@ -139,10 +139,10 @@ function EmptyState({ message }) {
 
 function SectionHeader({ badge, icon, title }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/45 text-[#006a62]">{icon}</span>
-        <h2 className="text-sm font-bold text-[#003434]">{title}</h2>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-brand-500">{icon}</span>
+        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
       </div>
       {badge && <span className={cx('w-fit rounded-full border px-3 py-1 text-[11px] font-bold uppercase', statusClasses(badge))}>{badge}</span>}
     </div>
@@ -152,7 +152,7 @@ function SectionHeader({ badge, icon, title }) {
 function TextField({ disabled, label, onChange, placeholder = '', type = 'text', value }) {
   return (
     <label>
-      <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{label}</span>
+      <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
       <input
         type={type}
         value={value ?? ''}
@@ -168,7 +168,7 @@ function TextField({ disabled, label, onChange, placeholder = '', type = 'text',
 function TextAreaField({ disabled, label, onChange, rows = 4, value }) {
   return (
     <label>
-      <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{label}</span>
+      <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
       <textarea
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
@@ -183,8 +183,8 @@ function TextAreaField({ disabled, label, onChange, rows = 4, value }) {
 function ColorField({ disabled, label, onChange, value }) {
   return (
     <label>
-      <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">{label}</span>
-      <div className="flex min-h-11 overflow-hidden rounded-xl border border-white/40 bg-white/45">
+      <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
+      <div className="flex min-h-11 overflow-hidden rounded-xl border border-slate-200 bg-[#f8f9fa]">
         <input
           type="color"
           value={value || '#004d4d'}
@@ -196,7 +196,7 @@ function ColorField({ disabled, label, onChange, value }) {
           value={value || ''}
           onChange={(event) => onChange(event.target.value)}
           disabled={disabled}
-          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-semibold text-[#071e27] outline-none disabled:cursor-not-allowed disabled:opacity-70"
+          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-semibold text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-70"
         />
       </div>
     </label>
@@ -205,9 +205,9 @@ function ColorField({ disabled, label, onChange, value }) {
 
 function SecretField({ clear, disabled, field, onClearChange, onValueChange, set, value }) {
   return (
-    <div className="rounded-xl bg-white/40 p-4">
+    <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-bold text-[#3f4848]">{SECRET_LABELS[field]}</span>
+        <span className="text-xs font-bold text-slate-500">{SECRET_LABELS[field]}</span>
         <span className={cx('rounded-full border px-3 py-1 text-[10px] font-bold uppercase', statusClasses(set ? 'set' : 'missing'))}>
           {set ? 'Set' : 'Missing'}
         </span>
@@ -220,13 +220,13 @@ function SecretField({ clear, disabled, field, onClearChange, onValueChange, set
         placeholder={set ? 'Stored key remains unchanged' : ''}
         className={`${textInputClass} mt-3`}
       />
-      <label className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#004d4d]">
+      <label className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-brand-700">
         <input
           type="checkbox"
           checked={clear}
           onChange={(event) => onClearChange(event.target.checked)}
           disabled={disabled || !set}
-          className="h-4 w-4 rounded border-white/50 text-[#006a62]"
+          className="h-4 w-4 rounded border-slate-200 text-brand-500"
         />
         Clear stored key
       </label>
@@ -400,27 +400,25 @@ export default function SettingsManagement({ currentUser }) {
 
   if (!canView) {
     return (
-      <div className="erp-settings-page">
+      <div className="min-w-0">
         <EmptyState message="You do not have permission to view settings." />
       </div>
     );
   }
 
   return (
-    <div className="erp-settings-page">
+    <div className="min-w-0">
       <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase text-[#006a62]">Admin Setup</p>
-          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Settings</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">Institution, branding, integrations, backup, and system status.</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button type="button" onClick={loadSettings} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-4 text-sm font-bold text-[#004d4d] disabled:opacity-70">
+          <button type="button" onClick={loadSettings} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-brand-700 hover:bg-slate-50 disabled:opacity-70">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Refresh
           </button>
           {canSaveActiveTab && (
-            <button type="button" onClick={saveActiveSettings} disabled={Boolean(saving) || loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-sm font-bold text-white disabled:opacity-70">
+            <button type="button" onClick={saveActiveSettings} disabled={Boolean(saving) || loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-bold text-white disabled:opacity-70">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
             </button>
           )}
@@ -428,11 +426,11 @@ export default function SettingsManagement({ currentUser }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <SummaryCard icon={<Building2 size={20} className="text-[#006a62]" />} label="Institution" loading={loading} value={summary.institutionConfigured ? 'Ready' : 'Pending'} />
-        <SummaryCard icon={<Palette size={20} className="text-[#006a62]" />} label="Branding" loading={loading} value={summary.brandingConfigured ? 'Configured' : 'Pending'} />
-        <SummaryCard icon={<PlugZap size={20} className="text-[#006a62]" />} label="Integrations" loading={loading} value={`${summary.providersConfigured}/${countConfiguredSecrets(integrations)}`} />
-        <SummaryCard icon={<DatabaseBackup size={20} className="text-[#006a62]" />} label="Backup" loading={loading} value={`${summary.backupSchedule} / ${summary.retentionDays}d`} />
-        <SummaryCard icon={<ServerCog size={20} className="text-[#006a62]" />} label="System" loading={loading} value={`${healthSummary.checksReady}/${healthSummary.totalChecks}`} />
+        <SummaryCard icon={<Building2 size={20} className="text-brand-500" />} label="Institution" loading={loading} value={summary.institutionConfigured ? 'Ready' : 'Pending'} />
+        <SummaryCard icon={<Palette size={20} className="text-brand-500" />} label="Branding" loading={loading} value={summary.brandingConfigured ? 'Configured' : 'Pending'} />
+        <SummaryCard icon={<PlugZap size={20} className="text-brand-500" />} label="Integrations" loading={loading} value={`${summary.providersConfigured}/${countConfiguredSecrets(integrations)}`} />
+        <SummaryCard icon={<DatabaseBackup size={20} className="text-brand-500" />} label="Backup" loading={loading} value={`${summary.backupSchedule} / ${summary.retentionDays}d`} />
+        <SummaryCard icon={<ServerCog size={20} className="text-brand-500" />} label="System" loading={loading} value={`${healthSummary.checksReady}/${healthSummary.totalChecks}`} />
       </div>
 
       <div className="my-5 flex flex-wrap gap-2">
@@ -445,7 +443,7 @@ export default function SettingsManagement({ currentUser }) {
               onClick={() => setActiveTab(tab.id)}
               className={cx(
                 'inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition',
-                effectiveActiveTab === tab.id ? 'bg-[#004d4d] text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-white/45 text-[#004d4d]'
+                effectiveActiveTab === tab.id ? 'bg-brand-700 text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
               <Icon size={16} /> {tab.label}
@@ -461,7 +459,7 @@ export default function SettingsManagement({ currentUser }) {
       )}
 
       {effectiveActiveTab === 'institution' && (
-        <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <section className="tt-card overflow-hidden">
           <SectionHeader
             badge={summary.institutionConfigured ? 'Ready' : 'Pending'}
             icon={<Building2 size={19} />}
@@ -475,10 +473,10 @@ export default function SettingsManagement({ currentUser }) {
             <TextField disabled={disabled} label="Website" value={institution.website} onChange={(value) => updateInstitutionField('website', value)} />
             <TextField disabled={disabled} label="Affiliation" value={institution.affiliation} onChange={(value) => updateInstitutionField('affiliation', value)} />
             <TextField disabled={disabled} label="Registration Number" value={institution.registrationNumber} onChange={(value) => updateInstitutionField('registrationNumber', value)} />
-            <div className="rounded-xl bg-white/40 p-4">
-              <p className="text-xs font-bold uppercase text-[#3f4848]">Updated</p>
-              <p className="mt-2 text-sm font-bold text-[#071e27]">{formatDisplayDate(institution.updatedAt)}</p>
-              <p className="mt-1 text-xs font-semibold text-[#3f4848]">{institution.updatedBy || '-'}</p>
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+              <p className="text-xs font-bold uppercase text-slate-500">Updated</p>
+              <p className="mt-2 text-sm font-bold text-slate-900">{formatDisplayDate(institution.updatedAt)}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">{institution.updatedBy || '-'}</p>
             </div>
             <div className="md:col-span-2">
               <TextAreaField disabled={disabled} label="Address" rows={3} value={institution.address} onChange={(value) => updateInstitutionField('address', value)} />
@@ -488,7 +486,7 @@ export default function SettingsManagement({ currentUser }) {
       )}
 
       {effectiveActiveTab === 'branding' && (
-        <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <section className="tt-card overflow-hidden">
           <SectionHeader
             badge={summary.brandingConfigured ? 'Configured' : 'Pending'}
             icon={<Palette size={19} />}
@@ -509,23 +507,23 @@ export default function SettingsManagement({ currentUser }) {
                 <TextAreaField disabled={disabled} label="ID Card Template" value={branding.idCardTemplate} onChange={(value) => updateBrandingField('idCardTemplate', value)} />
               </div>
             </div>
-            <div className="rounded-2xl bg-white/40 p-5">
-              <div className="flex h-32 items-center justify-center rounded-xl border border-white/45 bg-white/55 p-4">
-                {branding.logoUrl ? <img src={branding.logoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <Building2 size={34} className="text-[#6f7978]" />}
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5">
+              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-white p-4">
+                {branding.logoUrl ? <img src={branding.logoUrl} alt="" className="max-h-full max-w-full object-contain" /> : <Building2 size={34} className="text-slate-400" />}
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="h-16 rounded-xl border border-white/40" style={{ backgroundColor: branding.primaryColor || '#004d4d' }} />
-                <div className="h-16 rounded-xl border border-white/40" style={{ backgroundColor: branding.secondaryColor || '#66d9cc' }} />
+                <div className="h-16 rounded-xl border border-slate-200" style={{ backgroundColor: branding.primaryColor || '#004d4d' }} />
+                <div className="h-16 rounded-xl border border-slate-200" style={{ backgroundColor: branding.secondaryColor || '#66d9cc' }} />
               </div>
-              <p className="mt-4 text-sm font-bold text-[#003434]">{branding.receiptHeader || institution.name || 'Collegesoft'}</p>
-              <p className="mt-1 text-xs font-semibold text-[#3f4848]">{branding.theme || 'Theme not set'}</p>
+              <p className="mt-4 text-sm font-bold text-slate-900">{branding.receiptHeader || institution.name || 'Collegesoft'}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">{branding.theme || 'Theme not set'}</p>
             </div>
           </div>
         </section>
       )}
 
       {effectiveActiveTab === 'integrations' && canManage && (
-        <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <section className="tt-card overflow-hidden">
           <SectionHeader
             badge={`${summary.providersConfigured} providers`}
             icon={<PlugZap size={19} />}
@@ -560,7 +558,7 @@ export default function SettingsManagement({ currentUser }) {
       )}
 
       {effectiveActiveTab === 'backup' && canManage && (
-        <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <section className="tt-card overflow-hidden">
           <SectionHeader
             badge={summary.backupSchedule}
             icon={<DatabaseBackup size={19} />}
@@ -571,26 +569,26 @@ export default function SettingsManagement({ currentUser }) {
             <TextField disabled={disabled} label="Retention Days" type="number" value={backup.retentionDays} onChange={(value) => updateBackupField('retentionDays', value)} />
             <TextField disabled={disabled} label="External Target" value={backup.externalTarget} onChange={(value) => updateBackupField('externalTarget', value)} />
             <TextField disabled={disabled} label="Last Backup At" type="datetime-local" value={toDateTimeInputValue(backup.lastBackupAt)} onChange={(value) => updateBackupField('lastBackupAt', value)} />
-            <div className="rounded-xl bg-white/40 p-4 md:col-span-2 xl:col-span-4">
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 md:col-span-2 xl:col-span-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold uppercase text-[#004d4d]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase text-brand-700">
                   <BadgeCheck size={13} /> {backup.schedule || 'daily'}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold uppercase text-[#004d4d]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase text-brand-700">
                   <ShieldCheck size={13} /> {backup.retentionDays ?? 7} days
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/45 px-3 py-1 text-[11px] font-bold uppercase text-[#004d4d]">
+                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase text-brand-700">
                   <KeyRound size={13} /> {backup.externalTarget || '-'}
                 </span>
               </div>
-              <p className="mt-3 text-sm font-semibold text-[#3f4848]">Last backup: {formatDisplayDate(backup.lastBackupAt)}</p>
+              <p className="mt-3 text-sm font-semibold text-slate-500">Last backup: {formatDisplayDate(backup.lastBackupAt)}</p>
             </div>
           </div>
         </section>
       )}
 
       {effectiveActiveTab === 'system-status' && (
-        <section className="erp-glass-card overflow-hidden rounded-2xl">
+        <section className="tt-card overflow-hidden">
           <SectionHeader
             badge={healthStatusBadge(healthSummary)}
             icon={<ServerCog size={19} />}
@@ -635,13 +633,13 @@ export default function SettingsManagement({ currentUser }) {
       )}
 
       {loading && (
-        <div className="mt-5 rounded-xl bg-white/40 p-5 text-center text-sm font-semibold text-[#3f4848]">
+        <div className="mt-5 rounded-xl bg-slate-50 p-5 text-center text-sm font-semibold text-slate-500">
           <Loader2 className="mr-2 inline animate-spin" size={16} /> Loading settings...
         </div>
       )}
 
       {!loading && saving && (
-        <div className="mt-5 rounded-xl bg-white/40 p-5 text-center text-sm font-semibold text-[#3f4848]">
+        <div className="mt-5 rounded-xl bg-slate-50 p-5 text-center text-sm font-semibold text-slate-500">
           <CheckCircle2 className="mr-2 inline" size={16} /> Saving settings...
         </div>
       )}

@@ -14,23 +14,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import {
-  createStudent,
-  createStudentAdmission,
-  createStudentDocument,
-  createStudentHealthRecord,
-  deleteStudentHealthRecord,
-  getInstituteShellData,
-  getSettingsData,
-  getStudentInformationData,
-  archiveStudent,
-  restoreStudent,
-  updateStudent,
-  updateStudentAdmission,
-  updateStudentHealthRecord,
-} from '../../firebase/db';
-import { isFirebaseConfigured } from '../../firebase/config';
 import { getEnabledModules, getModuleById, getModuleByPath } from '../moduleRegistry';
+import { getInstitutionConfig } from '../../api/institution';
 import Sidebar from './components/Sidebar';
 import StatusBadge from './components/StatusBadge';
 import StudentModal from './components/StudentModal';
@@ -44,13 +29,9 @@ import {
   PENDING_ADMISSION_STATUS,
   buildCourseOptionsFromStudents,
   canApproveStudentAdmission,
-  formatDisplayDate,
   latestRecord,
-  normalizeCreatedAdmissionStatus,
-  normalizeEditableStudentStatus,
   relationMatches,
   statusRequiresSuperAdminApproval,
-  validateStudentProfile,
 } from './studentUtils';
 import { isHealthRecordManager } from './studentHealthRecordModel';
 import { canAccess, defaultRoles } from '../userRoles/rolePermissions';
@@ -80,6 +61,7 @@ const DEFAULT_ACADEMIC_YEAR = '2025-2026';
 const NEXT_ACADEMIC_YEAR = '2026-2027';
 const USE_BACKEND_STUDENTS_PAGE = true;
 const AdmissionsManagement = lazy(() => import('../admissions/AdmissionsManagement'));
+const PlacementsManagement = lazy(() => import('../placements/PlacementsManagement'));
 
 function csvValue(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -273,14 +255,20 @@ export default function StudentInformationManagement({ user, onLogout }) {
   const [feeAssignments, setFeeAssignments] = useState([]);
   const [feeCollections, setFeeCollections] = useState([]);
   const [studentHealthRecords, setStudentHealthRecords] = useState([]);
-  const [loadError, setLoadError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [focusedStudentContext, setFocusedStudentContext] = useState(null);
   const [statusFilter, setStatusFilter] = useState('active');
   const [academicYear, setAcademicYear] = useState(DEFAULT_ACADEMIC_YEAR);
   const [institute, setInstitute] = useState({});
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [institutionConfig, setInstitutionConfig] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getInstitutionConfig()
+      .then((cfg) => { if (active) setInstitutionConfig(cfg); })
+      .catch(() => { /* fail-safe: no config → show all modules */ });
+    return () => { active = false; };
+  }, []);
   const currentRoleId = user?.roleId || 'admin';
   const activePage = getPageFromPath(location.pathname);
   const activeModule = getModuleById(activePage);
@@ -351,24 +339,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
     }
   }, [accessibleModules, activePage, canViewReportsModule, currentRoleId, isSelfPortalRole, navigateToModule]);
 
-  useEffect(() => {
-    const loadShellSettings = async () => {
-      if (!isFirebaseConfigured) return;
-      try {
-        const [instituteData, settingsData] = await Promise.all([
-          getInstituteShellData().catch(() => null),
-          getSettingsData().catch(() => null),
-        ]);
-        if (instituteData) setInstitute(normalizeInstituteSettings(instituteData));
-        if (settingsData?.academicYear?.name) {
-          setAcademicYear((prev) => prev || settingsData.academicYear.name);
-        }
-      } catch (error) {
-        console.error('Unable to load live institute settings.', error);
-      }
-    };
-    loadShellSettings();
-  }, []);
 
   useEffect(() => {
     const updateInstituteFromSettings = (event) => {
@@ -378,66 +348,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
     return () => window.removeEventListener('institute-settings-updated', updateInstituteFromSettings);
   }, []);
 
-  useEffect(() => {
-    const loadStudentInformation = async () => {
-      if (!isFirebaseConfigured) {
-        setLoadError('Live Firebase data is not configured.');
-        return;
-      }
-      try {
-        const data = await getStudentInformationData(academicYear);
-        const nextStudents = data.students || [];
-        const nextAdmissions = data.admissions || [];
-        const nextDocuments = data.documents || [];
-        const nextPromotions = data.promotions || [];
-        const nextTransfers = data.transfers || [];
-        const nextAttendanceRecords = data.attendanceRecords || [];
-        const nextMarksEntries = data.marksEntries || [];
-        const nextStudentResults = data.studentResults || [];
-        const nextFeeAssignments = data.feeAssignments || [];
-        const nextFeeCollections = data.feeCollections || [];
-        const nextStudentHealthRecords = data.studentHealthRecords || [];
-        setStudents(nextStudents);
-        setSelectedId('');
-        setAdmissions(nextAdmissions);
-        setStudentDocuments(nextDocuments);
-        setPromotions(nextPromotions);
-        setTransfers(nextTransfers);
-        setAttendanceRecords(nextAttendanceRecords);
-        setMarksEntries(nextMarksEntries);
-        setStudentResults(nextStudentResults);
-        setFeeAssignments(nextFeeAssignments);
-        setFeeCollections(nextFeeCollections);
-        setStudentHealthRecords(nextStudentHealthRecords);
-        setCourses(buildCourseOptionsFromStudents(nextStudents, data.admissionBatches || []));
-        if (!academicYear) {
-          const liveYears = [
-            ...nextStudents,
-            ...nextAdmissions,
-            ...nextDocuments,
-            ...nextPromotions,
-            ...nextTransfers,
-            ...nextAttendanceRecords,
-            ...nextMarksEntries,
-            ...nextStudentResults,
-            ...nextFeeAssignments,
-            ...nextFeeCollections,
-            ...nextStudentHealthRecords,
-          ]
-            .map((record) => record?.academicYear)
-            .filter(Boolean)
-            .sort()
-            .reverse();
-          if (liveYears.length) setAcademicYear(liveYears[0]);
-        }
-        setLoadError('');
-      } catch (error) {
-        console.error('Unable to load live student records.', error);
-        setLoadError('Unable to load live student records.');
-      }
-    };
-    loadStudentInformation();
-  }, [academicYear]);
 
   const academicYearOptions = useMemo(() => [DEFAULT_ACADEMIC_YEAR, NEXT_ACADEMIC_YEAR], []);
 
@@ -544,331 +454,67 @@ export default function StudentInformationManagement({ user, onLogout }) {
     navigateToModule('students');
   };
 
-  const saveStudent = async (form) => {
-    if (!canCreateAdmission) {
-      toast.error('You do not have permission to create new admissions.');
-      return;
-    }
-
-    const validationMessage = validateStudentProfile(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const nextNumber = String(students.length + 1).padStart(5, '0');
-    const selectedAcademicYear = form.academicYear;
-    if (!selectedAcademicYear) {
-      toast.error('Academic year is required.');
-      return;
-    }
-    const createdAtText = formatDisplayDate();
-    const pendingStatus = normalizeCreatedAdmissionStatus();
-    const yearToken = selectedAcademicYear.replace(/\D/g, '') || String(new Date().getFullYear());
-    const payload = {
-      ...form,
-      admissionNo: `ADM-${yearToken}-${nextNumber}`,
-      studentId: `STU-${nextNumber}`,
-      institute: institute.name || user?.selectedCollege?.name || '',
-      academicYear: selectedAcademicYear,
-      status: pendingStatus,
-      admissionApprovalStatus: pendingStatus,
-      createdAtText,
-    };
-
-    try {
-      const id = await createStudent(payload);
-      if (!id) throw new Error('Missing student id.');
-      const created = { id, ...payload };
-      const admission = {
-        studentRecordId: created.id,
-        studentId: created.studentId,
-        admissionNo: created.admissionNo,
-        academicYear: selectedAcademicYear,
-        idHolder: created.idHolder,
-        courseCode: created.courseCode,
-        courseName: created.courseName,
-        courseYear: created.courseYear,
-        admissionType: created.admissionType,
-        collegeName: created.collegeName,
-        collegeCode: created.collegeCode,
-        admissionDate: created.admissionDate,
-        seatType: created.seatType,
-        actualCategory: created.actualCategory,
-        status: pendingStatus,
-        submittedAtText: createdAtText,
-      };
-      const admissionForm = {
-        studentRecordId: created.id,
-        studentId: created.studentId,
-        documentType: 'Admission Form',
-        academicYear: selectedAcademicYear,
-        uploadedBy: user?.name || 'Admin',
-        fileName: `${created.admissionNo}-admission-form.pdf`,
-        verificationStatus: 'Pending Review',
-        uploadedAtText: createdAtText,
-      };
-      const [admissionId, documentId] = await Promise.all([
-        createStudentAdmission(admission),
-        createStudentDocument(admissionForm),
-      ]);
-      if (!admissionId || !documentId) throw new Error('Missing admission support record id.');
-
-      setStudents((prev) => [created, ...prev]);
-      setAdmissions((prev) => [{ id: admissionId, ...admission }, ...prev]);
-      setStudentDocuments((prev) => [{ id: documentId, ...admissionForm }, ...prev]);
-      setAcademicYear(selectedAcademicYear);
-      setSelectedId(created.id);
-      toast.success('Student admission sent for Super Admin approval');
-      setShowModal(false);
-    } catch (error) {
-      console.error('Unable to save live student admission.', error);
-      toast.error('Student admission was not saved to live data.');
-    }
+  const saveStudent = async () => {
+    toast.error('Use the Students module to create admissions.');
   };
 
-  const saveStudentProfile = async (form) => {
-    if (!editingStudent) return;
-    if (!canEditStudents) {
-      toast.error('You do not have permission to edit student profiles.');
-      return;
-    }
-    const validationMessage = validateStudentProfile(form);
-    if (validationMessage) {
-      toast.error(validationMessage);
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const statusChanged = form.status !== editingStudent.status;
-    const normalizedStatus = normalizeEditableStudentStatus(form.status, currentRoleId);
-    if (statusChanged && normalizedStatus !== form.status) {
-      toast.error('Only Super Admin can approve or admit a student.');
-      return;
-    }
-
-    const updates = {
-      ...form,
-      status: statusChanged ? normalizedStatus : form.status,
-      updatedAtText: formatDisplayDate(),
-    };
-
-    try {
-      await updateStudent(editingStudent.id, updates);
-      setStudents((prev) => prev.map((student) => (
-        student.id === editingStudent.id ? { ...student, ...updates } : student
-      )));
-      toast.success('Student profile updated');
-      setEditingStudent(null);
-    } catch {
-      toast.error('Student profile was not saved to live data.');
-    }
+  const saveStudentProfile = async () => {
+    toast.error('Use the Students module to edit profiles.');
   };
 
-  const approveStudentAdmission = async (student) => {
-    if (!canApproveStudentAdmission(currentRoleId)) {
-      toast.error('Only Super Admin can approve admissions.');
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const approvedAtText = formatDisplayDate();
-    const studentUpdates = {
-      status: ACTIVE_STUDENT_STATUS,
-      admissionApprovalStatus: APPROVED_ADMISSION_STATUS,
-      approvedBy: user?.name || 'Super Admin',
-      approvedAtText,
-    };
-    const admission = latestRecord(admissions.filter((record) => relationMatches(record, student) && record.academicYear === student.academicYear));
-    const admissionUpdates = {
-      status: APPROVED_ADMISSION_STATUS,
-      approvedBy: user?.name || 'Super Admin',
-      approvedAtText,
-    };
-
-    try {
-      await Promise.all([
-        updateStudent(student.id, studentUpdates),
-        admission?.id ? updateStudentAdmission(admission.id, admissionUpdates) : Promise.resolve(),
-      ]);
-      setStudents((prev) => prev.map((item) => item.id === student.id ? { ...item, ...studentUpdates } : item));
-      if (admission?.id) {
-        setAdmissions((prev) => prev.map((item) => item.id === admission.id ? { ...item, ...admissionUpdates } : item));
-      }
-      toast.success('Student admission approved');
-    } catch {
-      toast.error('Student admission was not approved in live data.');
-    }
+  const approveStudentAdmission = async () => {
+    toast.error('Use the Students module to approve admissions.');
   };
 
-  const archiveSelectedStudent = async (student) => {
-    if (!canArchiveStudents) {
-      toast.error('You do not have permission to archive student records.');
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const archivedAtText = formatDisplayDate();
-    const updates = { status: 'Archived', archivedAtText };
-
-    try {
-      await archiveStudent(student.id, { archivedAtText });
-      setStudents((prev) => prev.map((item) => (
-        item.id === student.id ? { ...item, ...updates } : item
-      )));
-      const nextStudent = students.find((item) => item.id !== student.id && item.status !== 'Archived');
-      if (selectedId === student.id && nextStudent) setSelectedId(nextStudent.id);
-      toast.success('Student archived');
-    } catch {
-      toast.error('Student was not archived in live data.');
-    }
+  const archiveSelectedStudent = async () => {
+    toast.error('Use the Students module to archive students.');
   };
 
-  const restoreArchivedStudent = async (student) => {
-    if (!canArchiveStudents) {
-      toast.error('You do not have permission to restore student records.');
-      return;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return;
-    }
-
-    const restoredAtText = formatDisplayDate();
-    const restoredStatus = canApproveStudentAdmission(currentRoleId) ? ACTIVE_STUDENT_STATUS : PENDING_ADMISSION_STATUS;
-    const updates = { status: restoredStatus, restoredAtText };
-
-    try {
-      await restoreStudent(student.id, updates);
-      setStudents((prev) => prev.map((item) => (
-        item.id === student.id ? { ...item, ...updates } : item
-      )));
-      setSelectedId(student.id);
-      setStatusFilter('active');
-      toast.success('Student restored');
-    } catch {
-      toast.error('Student was not restored in live data.');
-    }
+  const restoreArchivedStudent = async () => {
+    toast.error('Use the Students module to restore students.');
   };
 
-  const saveStudentHealthRecord = async (form, existingRecord = null) => {
-    if (!selectedStudent) return false;
-    if (!isHealthRecordManager(currentRoleId)) {
-      toast.error('Only Admin and Super Admin can upload or edit health records.');
-      return false;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return false;
-    }
-
-    const savedAtText = formatDisplayDate();
-    const payload = {
-      ...form,
-      studentRecordId: selectedStudent.id,
-      studentId: selectedStudent.studentId,
-      studentName: selectedStudent.name,
-      academicYear: form.identification?.academicYear || academicYear || selectedStudent.academicYear || '',
-      courseCode: selectedStudent.courseCode || '',
-      courseName: selectedStudent.courseName || selectedStudent.program || '',
-      updatedBy: user?.name || 'Admin',
-      updatedAtText: savedAtText,
-    };
-
-    try {
-      if (existingRecord?.id) {
-        await updateStudentHealthRecord(existingRecord.id, payload);
-        setStudentHealthRecords((prev) => prev.map((record) => (
-          record.id === existingRecord.id ? { ...record, ...payload } : record
-        )));
-        toast.success('Student health record updated');
-      } else {
-        const createPayload = {
-          ...payload,
-          uploadedBy: user?.name || 'Admin',
-          uploadedAtText: savedAtText,
-        };
-        const id = await createStudentHealthRecord(createPayload);
-        if (!id) throw new Error('Missing health record id.');
-        setStudentHealthRecords((prev) => [{ id, ...createPayload }, ...prev]);
-        toast.success('Student health record uploaded');
-      }
-      return true;
-    } catch (error) {
-      console.error('Unable to save student health record.', error);
-      toast.error('Student health record was not saved to live data.');
-      return false;
-    }
+  const saveStudentHealthRecord = async () => {
+    toast.error('Use the Students module to manage health records.');
+    return false;
   };
 
-  const removeStudentHealthRecord = async (record) => {
-    if (!record?.id) return false;
-    if (!isHealthRecordManager(currentRoleId)) {
-      toast.error('Only Admin and Super Admin can delete health records.');
-      return false;
-    }
-    if (!isFirebaseConfigured) {
-      toast.error('Live Firebase data is not configured.');
-      return false;
-    }
-
-    try {
-      await deleteStudentHealthRecord(record.id);
-      setStudentHealthRecords((prev) => prev.filter((item) => item.id !== record.id));
-      toast.success('Student health record deleted');
-      return true;
-    } catch (error) {
-      console.error('Unable to delete student health record.', error);
-      toast.error('Student health record was not deleted from live data.');
-      return false;
-    }
+  const removeStudentHealthRecord = async () => {
+    toast.error('Use the Students module to delete health records.');
+    return false;
   };
 
   return (
-    <div className={`erp-shell ${themeMode === 'light' ? 'light-mode' : ''} h-screen overflow-hidden bg-white text-slate-900`}>
-        <div className="flex h-screen overflow-hidden">
+    <div className="tt-shell h-screen overflow-hidden">
           <Sidebar
             activePage={activePage}
-            activeSubmenuId={activeSubmenuId}
-            collapsed={sidebarCollapsed}
             currentUser={user}
-            institute={institute}
             onNavigate={navigateToModule}
-            onThemeToggle={() => setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-            onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-            themeMode={themeMode}
+            appName={institutionConfig?.branding?.name || institute?.name || 'Collegesoft'}
+            appLogo={institutionConfig?.branding?.logoUrl || institute?.logoUrl}
+            enabledModules={institutionConfig?.enabledModules ?? null}
           />
-          <main className="flex-1 min-w-0 h-screen overflow-hidden bg-[#f0f1f3] flex flex-col">
-            <TopHeader
-              academicYear={academicYear}
-              academicYears={academicYearOptions}
-              courseCode={effectiveSelectedCourseCode}
-              courses={headerCourses}
-              institute={institute}
-              onAcademicYearChange={setAcademicYear}
-              onCourseChange={(courseCode) => {
-                setSelectedCourseCode(courseCode);
-                setSelectedId('');
-              }}
-              user={{ ...user, selectedCollege: { ...user?.selectedCollege, name: institute.name, code: institute.instituteId || institute.code } }}
-              onLogout={onLogout}
-            />
+          <main className="tt-main h-screen overflow-hidden">
+            <div className="px-1 pt-1">
+              <TopHeader
+                title={activeModule?.label || 'Dashboard'}
+                academicYear={academicYear}
+                academicYears={academicYearOptions}
+                courseCode={effectiveSelectedCourseCode}
+                courses={headerCourses}
+                institute={institute}
+                onAcademicYearChange={setAcademicYear}
+                onCourseChange={(courseCode) => {
+                  setSelectedCourseCode(courseCode);
+                  setSelectedId('');
+                }}
+                user={{ ...user, selectedCollege: { ...user?.selectedCollege, name: institute.name, code: institute.instituteId || institute.code } }}
+                onLogout={onLogout}
+              />
+            </div>
 
-            <div className="erp-main-scroll flex-1 min-h-0 overflow-y-auto p-4 lg:p-5">
-              <section className="erp-workspace bg-white min-h-full p-5 lg:p-7">
+            <div className="tt-content no-scrollbar flex-1 min-h-0 overflow-y-auto">
+              <section className="min-h-full">
                 <ModuleErrorBoundary resetKey={activePage}>
                 <Suspense fallback={<ModuleLoadingState />}>
                 {!canOpenActiveModule ? (
@@ -910,8 +556,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
                   <div>
                     <div className="text-sm font-bold text-slate-500 mb-2">Academics / <span className="text-[#f39a5f]">Student Information Management</span></div>
                     <h1 className="text-2xl font-bold text-slate-900">Student Information Management</h1>
-                    {!isFirebaseConfigured && <p className="text-xs text-orange-600 mt-2">Live Firebase data is not configured.</p>}
-                    {loadError && <p className="text-xs text-rose-600 mt-2">{loadError}</p>}
                   </div>
                   {canCreateAdmission && (
                     <button
@@ -988,6 +632,8 @@ export default function StudentInformationManagement({ user, onLogout }) {
                 )
                 ) : activePage === 'admissions' ? (
                   <AdmissionsManagement currentUser={user} academicYear={academicYear} />
+                ) : activePage === 'placements' ? (
+                  <PlacementsManagement currentUser={user} />
                 ) : activePage === 'reports' ? (
                   <ReportsManagement
                     key={`reports-${location.state?.reportCategory || 'default'}`}
@@ -1106,7 +752,6 @@ export default function StudentInformationManagement({ user, onLogout }) {
               </span>
             </footer>
           </main>
-        </div>
       {showModal && (
         <StudentModal
           academicYearOptions={academicYearOptions}
@@ -1450,7 +1095,7 @@ function StudentDetailPage({
       <button
         type="button"
         onClick={() => setShowAllDetails((open) => !open)}
-        className="mb-5 h-12 px-6 rounded-lg bg-[#00ff88] text-[#02100d] border border-emerald-300 font-extrabold text-sm shadow-[0_0_22px_rgba(0,255,136,0.35)] hover:bg-emerald-300 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+        className="mb-5 h-12 px-6 rounded-lg bg-brand-700 text-white font-extrabold text-sm hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100"
       >
         {showAllDetails ? 'Hide all details' : 'View all details'}
       </button>

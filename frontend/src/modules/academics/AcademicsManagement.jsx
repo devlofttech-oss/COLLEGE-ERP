@@ -108,7 +108,7 @@ function statusClasses(value) {
   const normalized = String(value || '').toLowerCase();
   if (normalized === 'archived') return 'bg-slate-100 text-slate-600 border-slate-200';
   if (normalized === 'inactive') return 'bg-amber-50 text-amber-700 border-amber-200';
-  return 'bg-[#81f3e5]/35 text-[#006f66] border-[#81f3e5]/50';
+  return 'bg-emerald-50 text-emerald-700 border-emerald-200';
 }
 
 function labelFor(list, id, fallback = '-') {
@@ -204,7 +204,7 @@ function AcademicsModal({ activeResource, data, defaultAcademicYear, initialReco
 
   const renderField = (field) => {
     const value = form[field.key] ?? (field.type === 'checkbox' ? false : '');
-    const commonClass = 'w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20';
+    const commonClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100';
 
     if (field.type === 'textarea') {
       return <textarea value={value} onChange={(event) => update(field.key, event.target.value)} className={`${commonClass} py-3`} rows={3} placeholder={field.placeholder || field.label} />;
@@ -265,8 +265,8 @@ function AcademicsModal({ activeResource, data, defaultAcademicYear, initialReco
 
     if (field.type === 'checkbox') {
       return (
-        <label className="flex min-h-11 items-center gap-3 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
-          <input type="checkbox" checked={Boolean(value)} onChange={(event) => update(field.key, event.target.checked)} className="h-4 w-4 rounded border-white/40 text-[#006a62]" />
+        <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm font-semibold text-slate-900">
+          <input type="checkbox" checked={Boolean(value)} onChange={(event) => update(field.key, event.target.checked)} className="h-4 w-4 rounded border-slate-200 text-emerald-600" />
           Mark as current
         </label>
       );
@@ -276,28 +276,28 @@ function AcademicsModal({ activeResource, data, defaultAcademicYear, initialReco
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#071e27]/50 p-4 backdrop-blur-sm">
-      <form onSubmit={submit} className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/30 bg-[#f3faff]/85 shadow-[0_30px_90px_rgba(7,30,39,.22)] backdrop-blur-2xl">
-        <div className="flex items-start justify-between border-b border-white/35 px-6 py-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+      <form onSubmit={submit} className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,.15)]">
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase text-[#006a62]">Academics</p>
-            <h2 className="mt-1 text-xl font-bold text-[#003434]">{isEdit ? 'Edit' : 'Create'} {config.singular}</h2>
+            <p className="text-[11px] font-bold uppercase text-brand-500">Academics</p>
+            <h2 className="mt-1 text-xl font-bold text-slate-900">{isEdit ? 'Edit' : 'Create'} {config.singular}</h2>
           </div>
-          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full bg-white/45 text-[#3f4848] hover:bg-white">x</button>
+          <button type="button" onClick={onClose} className="h-9 w-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">×</button>
         </div>
         <div className="grid max-h-[62vh] gap-4 overflow-y-auto p-6 sm:grid-cols-2">
           {fieldConfig[activeResource].map((field) => (
             <label key={field.key} className={field.type === 'textarea' ? 'sm:col-span-2' : ''}>
-              <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">
+              <span className="mb-1.5 block text-xs font-bold text-slate-500">
                 {field.label}{field.required ? ' *' : ''}
               </span>
               {renderField(field)}
             </label>
           ))}
         </div>
-        <div className="flex justify-end gap-3 border-t border-white/35 px-6 py-4">
-          <button type="button" onClick={onClose} className="h-10 rounded-xl border border-white/50 bg-white/40 px-5 text-sm font-bold text-[#3f4848]">Cancel</button>
-          <button type="submit" className="h-10 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
+        <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+          <button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 bg-slate-100 px-5 text-sm font-bold text-slate-500">Cancel</button>
+          <button type="submit" className="h-10 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]">
             Save {config.singular}
           </button>
         </div>
@@ -479,22 +479,14 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
     <div className="erp-academics-page min-w-0">
       <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase text-[#3f4848]">
-            <span>Management</span>
-            <span>/</span>
-            <span className="text-[#006a62]">Academics</span>
-          </div>
-          <h1 className="font-['Montserrat'] text-3xl font-bold text-[#003434]">Academic Configuration</h1>
-          <p className="mt-2 text-sm text-[#3f4848]">
-            Backend-backed setup for academic years, courses, classes, sections, subjects, and teacher allocations.
-          </p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-600">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Academics</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <button
           type="button"
           onClick={openCreate}
           disabled={!canManage || loading || saving}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-5 text-sm font-bold text-white shadow-[0_14px_30px_rgba(0,77,77,.2)] disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           <Plus size={17} /> Add {activeTab.singular}
         </button>
@@ -502,17 +494,16 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
 
       <div className="grid grid-cols-12 gap-6">
         <aside className="col-span-12 space-y-6 lg:col-span-3">
-          <section className="erp-glass-card relative overflow-hidden rounded-[28px] p-6">
-            <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-[#81f3e5]/30 blur-2xl" />
-            <div className="relative flex items-start justify-between">
-            <span className="text-[11px] font-bold uppercase text-[#3f4848]">Current Cycle</span>
-              <CalendarDays className="text-[#006a62]" size={20} />
+          <section className="tt-card relative overflow-hidden rounded-2xl p-6">
+            <div className="flex items-start justify-between">
+            <span className="text-[11px] font-bold uppercase text-slate-500">Current Cycle</span>
+              <CalendarDays className="text-emerald-600" size={20} />
             </div>
-            <h2 className="relative mt-4 font-['Montserrat'] text-2xl font-bold text-[#003434]">{currentYear?.name || defaultAcademicYear || '-'}</h2>
-            <p className="relative mt-1 text-sm text-[#3f4848]">{currentYear?.startDate ? `Starts ${currentYear.startDate}` : 'No current academic year selected.'}</p>
+            <h2 className="mt-4 text-2xl font-bold text-slate-900">{currentYear?.name || defaultAcademicYear || '-'}</h2>
+            <p className="mt-1 text-sm text-slate-500">{currentYear?.startDate ? `Starts ${currentYear.startDate}` : 'No current academic year selected.'}</p>
           </section>
 
-          <section className="erp-glass-card rounded-[24px] p-2">
+          <section className="tt-card p-2">
             {resourceTabs.map((tab) => {
               const Icon = tab.icon;
               const active = activeResource === tab.id;
@@ -522,7 +513,7 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
                   key={tab.id}
                   onClick={() => setActiveResource(tab.id)}
                   className={`mb-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition last:mb-0 ${
-                    active ? 'bg-[#004d4d] font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]' : 'text-[#3f4848] hover:bg-white/40'
+                    active ? 'bg-brand-700 font-bold text-white shadow-[0_12px_24px_rgba(0,77,77,.18)]' : 'text-slate-500 hover:bg-slate-200'
                   }`}
                 >
                   <Icon size={18} />
@@ -532,17 +523,17 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
             })}
           </section>
 
-          <section className="erp-glass-card rounded-[28px] p-6">
-            <p className="mb-4 text-[11px] font-bold uppercase text-[#3f4848]">Backend Module Snapshot</p>
+          <section className="tt-card p-6">
+            <p className="mb-4 text-[11px] font-bold uppercase text-slate-500">Backend Module Snapshot</p>
             <div className="space-y-3">
               {resourceTabs.map((tab) => (
                 <div key={tab.id}>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#3f4848]">{tab.label}</span>
-                    <b className="text-[#003434]">{loading ? '-' : snapshot[tab.id]}</b>
+                    <span className="text-slate-500">{tab.label}</span>
+                    <b className="text-slate-800">{loading ? '-' : snapshot[tab.id]}</b>
                   </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/35">
-                    <div className="h-full rounded-full bg-[#004d4d]" style={{ width: `${Math.min(100, Math.max(8, snapshot[tab.id] * 12))}%` }} />
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-50">
+                    <div className="h-full rounded-full bg-brand-700" style={{ width: `${Math.min(100, Math.max(8, snapshot[tab.id] * 12))}%` }} />
                   </div>
                 </div>
               ))}
@@ -550,24 +541,24 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
           </section>
         </aside>
 
-        <section className="erp-glass-card col-span-12 overflow-hidden rounded-[28px] lg:col-span-9">
-          <div className="flex flex-col gap-4 border-b border-white/35 bg-white/10 p-5 xl:flex-row xl:items-center xl:justify-between">
+        <section className="tt-card col-span-12 overflow-hidden rounded-2xl lg:col-span-9">
+          <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 p-5 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-[#003434]">{activeTab.label}</h2>
-              <p className="text-sm text-[#3f4848]">Create, update, archive, and restore records supported by `/api/academics`.</p>
+              <h2 className="text-lg font-bold text-slate-800">{activeTab.label}</h2>
+              <p className="text-sm text-slate-500">Create, update, archive, and restore records supported by `/api/academics`.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <label className="flex h-10 items-center gap-2 rounded-full border border-white/40 bg-white/35 px-3 text-xs font-semibold text-[#3f4848]">
-                <input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} className="h-4 w-4 rounded border-white/50 text-[#006a62]" />
+              <label className="flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
+                <input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} className="h-4 w-4 rounded border-slate-200 text-emerald-600" />
                 Include archived
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={17} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={`Search ${activeTab.label.toLowerCase()}...`}
-                  className="h-10 w-full rounded-full border border-white/40 bg-white/35 pl-10 pr-4 text-sm text-[#071e27] outline-none focus:border-[#006a62] focus:ring-4 focus:ring-[#66d9cc]/20 sm:w-72"
+                  className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 sm:w-72"
                 />
               </div>
             </div>
@@ -576,18 +567,18 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
-                <tr className="bg-[#004d4d]/5 text-[11px] uppercase text-[#044f4f]">
-                  <th className="border-b border-white/35 px-5 py-4">Name</th>
-                  <th className="border-b border-white/35 px-5 py-4">Reference</th>
-                  <th className="border-b border-white/35 px-5 py-4">Context</th>
-                  <th className="border-b border-white/35 px-5 py-4">Status</th>
-                  <th className="border-b border-white/35 px-5 py-4 text-right">Actions</th>
+                <tr className="bg-slate-50 text-[11px] uppercase text-slate-500">
+                  <th className="border-b border-slate-100 px-5 py-4">Name</th>
+                  <th className="border-b border-slate-100 px-5 py-4">Reference</th>
+                  <th className="border-b border-slate-100 px-5 py-4">Context</th>
+                  <th className="border-b border-slate-100 px-5 py-4">Status</th>
+                  <th className="border-b border-slate-100 px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/25">
+              <tbody className="divide-y divide-slate-100">
                 {loading && (
                   <tr>
-                    <td colSpan="5" className="px-5 py-12 text-center text-[#3f4848]">
+                    <td colSpan="5" className="px-5 py-12 text-center text-slate-500">
                       <span className="inline-flex items-center gap-2 font-semibold"><Loader2 className="animate-spin" size={16} /> Loading academics...</span>
                     </td>
                   </tr>
@@ -596,16 +587,16 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
                   const [name, reference, context] = renderCells(item);
                   const status = displayStatus(item);
                   return (
-                    <tr key={item.id} className="transition hover:bg-white/25">
-                      <td className="px-5 py-4 font-bold text-[#071e27]">{name || '-'}</td>
-                      <td className="px-5 py-4 text-[#3f4848]">{reference || '-'}</td>
-                      <td className="px-5 py-4 text-[#3f4848]">{context || '-'}</td>
+                    <tr key={item.id} className="transition hover:bg-slate-50">
+                      <td className="px-5 py-4 font-bold text-slate-900">{name || '-'}</td>
+                      <td className="px-5 py-4 text-slate-500">{reference || '-'}</td>
+                      <td className="px-5 py-4 text-slate-500">{context || '-'}</td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase ${statusClasses(status)}`}>
                           {status}
                         </span>
                         {activeResource === 'academicYears' && item.isCurrent && (
-                          <span className="ml-2 inline-flex rounded-full border border-[#81f3e5]/50 bg-[#81f3e5]/30 px-3 py-1 text-[11px] font-bold uppercase text-[#006f66]">
+                          <span className="ml-2 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase text-emerald-700">
                             Current
                           </span>
                         )}
@@ -613,14 +604,14 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           {activeResource === 'academicYears' && !item.archived && !item.isCurrent && (
-                            <button type="button" onClick={() => markCurrentYear(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-white/35 text-[#006a62] hover:bg-white disabled:opacity-40" title="Set current">
+                            <button type="button" onClick={() => markCurrentYear(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-slate-50 text-emerald-600 hover:bg-white disabled:opacity-40" title="Set current">
                               <CheckCircle2 className="mx-auto" size={16} />
                             </button>
                           )}
-                          <button type="button" onClick={() => openEdit(item)} disabled={!canManage || item.archived} className="h-9 w-9 rounded-lg bg-white/35 text-[#3f4848] hover:bg-white disabled:opacity-40" title="Edit">
+                          <button type="button" onClick={() => openEdit(item)} disabled={!canManage || item.archived} className="h-9 w-9 rounded-lg bg-slate-50 text-slate-500 hover:bg-white disabled:opacity-40" title="Edit">
                             <Pencil className="mx-auto" size={16} />
                           </button>
-                          <button type="button" onClick={() => archiveOrRestore(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-white/35 text-[#3f4848] hover:bg-white disabled:opacity-40" title={item.archived ? 'Restore' : 'Archive'}>
+                          <button type="button" onClick={() => archiveOrRestore(item)} disabled={!canManage} className="h-9 w-9 rounded-lg bg-slate-50 text-slate-500 hover:bg-white disabled:opacity-40" title={item.archived ? 'Restore' : 'Archive'}>
                             {item.archived ? <RotateCcw className="mx-auto" size={16} /> : <Archive className="mx-auto" size={16} />}
                           </button>
                         </div>
@@ -630,7 +621,7 @@ export default function AcademicsManagement({ currentUser, academicYear = '' }) 
                 })}
                 {!loading && !rows.length && (
                   <tr>
-                    <td colSpan="5" className="px-5 py-12 text-center text-[#3f4848]">No {activeTab.label.toLowerCase()} found.</td>
+                    <td colSpan="5" className="px-5 py-12 text-center text-slate-500">No {activeTab.label.toLowerCase()} found.</td>
                   </tr>
                 )}
               </tbody>

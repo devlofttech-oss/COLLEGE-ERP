@@ -3,6 +3,7 @@ import {
   Bell,
   BarChart3,
   BookOpen,
+  Briefcase,
   Files,
   GraduationCap,
   LayoutDashboard,
@@ -28,6 +29,7 @@ export const moduleDisplayOrder = [
   'communication',
   'files',
   'fees',
+  'placements',
   'reports',
   'academics',
   'user-roles',
@@ -216,6 +218,15 @@ export const moduleRegistry = [
     hideFromSidebar: true,
   },
   {
+    id: 'placements',
+    label: 'Placements',
+    path: '/modules/placements',
+    group: 'Daily Work',
+    icon: Briefcase,
+    status: 'active',
+    permission: 'placements.manage',
+  },
+  {
     id: 'settings',
     label: 'Settings',
     path: '/modules/settings',
@@ -251,5 +262,38 @@ export function getModuleByPath(path) {
 
 export function getCanonicalModulePath(id) {
   return getModuleById(id)?.path || null;
+}
+
+// Maps a frontend module id to its backend module id (for /api/institution/config
+// enabledModules gating). null = no backend equivalent → always shown (core/admin
+// or frontend-only extras).
+export const backendModuleId = {
+  dashboard: 'dashboard',
+  students: 'students',
+  admissions: 'admissions',
+  'faculty-staff': 'staff',
+  attendance: 'attendance',
+  timetable: 'timetable',
+  'examination-results': 'examinations',
+  results: 'results',
+  communication: 'communication',
+  files: null,
+  fees: 'fees',
+  placements: 'placements',
+  reports: 'reports',
+  academics: 'academics',
+  'user-roles': null,
+  roles: null,
+  'my-portal': null,
+  settings: 'settings',
+};
+
+// Fail-safe: with no enabledModules (config missing/unreachable) everything shows,
+// so tenant gating can never accidentally hide the whole app.
+export function isModuleEnabledForInstitution(frontendId, enabledModules) {
+  if (!Array.isArray(enabledModules)) return true;
+  const backendId = backendModuleId[frontendId];
+  if (backendId == null) return true;
+  return enabledModules.includes(backendId);
 }
 

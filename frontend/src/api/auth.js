@@ -17,3 +17,7 @@ export async function logoutSession() {
 export async function requestPasswordReset(email) {
   return api.post('/auth/password-reset', { email });
 }
+
+export async function logoutEverywhere() {
+  await api.post('/auth/logout-everywhere', {});
+}

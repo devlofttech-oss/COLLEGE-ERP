@@ -108,19 +108,19 @@ async function optionalLoad(loader, fallback) {
 
 function SummaryCard({ icon, label, loading, value }) {
   return (
-    <div className="erp-glass-card rounded-2xl p-5">
+    <div className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase text-[#3f4848]">{label}</span>
+        <span className="text-[11px] font-bold uppercase text-slate-500">{label}</span>
         {icon}
       </div>
-      <div className="mt-3 font-['Montserrat'] text-2xl font-bold text-[#003434]">{loading ? '-' : value}</div>
+      <div className="mt-3 text-2xl font-bold text-slate-900">{loading ? '-' : value}</div>
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#bfc8c8] bg-white/35 p-8 text-center text-sm font-semibold text-[#3f4848]">
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
       {message}
     </div>
   );
@@ -155,47 +155,47 @@ function SelectionPanel({
   const selectedSchedule = schedules.find((schedule) => schedule.examId === selectedExamId && schedule.classId === selectedClassId);
 
   return (
-    <section className="erp-glass-card rounded-2xl p-5">
+    <section className="tt-card p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-[#003434]">Result Processing</h2>
-        <button type="button" onClick={onRefresh} className="inline-flex h-9 items-center gap-2 rounded-xl bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+        <h2 className="text-sm font-bold text-slate-900">Result Processing</h2>
+        <button type="button" onClick={onRefresh} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 text-xs font-bold text-brand-700">
           <RefreshCcw size={14} /> Refresh
         </button>
       </div>
       <div className="mt-4 grid gap-4">
         <label>
-          <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Exam *</span>
-          <select value={selectedExamId} onChange={(event) => setSelectedExamId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+          <span className="mb-1.5 block text-xs font-bold text-slate-500">Exam *</span>
+          <select value={selectedExamId} onChange={(event) => setSelectedExamId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
             <option value="">Select exam</option>
             {exams.map((exam) => <option key={exam.id} value={exam.id}>{examLabel(exam)}</option>)}
           </select>
         </label>
         <label>
-          <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Class *</span>
-          <select value={selectedClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+          <span className="mb-1.5 block text-xs font-bold text-slate-500">Class *</span>
+          <select value={selectedClassId} onChange={(event) => setSelectedClassId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
             <option value="">Select class</option>
             {classes.map((klass) => <option key={klass.id} value={klass.id}>{classLabel(klass)}</option>)}
           </select>
         </label>
-        <div className="rounded-xl bg-white/40 p-4 text-sm font-semibold text-[#3f4848]">
+        <div className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
           <p className="text-xs font-bold uppercase">Matching Schedule</p>
-          <p className="mt-2 text-[#071e27]">{selectedSchedule ? scheduleLabel(selectedSchedule) : 'No schedule selected from this exam/class.'}</p>
+          <p className="mt-2 text-slate-900">{selectedSchedule ? scheduleLabel(selectedSchedule) : 'No schedule selected from this exam/class.'}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {canProcess && (
-            <button type="button" onClick={onProcess} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+            <button type="button" onClick={onProcess} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
               {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Process
             </button>
           )}
           {canPublish && (
             <>
-              <button type="button" onClick={onPublish} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-3 text-xs font-bold text-white">
+              <button type="button" onClick={onPublish} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-3 text-xs font-bold text-white">
                 <BadgeCheck size={14} /> Publish
               </button>
-              <button type="button" onClick={onLock} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+              <button type="button" onClick={onLock} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-brand-700">
                 <Lock size={14} /> Lock
               </button>
-              <button type="button" onClick={onUnlock} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+              <button type="button" onClick={onUnlock} disabled={!selectionReady || loading || saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-brand-700">
                 <Unlock size={14} /> Unlock
               </button>
             </>
@@ -208,14 +208,14 @@ function SelectionPanel({
 
 function ResultsTable({ loading, onOpenReportCard, results }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex items-center justify-between border-b border-white/35 px-5 py-4">
-        <h2 className="text-sm font-bold text-[#003434]">Processed Results</h2>
-        <span className="text-xs font-bold uppercase text-[#3f4848]">{results.length} listed</span>
+    <section className="tt-card overflow-hidden rounded-2xl">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <h2 className="text-sm font-bold text-slate-900">Processed Results</h2>
+        <span className="text-xs font-bold uppercase text-slate-500">{results.length} listed</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[940px] text-sm">
-          <thead className="bg-[#004d4d] text-left text-white">
+          <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="px-5 py-3">Rank</th>
               <th className="px-5 py-3">Student</th>
@@ -229,17 +229,17 @@ function ResultsTable({ loading, onOpenReportCard, results }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan="9" className="px-5 py-10 text-center text-sm font-semibold text-[#3f4848]"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading results...</td></tr>}
+            {loading && <tr><td colSpan="9" className="px-5 py-10 text-center text-sm font-semibold text-slate-500"><Loader2 className="mr-2 inline animate-spin" size={16} /> Loading results...</td></tr>}
             {!loading && results.map((result) => (
               <tr key={result.id || `${result.examId}-${result.studentId}`}>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{valueOrDash(result.rank)}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{valueOrDash(result.rank)}</td>
                 <td className="px-5 py-4">
-                  <p className="font-bold text-[#071e27]">{valueOrDash(result.studentName)}</p>
-                  <p className="text-xs text-[#3f4848]">{valueOrDash(result.studentId)}</p>
+                  <p className="font-bold text-slate-900">{valueOrDash(result.studentName)}</p>
+                  <p className="text-xs text-slate-500">{valueOrDash(result.studentId)}</p>
                 </td>
-                <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(result.marksObtained)} / {valueOrDash(result.totalMarks)}</td>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{formatPercentage(result.percentage)}</td>
-                <td className="px-5 py-4 font-bold text-[#071e27]">{valueOrDash(result.grade)}</td>
+                <td className="px-5 py-4 text-slate-500">{valueOrDash(result.marksObtained)} / {valueOrDash(result.totalMarks)}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{formatPercentage(result.percentage)}</td>
+                <td className="px-5 py-4 font-bold text-slate-900">{valueOrDash(result.grade)}</td>
                 <td className="px-5 py-4">
                   <span className={cx('rounded-full border px-3 py-1 text-[11px] font-bold uppercase', resultStatusClasses(result.status))}>{valueOrDash(result.status)}</span>
                 </td>
@@ -247,7 +247,7 @@ function ResultsTable({ loading, onOpenReportCard, results }) {
                 <td className="px-5 py-4"><ToggleBadge label={result.locked ? 'Yes' : 'No'} tone={result.locked ? 'yes' : 'no'} /></td>
                 <td className="px-5 py-4">
                   <div className="flex justify-end">
-                    <button type="button" onClick={() => onOpenReportCard(result)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]">
+                    <button type="button" onClick={() => onOpenReportCard(result)} className="inline-flex h-8 items-center gap-2 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700">
                       <Eye size={13} /> Open
                     </button>
                   </div>
@@ -264,32 +264,32 @@ function ResultsTable({ loading, onOpenReportCard, results }) {
 
 function GradeSettingsPanel({ academicYear, canProcess, gradeDraft, onAddBand, onRemoveBand, onSave, onUpdateBand, onUpdateDraft, saving }) {
   return (
-    <section className="erp-glass-card overflow-hidden rounded-2xl">
-      <div className="flex flex-col gap-3 border-b border-white/35 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="tt-card overflow-hidden rounded-2xl">
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-bold text-[#003434]">Grade Settings</h2>
-          <p className="mt-1 text-xs font-semibold text-[#3f4848]">Used by backend result processing.</p>
+          <h2 className="text-sm font-bold text-slate-900">Grade Settings</h2>
+          <p className="mt-1 text-xs font-semibold text-slate-500">Used by backend result processing.</p>
         </div>
         {canProcess && (
-          <button type="button" onClick={onSave} disabled={saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-xs font-bold text-white">
+          <button type="button" onClick={onSave} disabled={saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-xs font-bold text-white">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save Settings
           </button>
         )}
       </div>
       <div className="grid gap-5 p-5 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="rounded-xl bg-white/40 p-4">
+        <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
           <label>
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Academic Year *</span>
-            <input value={gradeDraft.academicYear} onChange={(event) => onUpdateDraft('academicYear', event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27]" placeholder={academicYear} />
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Academic Year *</span>
+            <input value={gradeDraft.academicYear} onChange={(event) => onUpdateDraft('academicYear', event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900" placeholder={academicYear} />
           </label>
           <label className="mt-4 block">
-            <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Pass Mark</span>
-            <input type="number" min="0" max="100" value={gradeDraft.passMark} onChange={(event) => onUpdateDraft('passMark', event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27]" />
+            <span className="mb-1.5 block text-xs font-bold text-slate-500">Pass Mark</span>
+            <input type="number" min="0" max="100" value={gradeDraft.passMark} onChange={(event) => onUpdateDraft('passMark', event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900" />
           </label>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
-            <thead className="bg-[#004d4d] text-left text-white">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-5 py-3">Grade</th>
                 <th className="px-5 py-3">Minimum %</th>
@@ -300,14 +300,14 @@ function GradeSettingsPanel({ academicYear, canProcess, gradeDraft, onAddBand, o
               {gradeDraft.bands.map((band, index) => (
                 <tr key={`${band.grade}-${index}`}>
                   <td className="px-5 py-4">
-                    <input value={band.grade} onChange={(event) => onUpdateBand(index, 'grade', event.target.value)} className="h-10 w-28 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-bold text-[#071e27]" />
+                    <input value={band.grade} onChange={(event) => onUpdateBand(index, 'grade', event.target.value)} className="h-10 w-28 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm outline-none focus:border-brand-500 font-bold text-slate-900" />
                   </td>
                   <td className="px-5 py-4">
-                    <input type="number" min="0" max="100" value={band.min} onChange={(event) => onUpdateBand(index, 'min', event.target.value)} className="h-10 w-28 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27]" />
+                    <input type="number" min="0" max="100" value={band.min} onChange={(event) => onUpdateBand(index, 'min', event.target.value)} className="h-10 w-28 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm outline-none focus:border-brand-500 text-slate-900" />
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex justify-end">
-                      <button type="button" onClick={() => onRemoveBand(index)} disabled={!canProcess || gradeDraft.bands.length <= 1} className="h-8 rounded-lg bg-white/55 px-3 text-xs font-bold text-[#004d4d]">Remove</button>
+                      <button type="button" onClick={() => onRemoveBand(index)} disabled={!canProcess || gradeDraft.bands.length <= 1} className="h-8 rounded-lg bg-white border border-slate-200 px-3 text-xs font-bold text-brand-700">Remove</button>
                     </div>
                   </td>
                 </tr>
@@ -315,7 +315,7 @@ function GradeSettingsPanel({ academicYear, canProcess, gradeDraft, onAddBand, o
             </tbody>
           </table>
           {canProcess && (
-            <button type="button" onClick={onAddBand} className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-white/50 bg-white/45 px-3 text-xs font-bold text-[#004d4d]">
+            <button type="button" onClick={onAddBand} className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 text-xs font-bold text-brand-700">
               <ClipboardList size={14} /> Add Band
             </button>
           )}
@@ -344,29 +344,29 @@ function ReportCardPanel({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-      <section className="erp-glass-card rounded-2xl p-5">
-        <h2 className="text-sm font-bold text-[#003434]">Report Card Lookup</h2>
+      <section className="tt-card p-5">
+        <h2 className="text-sm font-bold text-slate-900">Report Card Lookup</h2>
         <label className="mt-4 block">
-          <span className="mb-1.5 block text-xs font-bold text-[#3f4848]">Student *</span>
-          <select value={selectedReportStudentId} onChange={(event) => setSelectedReportStudentId(event.target.value)} className="w-full min-h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm text-[#071e27] outline-none">
+          <span className="mb-1.5 block text-xs font-bold text-slate-500">Student *</span>
+          <select value={selectedReportStudentId} onChange={(event) => setSelectedReportStudentId(event.target.value)} className="w-full min-h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm text-slate-900 outline-none">
             <option value="">Select student</option>
             {results.map((result) => <option key={result.studentId} value={result.studentId}>{result.studentName || result.studentId}</option>)}
             {!results.length && students.map((student) => <option key={student.id} value={student.id}>{studentLabel(student)}</option>)}
           </select>
         </label>
-        <button type="button" onClick={onLoadReportCard} disabled={!canView || !selectedReportStudentId || loading} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-xs font-bold text-white">
+        <button type="button" onClick={onLoadReportCard} disabled={!canView || !selectedReportStudentId || loading} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-xs font-bold text-white">
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Load
         </button>
-        <div className="mt-4 rounded-xl bg-white/40 p-4 text-sm font-semibold text-[#3f4848]">
+        <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
           <p className="text-xs font-bold uppercase">Selected</p>
-          <p className="mt-2 text-[#071e27]">{selectedResult?.studentName || studentLabel(selectedStudent) || '-'}</p>
+          <p className="mt-2 text-slate-900">{selectedResult?.studentName || studentLabel(selectedStudent) || '-'}</p>
         </div>
       </section>
-      <section className="erp-glass-card rounded-2xl p-5">
+      <section className="tt-card p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-sm font-bold text-[#003434]">Report Card</h2>
+          <h2 className="text-sm font-bold text-slate-900">Report Card</h2>
           {pdfHref && (
-            <a href={pdfHref} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-[#004d4d] px-4 text-xs font-bold text-white">
+            <a href={pdfHref} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-xs font-bold text-white">
               <Download size={14} /> PDF
             </a>
           )}
@@ -376,14 +376,14 @@ function ReportCardPanel({
         ) : (
           <div className="mt-5 grid gap-4">
             <div className="grid gap-3 sm:grid-cols-4">
-              <SummaryCard icon={<GraduationCap size={18} className="text-[#006a62]" />} label="Student" loading={false} value={reportCard.studentName || reportCard.studentId} />
-              <SummaryCard icon={<BarChart3 size={18} className="text-[#006a62]" />} label="Percentage" loading={false} value={formatPercentage(reportCard.percentage)} />
-              <SummaryCard icon={<BadgeCheck size={18} className="text-[#006a62]" />} label="Grade" loading={false} value={reportCard.grade || '-'} />
-              <SummaryCard icon={<ClipboardList size={18} className="text-[#006a62]" />} label="Rank" loading={false} value={reportCard.rank || '-'} />
+              <SummaryCard icon={<GraduationCap size={18} className="text-brand-500" />} label="Student" loading={false} value={reportCard.studentName || reportCard.studentId} />
+              <SummaryCard icon={<BarChart3 size={18} className="text-brand-500" />} label="Percentage" loading={false} value={formatPercentage(reportCard.percentage)} />
+              <SummaryCard icon={<BadgeCheck size={18} className="text-brand-500" />} label="Grade" loading={false} value={reportCard.grade || '-'} />
+              <SummaryCard icon={<ClipboardList size={18} className="text-brand-500" />} label="Rank" loading={false} value={reportCard.rank || '-'} />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
-                <thead className="bg-[#004d4d] text-left text-white">
+                <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Subject</th>
                     <th className="px-5 py-3">Marks</th>
@@ -393,25 +393,25 @@ function ReportCardPanel({
                 <tbody>
                   {(reportCard.subjects || []).map((subject) => (
                     <tr key={subject.subjectId || subject.subjectName}>
-                      <td className="px-5 py-4 font-bold text-[#071e27]">{valueOrDash(subject.subjectName || subject.subjectId)}</td>
-                      <td className="px-5 py-4 text-[#3f4848]">{valueOrDash(subject.marksObtained)} / {valueOrDash(subject.maxMarks)}</td>
+                      <td className="px-5 py-4 font-bold text-slate-900">{valueOrDash(subject.subjectName || subject.subjectId)}</td>
+                      <td className="px-5 py-4 text-slate-500">{valueOrDash(subject.marksObtained)} / {valueOrDash(subject.maxMarks)}</td>
                       <td className="px-5 py-4"><ToggleBadge label={subject.absent ? 'Yes' : 'No'} tone={subject.absent ? 'no' : 'yes'} /></td>
                     </tr>
                   ))}
-                  {!reportCard.subjects?.length && <tr><td colSpan="3" className="px-5 py-8 text-center text-sm font-semibold text-[#3f4848]">No subject marks found.</td></tr>}
+                  {!reportCard.subjects?.length && <tr><td colSpan="3" className="px-5 py-8 text-center text-sm font-semibold text-slate-500">No subject marks found.</td></tr>}
                 </tbody>
               </table>
             </div>
             <div>
-              <h3 className="mb-3 text-sm font-bold text-[#003434]">History</h3>
+              <h3 className="mb-3 text-sm font-bold text-slate-900">History</h3>
               <div className="grid gap-2">
                 {history.map((item) => (
-                  <div key={item.id || `${item.examId}-${item.rank}`} className="flex items-center justify-between rounded-xl bg-white/40 p-3 text-sm">
-                    <span className="font-bold text-[#071e27]">{valueOrDash(item.examId)}</span>
-                    <span className="text-[#3f4848]">{formatPercentage(item.percentage)} | {item.grade} | Rank {valueOrDash(item.rank)}</span>
+                  <div key={item.id || `${item.examId}-${item.rank}`} className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm">
+                    <span className="font-bold text-slate-900">{valueOrDash(item.examId)}</span>
+                    <span className="text-slate-500">{formatPercentage(item.percentage)} | {item.grade} | Rank {valueOrDash(item.rank)}</span>
                   </div>
                 ))}
-                {!history.length && <p className="rounded-xl bg-white/40 p-3 text-sm font-semibold text-[#3f4848]">No result history found.</p>}
+                {!history.length && <p className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm font-semibold text-slate-500">No result history found.</p>}
               </div>
             </div>
           </div>
@@ -696,32 +696,30 @@ export default function ResultsManagement({
 
   if (!canView) {
     return (
-      <div className="erp-results-page">
+      <div className="min-w-0">
         <EmptyState message="You do not have permission to view results." />
       </div>
     );
   }
 
   return (
-    <div className="erp-results-page">
+    <div className="min-w-0">
       <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[11px] font-bold uppercase text-[#006a62]">Academic Office</p>
-          <h1 className="mt-1 font-['Montserrat'] text-3xl font-bold text-[#003434]">Results & Grading</h1>
-          <p className="mt-2 text-sm font-semibold text-[#3f4848]">{effectiveAcademicYear || 'All academic years'}</p>
-          {loadError && <p className="mt-2 text-xs font-semibold text-rose-700">{loadError}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">Results &amp; Grading</h1>
+          {loadError && <p className="mt-1 text-xs font-semibold text-rose-600">{loadError}</p>}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6f7978]" size={16} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-full border border-white/40 bg-white/45 pl-10 pr-4 text-sm font-semibold text-[#071e27] outline-none sm:w-72" placeholder="Search results" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 w-full rounded-full border border-slate-200 bg-[#f8f9fa] pl-10 pr-4 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 sm:w-72" placeholder="Search results" />
           </div>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500">
             <option value="">All status</option>
             <option value="Pass">Pass</option>
             <option value="Fail">Fail</option>
           </select>
-          <select value={publishedFilter} onChange={(event) => setPublishedFilter(event.target.value)} className="h-11 rounded-xl border border-white/40 bg-white/45 px-3 text-sm font-semibold text-[#071e27]">
+          <select value={publishedFilter} onChange={(event) => setPublishedFilter(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-[#f8f9fa] px-3 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500">
             <option value="">All publish states</option>
             <option value="true">Published</option>
             <option value="false">Unpublished</option>
@@ -730,10 +728,10 @@ export default function ResultsManagement({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={<GraduationCap size={20} className="text-[#006a62]" />} label="Results" loading={loading} value={results.length} />
-        <SummaryCard icon={<CheckCircle2 size={20} className="text-[#006a62]" />} label="Passed" loading={loading} value={passCount} />
-        <SummaryCard icon={<BadgeCheck size={20} className="text-[#006a62]" />} label="Published" loading={loading} value={publishedCount} />
-        <SummaryCard icon={<BarChart3 size={20} className="text-[#006a62]" />} label="Average" loading={loading} value={formatPercentage(averagePercentage)} />
+        <SummaryCard icon={<GraduationCap size={20} className="text-brand-500" />} label="Results" loading={loading} value={results.length} />
+        <SummaryCard icon={<CheckCircle2 size={20} className="text-brand-500" />} label="Passed" loading={loading} value={passCount} />
+        <SummaryCard icon={<BadgeCheck size={20} className="text-brand-500" />} label="Published" loading={loading} value={publishedCount} />
+        <SummaryCard icon={<BarChart3 size={20} className="text-brand-500" />} label="Average" loading={loading} value={formatPercentage(averagePercentage)} />
       </div>
 
       <div className="my-5 flex flex-wrap gap-2">
@@ -746,7 +744,7 @@ export default function ResultsManagement({
               onClick={() => setActiveTab(tab.id)}
               className={cx(
                 'inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold transition',
-                activeTab === tab.id ? 'bg-[#004d4d] text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-white/45 text-[#004d4d]'
+                activeTab === tab.id ? 'bg-brand-700 text-white shadow-[0_12px_28px_rgba(0,77,77,.18)]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
               <Icon size={16} /> {tab.label}
@@ -811,7 +809,7 @@ export default function ResultsManagement({
       )}
 
       {lockedCount > 0 && activeTab === 'results' && (
-        <p className="mt-4 text-xs font-semibold text-[#3f4848]">{lockedCount} listed result{lockedCount === 1 ? '' : 's'} currently locked.</p>
+        <p className="mt-4 text-xs font-semibold text-slate-500">{lockedCount} listed result{lockedCount === 1 ? '' : 's'} currently locked.</p>
       )}
     </div>
   );

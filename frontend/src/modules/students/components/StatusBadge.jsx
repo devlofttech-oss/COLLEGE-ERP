@@ -49,7 +49,7 @@ export default function StatusBadge({ value }) {
   };
 
   return (
-    <span className={`inline-flex rounded-md border px-2.5 py-1 text-[11px] font-semibold ${classes[value] || classes.Active}`}>
+    <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${classes[value] || classes.Active}`}>
       {value}
     </span>
   );
