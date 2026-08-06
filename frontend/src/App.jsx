@@ -176,7 +176,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return undefined; // backend settings require an authenticated session
+    if (!user || user.role === 'super-admin') return undefined;
     let active = true;
     const loadInstitute = async () => {
       try {
