@@ -32,6 +32,8 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  app.get('/', (req, res) => res.json({ status: 'ok', service: 'College ERP API' }));
+
   app.use('/api', apiRouter);
 
   app.use(notFound);
