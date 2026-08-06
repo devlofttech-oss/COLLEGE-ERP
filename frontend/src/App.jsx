@@ -22,7 +22,7 @@ function buildCollegeFromInstitute(institute = {}) {
 
 function CollegeSelection({ colleges, onSelect }) {
   return (
-    <main className="relative z-[1] min-h-screen bg-[#f1f2f4] flex items-center justify-center p-6">
+    <main className="relative z-1 min-h-screen bg-[#f1f2f4] flex items-center justify-center p-6">
       <section className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-[0_18px_60px_rgba(15,23,42,0.12)] overflow-hidden">
         <div className="bg-[#1b1f21] text-white p-7 flex items-center gap-4">
           <div className="h-14 w-14 rounded-full bg-white text-emerald-700 flex items-center justify-center shrink-0">
@@ -61,7 +61,7 @@ function CollegeSelection({ colleges, onSelect }) {
 function AccessPending({ user, onLogout }) {
   const status = user?.status || 'Pending Approval';
   return (
-    <main className="relative z-[1] min-h-screen bg-[#f1f2f4] flex items-center justify-center p-6">
+    <main className="relative z-1 min-h-screen bg-[#f1f2f4] flex items-center justify-center p-6">
       <section className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-[0_18px_60px_rgba(15,23,42,0.12)] p-7 text-center">
         <div className="h-14 w-14 rounded-full bg-[#33373e] text-white flex items-center justify-center mx-auto mb-5">
           <GraduationCap size={30} />
